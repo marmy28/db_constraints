@@ -1,0 +1,26 @@
+{
+	"name": "db_extensions",
+	"description": "User defined attributes and mixin templates to build a class database.",
+	"copyright": "Copyright © 2015, matthew",
+	"authors": ["Matthew Armbruster"],
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"targetType": "library",
+			"name": "library",
+			"excludedSourceFiles": [
+				"source/app.d"
+			]
+		},
+		{
+			"targetType": "executable",
+			"dflags": [
+				"-main"
+			],
+			"name": "unittest",
+			"excludedSourceFiles": [
+				"source/app.d"
+			]
+		}
+	]
+}

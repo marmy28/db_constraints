@@ -4,6 +4,7 @@
 	"copyright": "Copyright © 2015, matthew",
 	"authors": ["Matthew Armbruster"],
 	"version": "0.0.1",
+	"mainSourceFile": "source/app.d",
 	"configurations": [
 		{
 			"targetType": "library",

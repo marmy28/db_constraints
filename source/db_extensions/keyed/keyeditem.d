@@ -1,17 +1,19 @@
 module db_extensions.keyed.keyeditem;
 
-//import std.signals;
-//import std.traits;
-//import std.stdio;
-//import std.string;
-//import std.array;
-import std.typecons : Flag, No;
-struct PrimaryKeyColumn {};
-struct UniqueColumn {};
+import std.typecons : Flag, Yes;
+struct PrimaryKeyColumn
+{
+    string name = "PrimaryKey";
+    @disable this(string pName);
+}
+struct UniqueColumn(string constraint_name)
+{
+	enum name = constraint_name;
+}
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
 
-mixin template KeyedItem(T, Flag!"useUniqueColumn" useUniqueColumn = Flag!"useUniqueColumn".no)
+mixin template KeyedItem(T)
 {
     import std.array;
     import std.signals;
@@ -51,6 +53,73 @@ private:
         }
         return result;
     }
+
+/**
+   Gets the properties of the class that start with Attr. This returns an
+   associative array which can be used to make up the struct. Currently this is
+   under development.
+ */
+    static string[][string] get_Columns(string Attr)()
+    {
+        import std.string : format;
+        import std.array;
+        import std.algorithm : startsWith;
+        string[][string] result;
+        foreach(member; __traits(derivedMembers, T))
+        {
+            // the following excluded members are
+            // part of Signals and not the connected class
+            static if (member != "connect" &&
+                       member != "slot_t" &&
+                       member != "slots" &&
+                       member != "slots_idx" &&
+                       member != "__dtor" &&
+                       member != "unhook" &&
+                       member != "disconnect" &&
+                       member != "emit")
+            {
+                enum fullName = format(`%s.%s`, T.stringof, member);
+                foreach(attr; __traits(getAttributes, mixin(fullName)))
+                {
+                    static if (attr.stringof.startsWith(Attr))
+                    {
+                        pragma(msg, fullName, " is ", attr.name);
+                        result[attr.name] ~= format("%s", member);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+/**
+   Returns a string full of the structs. Currently under development.
+ */
+    static string createType(string class_name, string Attr)()
+    {
+        string result = "";
+        enum aa = get_Columns!(Attr)();
+        // currently fails if there is more than one key...
+        foreach(key; aa.keys)
+        {
+            result ~= "private:\n";
+            result ~= "    " ~ key ~ " _" ~ key ~ "_key;\n";
+            result ~= "public:\n";
+            result ~= "    struct " ~ key ~ "\n";
+            result ~= "    {\n";
+            foreach(columnName; aa[key])
+            {
+                result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+            }
+            result ~= "        import db_extensions.keyed.generickey;\n";
+            result ~= "        mixin generic_compare!(" ~ key ~ ");\n";
+            result ~= "    }\n";
+            result ~= "    " ~ key ~ " " ~ key ~ "_key() const @property nothrow pure @safe @nogc\n";
+            result ~= "    {\n";
+            result ~= "        return _" ~ key ~ "_key;\n";
+            result ~= "    }\n";
+        }
+        return result;
+    }
 protected:
     void markAsSaved() nothrow pure @safe @nogc
     {
@@ -73,16 +142,10 @@ public:
         {
             setPrimaryKey();
         }
-        static if (useUniqueColumn)
-        {
-            if (getColumns!(UniqueColumn).canFind(propertyName))
-            {
-                setUnique();
-            }
-        }
         _containsChanges = true;
         simple.emit(propertyName);
     }
+
     // this struct is made at compile time from the class
     struct PrimaryKey
     {
@@ -145,54 +208,9 @@ public:
         return _key.toHash();
     }
 
-    static if (useUniqueColumn)
-    {
-        static assert(!getColumns!(UniqueColumn).empty, "Must have unique columns to use the unique part of the mixin.");
-    private:
-        Unique _unique;
-    public:
-        mixin Signal!(Unique, Unique) unique_constraint;
-        struct Unique
-        {
-            import db_extensions.keyed.generickey;
-            // creates the members of the unique constraint with appropriate type.
-            mixin(function string()
-                  {
-                      import std.string;
-                      string result = "";
-                      foreach(uqcolumn; getColumns!(UniqueColumn))
-                      {
-                          result ~= format("typeof(%s.%s) %s;", T.stringof, uqcolumn, uqcolumn);
-                      }
-                      return result;
-                  }());
-            mixin generic_compare!(Unique);
-        }
-
-        Unique unique() const @property nothrow pure @safe @nogc
-        {
-            return _unique;
-        }
-        void setUnique()
-        {
-            auto new_unique = Unique();
-            mixin(function string()
-                  {
-                      import std.string;
-                      string result = "";
-                      foreach(uqcolumn; getColumns!(UniqueColumn))
-                      {
-                          result ~= format("new_unique.%s = this.%s;", uqcolumn, uqcolumn);
-                      }
-                      return result;
-                  }());
-            if (this._unique != Unique.init)
-            {
-                unique_constraint.emit(this._unique, new_unique);
-            }
-            this._unique = new_unique;
-        }
-    }
+    //pragma(msg, createType!(T.stringof, "UniqueColumn!"));
+    // Can only produce 1 unique struct since compile time does not work with associative arrays.
+    mixin(createType!(T.stringof, "UniqueColumn!"));
 }
 
 version(unittest)
@@ -202,7 +220,7 @@ private:
     string _cName;
     int _nNumClasses;
 public:
-    string cName() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+    string cName() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
     {
         return _cName;
     }
@@ -214,7 +232,7 @@ public:
             notify("cName");
         }
     }
-    int nNumClasses() const @property nothrow pure @safe @nogc
+    int nNumClasses() const @property @UniqueColumn!("uc_Student") nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }
@@ -253,7 +271,7 @@ public:
         writeln("cName = ", cName,
                 ", nNumClasses = ", nNumClasses);
     }
-    mixin KeyedItem!(typeof(this), No.useUniqueColumn);
+    mixin KeyedItem!(typeof(this));
 }
 
 
@@ -293,4 +311,12 @@ unittest
     assert(i != j.key);
     j.cName = "Jean";
     assert(i == j.key);
+}
+unittest
+{
+    auto i = new Student("Tom", 0);
+    auto j = new Student("Jake", 0);
+    assert(i.key != j.key);
+    assert(i != j);
+    assert(i.uc_Student_key == j.uc_Student_key);
 }

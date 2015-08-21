@@ -88,7 +88,7 @@ DDOC_PSYMBOL          = $(U $0)
 DDOC_PSUPER_SYMBOL    = $(U $0)
 DDOC_KEYWORD          = $(B $0)
 DDOC_PARAM            = $(I $0)
-DDOC_BACKQUOTED       = $(D_INLINECODE $0)
+DDOC_BACKQUOTED       = $(D $0)
 
 ESCAPES = /</&lt;/
           />/&gt;/

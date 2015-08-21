@@ -12,7 +12,7 @@ struct PrimaryKeyColumn
 {
     /// PrimaryKeyColumn must have the name PrimaryKey.
     string name = "PrimaryKey";
-    /// Cannot change the name of `this`.
+    /// Disabled. Cannot change the name of `this`.
     @disable this(string pName);
 }
 /**
@@ -25,6 +25,7 @@ Bugs:
  */
 struct UniqueColumn(string constraint_name)
 {
+    /// The name of the constraint.
 	enum name = constraint_name;
 }
 
@@ -177,6 +178,8 @@ Returns:
 Notifies `this` which property changed. If the property is
 part of the primary key then the primary key is updated.
 This also emits a signal with the property name that changed.
+Params:
+    propertyName = the property name that changed.
  */
     void notify(string propertyName)
     {
@@ -190,9 +193,14 @@ This also emits a signal with the property name that changed.
     }
 
     // this struct is made at compile time from the class
+/**
+Primary key struct created at compile-time.
+This is used to compare classes. The members
+are the members of the class marked with
+@PrimaryKeyColumn().
+ */
     struct PrimaryKey
     {
-        // make invariant for not null
         import db_extensions.keyed.generickey;
         // creates the members of the primary key with appropriate type.
         mixin(function string()
@@ -205,13 +213,25 @@ This also emits a signal with the property name that changed.
                   }
                   return result;
               }());
+        // adds the generic comparison for structs
         mixin generic_compare!(PrimaryKey);
     }
 
+/**
+The primary key property for the class.
+Returns:
+    The primary key for the class.
+ */
     PrimaryKey key() const @property nothrow pure @safe @nogc
     {
         return _key;
     }
+
+/**
+Sets the primary key for `this`. This also emits a
+signal if it is not the first time setting the
+primary key for `this`.
+ */
     void setPrimaryKey()
     {
         auto new_key = PrimaryKey();
@@ -231,11 +251,21 @@ This also emits a signal with the property name that changed.
         }
         this._key = new_key;
     }
+/**
+Compares `this` based on the primary key.
+Returns:
+    true if the primary keys equal.
+ */
     override bool opEquals(Object o) const pure nothrow @nogc
     {
         auto rhs = cast(immutable T)o;
         return (rhs !is null && this.key == rhs.key);
     }
+/**
+Compares `this` based on the primary key if comparison is with the same class.
+Returns:
+    The comparison from the primary key.
+ */
     override int opCmp(Object o) const
     {
         // Taking advantage of the automatically-maintained order of the types.
@@ -246,16 +276,26 @@ This also emits a signal with the property name that changed.
         auto rhs = cast(const T)o;
         return this.key.opCmp(rhs.key);
     }
+/**
+Gets the hash of the primary key.
+Returns:
+    The hash of the primary key.
+ */
     override size_t toHash() const nothrow @safe
     {
         return _key.toHash();
     }
 
-    //pragma(msg, createType!(T.stringof, "UniqueColumn!"));
-    // Can only produce 1 unique struct since compile time does not work with associative arrays.
+/**
+Creates the struct for the Unique Columns.
+Bugs:
+    Can only produce 1 unique struct since compile-time
+    does not work with associative arrays.
+ */
     mixin(createType!(T.stringof, "UniqueColumn!"));
 }
 
+///
 version(unittest)
 class Student
 {
@@ -317,12 +357,13 @@ public:
     mixin KeyedItem!(typeof(this));
 }
 
-
+///
 unittest
 {
     auto i = new Student("Tom", 8);
     assert(i.isValid);
 }
+///
 unittest
 {
     auto i = new Student("Tom", 8);
@@ -332,12 +373,14 @@ unittest
     i.markAsSaved();
     assert(!i.containsChanges);
 }
+///
 unittest
 {
     auto i = new Student("Tom", 0);
     auto j = new Student("Tom", 7);
     assert(i == j);
 }
+///
 unittest
 {
     auto i = new Student("Tom", 0);
@@ -345,6 +388,7 @@ unittest
     assert(i != j);
     assert(i > j);
 }
+///
 unittest
 {
     auto i = Student.PrimaryKey("Jean");
@@ -355,6 +399,7 @@ unittest
     j.cName = "Jean";
     assert(i == j.key);
 }
+///
 unittest
 {
     auto i = new Student("Tom", 0);

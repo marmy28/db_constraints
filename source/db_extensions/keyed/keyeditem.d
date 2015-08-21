@@ -1,11 +1,28 @@
 module db_extensions.keyed.keyeditem;
 
 import std.typecons : Flag, Yes;
+
+/**
+User-defined attribute that can be used with KeyedItem. KeyedItem
+will create a struct made up of all of the properties marked with
+@PrimaryKeyColumn() which can be used with KeyedCollection as
+keys in an associative array.
+ */
 struct PrimaryKeyColumn
 {
+    /// PrimaryKeyColumn must have the name PrimaryKey.
     string name = "PrimaryKey";
+    /// Cannot change the name of `this`.
     @disable this(string pName);
 }
+/**
+User-defined attribute that can be used with KeyedItem. KeyedItem
+will create a struct with name defined in the compile-time argument.
+For example a property marked with @UniqueColumn!("uc_Person") will
+be part of the struct uc_Person.
+Bugs:
+    Can only make one UniqueColumn struct.
+ */
 struct UniqueColumn(string constraint_name)
 {
 	enum name = constraint_name;
@@ -13,6 +30,10 @@ struct UniqueColumn(string constraint_name)
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
 
+/**
+Use this in the singular class which would describe a row in your
+database.
+ */
 mixin template KeyedItem(T)
 {
     import std.array;
@@ -22,8 +43,10 @@ private:
     PrimaryKey _key;
 
 /**
-   Gets the properties of the class marked with @Attr.
-   This is used to generate the primary key struct and/or the Unique column struct.
+Gets the properties of the class marked with @Attr.
+Deprecated:
+    This will be phased out soon. Instead I will use get_Columns.
+    Currently only the primary key uses this.
  */
     static string[] getColumns(Attr)()
     {
@@ -55,9 +78,12 @@ private:
     }
 
 /**
-   Gets the properties of the class that start with Attr. This returns an
-   associative array which can be used to make up the struct. Currently this is
-   under development.
+Gets the properties of the class that start with Attr.
+Returns:
+    An associative array with the structs name as the key and an
+    array of strings of the structs members.
+Bugs:
+    Currently this is under development.
  */
     static string[][string] get_Columns(string Attr)()
     {
@@ -92,7 +118,9 @@ private:
         return result;
     }
 /**
-   Returns a string full of the structs. Currently under development.
+Returns a string full of the structs.
+Bugs:
+    Currently under development.
  */
     static string createType(string class_name, string Attr)()
     {
@@ -121,11 +149,20 @@ private:
         return result;
     }
 protected:
+/**
+Changes `this` to not contain changes. Should only
+be used after a save.
+ */
     void markAsSaved() nothrow pure @safe @nogc
     {
         _containsChanges = false;
     }
 public:
+/**
+Read-only property telling if `this` contains changes.
+Returns:
+    true if `this` contains changes.
+ */
     bool containsChanges() @property nothrow pure @safe @nogc
     {
         return _containsChanges;
@@ -135,6 +172,12 @@ public:
 
     mixin Signal!(string) simple;
     mixin Signal!(PrimaryKey, PrimaryKey) primary_key;
+
+/**
+Notifies `this` which property changed. If the property is
+part of the primary key then the primary key is updated.
+This also emits a signal with the property name that changed.
+ */
     void notify(string propertyName)
     {
         import std.algorithm : canFind;

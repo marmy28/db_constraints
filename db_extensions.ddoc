@@ -81,6 +81,7 @@ DDOC_PARAM_ROW        = $(TR $0)
 DDOC_PARAM_ID         = $(TD $0)
 DDOC_PARAM_DESC       = $(TD $0)
 DDOC_BLANKLINE        = $(BR)$(BR)
+D                     = <code class="prettyprint lang-d">$0</code>
 
 DDOC_ANCHOR           = <a name="$1"></a>
 DDOC_PSYMBOL          = $(U $0)

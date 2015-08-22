@@ -149,15 +149,6 @@ Bugs:
         }
         return result;
     }
-protected:
-/**
-Changes `this` to not contain changes. Should only
-be used after a save.
- */
-    void markAsSaved() nothrow pure @safe @nogc
-    {
-        _containsChanges = false;
-    }
 public:
 /**
 Read-only property telling if `this` contains changes.
@@ -167,6 +158,14 @@ Returns:
     bool containsChanges() @property nothrow pure @safe @nogc
     {
         return _containsChanges;
+    }
+/**
+Changes `this` to not contain changes. Should only
+be used after a save.
+ */
+    void markAsSaved() nothrow pure @safe @nogc
+    {
+        _containsChanges = false;
     }
 
     static assert(!getColumns!(PrimaryKeyColumn).empty, "Must have primary key columns to use this mixin.");
@@ -261,6 +260,7 @@ Returns:
         auto rhs = cast(immutable T)o;
         return (rhs !is null && this.key == rhs.key);
     }
+
 /**
 Compares `this` based on the primary key if comparison is with the same class.
 Returns:
@@ -276,6 +276,8 @@ Returns:
         auto rhs = cast(const T)o;
         return this.key.opCmp(rhs.key);
     }
+
+
 /**
 Gets the hash of the primary key.
 Returns:
@@ -285,126 +287,68 @@ Returns:
     {
         return _key.toHash();
     }
-
-/**
-Creates the struct for the Unique Columns.
-Bugs:
-    Can only produce 1 unique struct since compile-time
-    does not work with associative arrays.
- */
     mixin(createType!(T.stringof, "UniqueColumn!"));
 }
 
-///
-version(unittest)
-class Student
-{
-private:
-    string _cName;
-    int _nNumClasses;
-public:
-    string cName() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
-    {
-        return _cName;
-    }
-    void cName(immutable(char)[] value) @property
-    {
-        if (value != _cName)
-        {
-            _cName = value;
-            notify("cName");
-        }
-    }
-    int nNumClasses() const @property @UniqueColumn!("uc_Student") nothrow pure @safe @nogc
-    {
-        return _nNumClasses;
-    }
-    void nNumClasses(immutable(int) value) @property
-    {
-        if (value != _nNumClasses)
-        {
-            _nNumClasses = value;
-            notify("nNumClasses");
-        }
-    }
 
-    this(immutable(char)[] pcName, immutable(int) pnNumClasses)
-    {
+// might move this all into one unit test.
+// version(unittest)
+// class Student
+// {
+// private:
+//     string _cName;
+//     int _nNumClasses;
+// public:
+//     string cName() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+//     {
+//         return _cName;
+//     }
+//     void cName(immutable(char)[] value) @property
+//     {
+//         if (value != _cName)
+//         {
+//             _cName = value;
+//             notify("cName");
+//         }
+//     }
+//     int nNumClasses() const @property @UniqueColumn!("uc_Student") nothrow pure @safe @nogc
+//     {
+//         return _nNumClasses;
+//     }
+//     void nNumClasses(immutable(int) value) @property
+//     {
+//         if (value != _nNumClasses)
+//         {
+//             _nNumClasses = value;
+//             notify("nNumClasses");
+//         }
+//     }
 
-        this._cName = pcName;
-        this._nNumClasses = pnNumClasses;
-        setPrimaryKey();
-    }
-    Student dup() const
-    {
-        return new Student(this._cName, this._nNumClasses);
-    }
+//     this(immutable(char)[] pcName, immutable(int) pnNumClasses)
+//     {
 
-    bool isValid() const nothrow pure @safe @nogc
-    {
-        if (this._cName.length > 13)
-        {
-            return false;
-        }
-        return true;
-    }
-    void printInfo()
-    {
-        import std.stdio: writeln;
-        writeln("cName = ", cName,
-                ", nNumClasses = ", nNumClasses);
-    }
-    mixin KeyedItem!(typeof(this));
-}
+//         this._cName = pcName;
+//         this._nNumClasses = pnNumClasses;
+//         setPrimaryKey();
+//     }
+//     Student dup() const
+//     {
+//         return new Student(this._cName, this._nNumClasses);
+//     }
 
-///
-unittest
-{
-    auto i = new Student("Tom", 8);
-    assert(i.isValid);
-}
-///
-unittest
-{
-    auto i = new Student("Tom", 8);
-    assert(!i.containsChanges);
-    i.cName = "What";
-    assert(i.containsChanges);
-    i.markAsSaved();
-    assert(!i.containsChanges);
-}
-///
-unittest
-{
-    auto i = new Student("Tom", 0);
-    auto j = new Student("Tom", 7);
-    assert(i == j);
-}
-///
-unittest
-{
-    auto i = new Student("Tom", 0);
-    auto j = new Student("Jake", 7);
-    assert(i != j);
-    assert(i > j);
-}
-///
-unittest
-{
-    auto i = Student.PrimaryKey("Jean");
-    assert(i.cName == "Jean");
-    assert(typeid(i.cName) == typeid(string));
-    auto j = new Student("Tom", 8);
-    assert(i != j.key);
-    j.cName = "Jean";
-    assert(i == j.key);
-}
-///
-unittest
-{
-    auto i = new Student("Tom", 0);
-    auto j = new Student("Jake", 0);
-    assert(i.key != j.key);
-    assert(i != j);
-    assert(i.uc_Student_key == j.uc_Student_key);
-}
+//     bool isValid() const nothrow pure @safe @nogc
+//     {
+//         if (this._cName.length > 13)
+//         {
+//             return false;
+//         }
+//         return true;
+//     }
+//     void printInfo()
+//     {
+//         import std.stdio: writeln;
+//         writeln("cName = ", cName,
+//                 ", nNumClasses = ", nNumClasses);
+//     }
+//     mixin KeyedItem!(typeof(this));
+// }

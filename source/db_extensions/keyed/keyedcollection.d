@@ -1,24 +1,106 @@
 module db_extensions.keyed.keyedcollection;
 
 import std.signals;
-import std.typecons;
+import std.traits;
 
 import db_extensions.keyed.keyeditem;
-import tests.student;
+import db_extensions.extra.db_exceptions;
 
+/**
+Turns the inheriting class into a base keyed collection.
+The key is based on the singular class' Primary Key.
+Params:
+    $(D T) must have a dup property, a primary key, and
+    a key property. The primary key and key are created
+    when you include the keyeditem in your class.
+ */
 abstract class BaseKeyedCollection(T)
+    if (hasMember!(T, "dup") &&
+        hasMember!(T, "PrimaryKey") &&
+        hasMember!(T, "key")
+        )
 {
 private:
     bool _containsChanges;
 
+    void keyChanged(T.PrimaryKey oldPK, T.PrimaryKey newPK)
+    {
+        T item = this._items[oldPK].dup();
+        this._items.remove(oldPK);
+        this._items[newPK] = item;
+    }
+    T[T.PrimaryKey] _items;
+public:
+/**
+Changes `this` to not contain changes. Should only
+be used after a save.
+ */
+    void markAsSaved() nothrow pure @safe @nogc
+    {
+        _containsChanges = false;
+    }
+/**
+Read-only property telling if `this` contains changes.
+Returns:
+    true if `this` contains changes.
+ */
+    bool containsChanges() @property nothrow pure @safe @nogc
+    {
+        return _containsChanges;
+    }
+    mixin Signal!(string);
+/**
+Notifies `this` which property changed. If the property is
+part of the primary key then the primary key is updated.
+This also emits a signal with the property name that changed.
+Params:
+    propertyName = the property name that changed.
+ */
+    void notify(string propertyName)
+    {
+        _containsChanges = true;
+        emit(propertyName);
+        debug(signal) writeln("You changed ", propertyName);
+    }
+/**
+Adds `item` to `this` and connects to the signals emitted by `item`.
+Notifies that the length of `this` has changed.
+Params:
+    item = the item you want to add to `this`.
+Throws:
+    PrimaryKeyException if `this` already contains `item`.
+ */
     void add(T item)
     {
-        // verify key is not already used
-        // make PrimaryKey exception
+        if (this.contains(item))
+        {
+            throw new PrimaryKeyException(item.toString ~ " was added again.");
+        }
         item.simple.connect(&notify);
         item.primary_key.connect(&keyChanged);
         this._items[item.key] = item;
+        notify("length");
     }
+    /// ditto
+    this(T item)
+    {
+        this.add(item);
+        this._containsChanges = false;
+    }
+    /// ditto
+    ref auto opOpAssign(string op)(T item)
+        if (op == "~")
+    {
+        this.add(item);
+    }
+/**
+Adds `items` to `this` and connects to the signals emitted by each item.
+Notifies that the length of `this` has changed.
+Params:
+    items = the items you want to add to `this`.
+Throws:
+    PrimaryKeyException if `this` already contains `item`.
+ */
     void add(T[] items)
     {
         foreach(item; items)
@@ -26,49 +108,52 @@ private:
             this.add(item);
         }
     }
-    void keyChanged(T.PrimaryKey oldPK, T.PrimaryKey newPK)
+    /// ditto
+    this(T[] items)
     {
-        T item = this._items[oldPK].dup();
-        this._items.remove(oldPK);
-        this._items[newPK] = item;
+        this.add(items);
+        this._containsChanges = false;
     }
-protected:
-    T[T.PrimaryKey] _items;
-    void markAsSaved() nothrow pure @safe @nogc
-    {
-        _containsChanges = false;
-    }
-public:
-    bool containsChanges() @property nothrow pure @safe @nogc
-    {
-        return _containsChanges;
-    }
-    mixin Signal!(string);
-    void notify(string propertyName)
-    {
-        _containsChanges = true;
-        emit(propertyName);
-        debug(signal) writeln("You changed ", propertyName);
-    }
-    ref auto opOpAssign(string op)(T item)
+    /// ditto
+    ref auto opOpAssign(string op)(T[] items)
         if (op == "~")
     {
-        this.add(item);
-        notify("length");
+        this.add(items);
     }
+/**
+Gets the approriate `T` that equals `item`.
+Params:
+    item = the item you want back from the collection.
+Returns:
+    The item in the collection that matches `item`.
+ */
     ref T opIndex(T item) nothrow pure @safe
     {
         return this._items[item.key];
     }
-    ref T opIndex(T.PrimaryKey k)
+/**
+Gets the approriate `T` that has primary key `pk`.
+Params:
+    pk = the primary key of the item you want back.
+Returns:
+    The item in the collection that has primary key `pk`.
+ */
+    ref T opIndex(T.PrimaryKey pk)
     {
-        return this._items[k];
+        return this._items[pk];
     }
+/**
+Forwards all methods not specified by this abstract class
+to the private associative array.
+ */
     auto opDispatch(string name, T...)(T t)
     {
         debug(dispatch) pragma(msg, "opDispatch", name);
         return mixin("this._items." ~ name ~ "(t)");
     }
+/**
+Allows you to use `this` in a foreach loop.
+ */
     int opApply(int delegate(ref T) dg)
     {
         int result = 0;
@@ -80,50 +165,198 @@ public:
         }
         return result;
     }
+    /// ditto
     int opApply(int delegate(T.PrimaryKey, ref T) dg)
     {
         int result = 0;
         foreach(T i; this._items.values)
         {
-            //ssert(i.key == j); make sure key and actual key are equal
             result = dg(i.key, i);
             if (result)
                 break;
         }
         return result;
     }
+/**
+Gets the length of the collection.
+Returns:
+    The number of items in the collection.
+ */
+    size_t length() @property @safe nothrow pure
+    {
+        return this._items.length;
+    }
+/**
+Checks if `item` is in the collection.
+Params:
+    item = the item you want to see is in the collection.
+Returns:
+    true if `item` is in the collection.
+ */
+    bool contains(T item) nothrow pure @safe @nogc
+    {
+        return this.contains(item.key);
+    }
+    /// ditto
     bool opBinaryRight(string op)(T item) nothrow pure @safe @nogc
         if (op == "in")
     {
         return this.contains(item);
     }
-    bool opBinaryRight(string op)(T.PrimaryKey item) nothrow pure @safe @nogc
-        if (op == "in")
+/**
+Checks if `pk` is in the collection.
+Params:
+    pk = the primary key of the item you want
+    to see is in the collection.
+Returns:
+    true if there is a primary key in the collection that
+    matches `pk`.
+ */
+    bool contains(T.PrimaryKey pk) nothrow pure @safe @nogc
     {
-        return this.contains(item);
-    }
-    size_t length() @property @safe nothrow pure
-    {
-        return this._items.length;
-    }
-    bool contains(T item) nothrow pure @safe @nogc
-    {
-        return this.contains(item.key);
-    }
-    bool contains(T.PrimaryKey k) nothrow pure @safe @nogc
-    {
-        auto i = (k in this._items);
+        auto i = (pk in this._items);
         return (i !is null);
     }
-    this(T item)
+    /// ditto
+    bool opBinaryRight(string op)(T.PrimaryKey pk) nothrow pure @safe @nogc
+        if (op == "in")
     {
-        this.add(item);
-    }
-    this(T[] items)
-    {
-        this.add(items);
+        return this.contains(pk);
     }
 }
 
+///
+unittest
+{
+    // singular class
+    class Candy
+    {
+    private:
+        string _name;
+        int _ranking;
+        int _annualSales;
+        string _brand;
+    public:
+        string name() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+        {
+            return _name;
+        }
+        void name(string value) @property
+        {
+            if (value != _name)
+            {
+                _name = value;
+                notify("name");
+            }
+        }
+        int ranking() const @property nothrow pure @safe @nogc
+        {
+            return _ranking;
+        }
+        void ranking(int value) @property
+        {
+            if (value != _ranking)
+            {
+                _ranking = value;
+                notify("ranking");
+            }
+        }
+        int annualSales() const @property nothrow pure @safe @nogc
+        {
+            return _annualSales;
+        }
+        void annualSales(int value) @property
+        {
+            if (value != _annualSales)
+            {
+                _annualSales = value;
+                notify("annualSales");
+            }
+        }
+        string brand() const @property nothrow pure @safe @nogc
+        {
+            return _brand;
+        }
+        void brand(string value) @property
+        {
+            if (value != _brand)
+            {
+                _brand = value;
+                notify("brand");
+            }
+        }
 
+        this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
+        {
+            this._name = name;
+            this._ranking = ranking;
+            this._annualSales = annualSales;
+            this._brand = brand;
+            // do not forget to set the primary key
+            setPrimaryKey();
+        }
+        Candy dup() const
+        {
+            return new Candy(this._name, this._ranking, this._annualSales, this._brand);
+        }
+        mixin KeyedItem!(typeof(this));
+    }
 
+    // plural class
+    class Candies : BaseKeyedCollection!(Candy)
+    {
+    public:
+        this(Candy[] items)
+        {
+            super(items);
+        }
+        this(Candy item)
+        {
+            super(item);
+        }
+    }
+
+    // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
+    auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
+    // should be Milky not Milkey, this is wrong on purpose
+    auto snickers = new Candy("Snickers", 4, 441_100_000, "Mars");
+    auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2, 516_500_000, "Hershey");
+
+    auto mars = new Candies([milkyWay, snickers]);
+    assert(mars.length == 2);
+    assert(!mars.containsChanges);
+
+    // use the class as an index
+    assert(mars[milkyWay] == milkyWay);
+    // use the primary key as an index
+    auto pk = Candy.PrimaryKey("Milkey Way");
+    assert(mars[pk] == milkyWay);
+
+    // milky way is in mars
+    assert(pk in mars);
+    // reesesPBCups is not in mars
+    assert(!mars.contains(reesesPBCups));
+
+    // now we change the name to be correct
+    mars[pk].name = "Milky Way";
+    assert(mars.containsChanges);
+
+    // since we had name in pk spelled incorrectly
+    // and changed it, the primary key in mars has
+    // updated so Milkey Way is no longer in it but
+    // Milky Way is.
+    assert(pk !in mars);
+    pk.name = "Milky Way";
+    assert(mars.contains(pk));
+
+    foreach(name_pk, candy; mars)
+    {
+        assert(mars[name_pk] == candy);
+    }
+
+    // trying to add another candy with the same name will
+    // result in a primary key violation
+    auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
+    import std.exception : assertThrown;
+    assertThrown!(Throwable)(mars ~= milkyWay2);
+}

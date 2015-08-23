@@ -44,7 +44,7 @@ private:
     PrimaryKey _key;
 
 /**
-Gets the properties of the class marked with @Attr.
+Gets the properties of the class marked with @Attr. This is private.
 Deprecated:
     This will be phased out soon. Instead I will use get_Columns.
     Currently only the primary key uses this.
@@ -65,21 +65,22 @@ Deprecated:
                        member != "__dtor" &&
                        member != "unhook" &&
                        member != "disconnect" &&
-                       member != "emit")
+                       member != "emit" &&
+                       member != "this")
             {
-            enum fullName = format(`%s.%s`, T.stringof, member);
-            static if (hasUDA!(mixin(fullName), Attr))
-            {
-                pragma(msg, fullName, " is ", Attr.stringof);
-                result ~= format(`%s`, member);
-            }
+                enum fullName = format(`%s.%s`, T.stringof, member);
+                static if (hasUDA!(mixin(fullName), Attr))
+                {
+                    pragma(msg, fullName, " is ", Attr.stringof);
+                    result ~= format(`%s`, member);
+                }
             }
         }
         return result;
     }
 
 /**
-Gets the properties of the class that start with Attr.
+Gets the properties of the class that start with Attr. This is private.
 Returns:
     An associative array with the structs name as the key and an
     array of strings of the structs members.
@@ -103,7 +104,8 @@ Bugs:
                        member != "__dtor" &&
                        member != "unhook" &&
                        member != "disconnect" &&
-                       member != "emit")
+                       member != "emit" &&
+                       member != "this")
             {
                 enum fullName = format(`%s.%s`, T.stringof, member);
                 foreach(attr; __traits(getAttributes, mixin(fullName)))
@@ -119,7 +121,7 @@ Bugs:
         return result;
     }
 /**
-Returns a string full of the structs.
+Returns a string full of the structs. This is private.
 Bugs:
     Currently under development.
  */
@@ -168,7 +170,8 @@ be used after a save.
         _containsChanges = false;
     }
 
-    static assert(!getColumns!(PrimaryKeyColumn).empty, "Must have primary key columns to use this mixin.");
+    static assert(!getColumns!(PrimaryKeyColumn).empty,
+                  "Must have primary key columns to use this mixin.");
 
     mixin Signal!(string) simple;
     mixin Signal!(PrimaryKey, PrimaryKey) primary_key;
@@ -290,65 +293,88 @@ Returns:
     mixin(createType!(T.stringof, "UniqueColumn!"));
 }
 
+///
+unittest
+{
+    class Candy
+    {
+    private:
+        string _name;
+        int _ranking;
+        string _brand;
+    public:
+        string name() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+        {
+            return _name;
+        }
+        void name(string value) @property
+        {
+            if (value != _name)
+            {
+                _name = value;
+                notify("name");
+            }
+        }
+        int ranking() const @property nothrow pure @safe @nogc
+        {
+            return _ranking;
+        }
+        void ranking(int value) @property
+        {
+            if (value != _ranking)
+            {
+                _ranking = value;
+                notify("ranking");
+            }
+        }
+        string brand() const @property nothrow pure @safe @nogc
+        {
+            return _brand;
+        }
+        void brand(string value) @property
+        {
+            if (value != _brand)
+            {
+                _brand = value;
+                notify("brand");
+            }
+        }
 
-// might move this all into one unit test.
-// version(unittest)
-// class Student
-// {
-// private:
-//     string _cName;
-//     int _nNumClasses;
-// public:
-//     string cName() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
-//     {
-//         return _cName;
-//     }
-//     void cName(immutable(char)[] value) @property
-//     {
-//         if (value != _cName)
-//         {
-//             _cName = value;
-//             notify("cName");
-//         }
-//     }
-//     int nNumClasses() const @property @UniqueColumn!("uc_Student") nothrow pure @safe @nogc
-//     {
-//         return _nNumClasses;
-//     }
-//     void nNumClasses(immutable(int) value) @property
-//     {
-//         if (value != _nNumClasses)
-//         {
-//             _nNumClasses = value;
-//             notify("nNumClasses");
-//         }
-//     }
+        this(string name, immutable(int) ranking, string brand)
+        {
+            this._name = name;
+            this._ranking = ranking;
+            this._brand = brand;
+            // do not forget to set the primary key
+            setPrimaryKey();
+        }
+        Candy dup() const
+        {
+            return new Candy(this._name, this._ranking, this._brand);
+        }
+        mixin KeyedItem!(typeof(this));
+    }
 
-//     this(immutable(char)[] pcName, immutable(int) pnNumClasses)
-//     {
+    // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
+    auto i = new Candy("Opal Fruit", 17, "Mars");
 
-//         this._cName = pcName;
-//         this._nNumClasses = pnNumClasses;
-//         setPrimaryKey();
-//     }
-//     Student dup() const
-//     {
-//         return new Student(this._cName, this._nNumClasses);
-//     }
+    assert(!i.containsChanges);
 
-//     bool isValid() const nothrow pure @safe @nogc
-//     {
-//         if (this._cName.length > 13)
-//         {
-//             return false;
-//         }
-//         return true;
-//     }
-//     void printInfo()
-//     {
-//         import std.stdio: writeln;
-//         writeln("cName = ", cName,
-//                 ", nNumClasses = ", nNumClasses);
-//     }
-//     mixin KeyedItem!(typeof(this));
-// }
+    auto pk = Candy.PrimaryKey("Opal Fruit");
+    assert(i.key == pk);
+    assert(i.key.name == pk.name);
+
+    auto j = new Candy("Opal Fruit", 0, "");
+    // since name is the primary key i and j are equal because the names are equal
+    assert(i == j);
+
+    // in 1967 Opal Fruits came to America and changed its name
+    i.name = "Starburst";
+    assert(i.containsChanges);
+    i.markAsSaved();
+    assert(!i.containsChanges);
+
+    // by changing the name it also changes the primary key
+    assert(i.key != pk);
+    assert(i != j);
+}

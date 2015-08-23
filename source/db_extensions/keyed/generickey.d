@@ -1,8 +1,16 @@
 module db_extensions.keyed.generickey;
 
+/**
+Used in KeyedItem for the generated structs.
+This allows the struct to be used as a key
+in an associative array.
+ */
 mixin template generic_compare(T)
     if (is(T == struct))
 {
+/**
+Gets the hash code of the struct by looping over the members.
+ */
     size_t toHash() const nothrow @safe
     {
         size_t result;
@@ -19,6 +27,9 @@ mixin template generic_compare(T)
         }
         return result;
     }
+/**
+Checks each member to determine if the structs are equal.
+ */
     bool opEquals(inout(T) pk) const pure nothrow @nogc
     {
         bool result;
@@ -38,6 +49,9 @@ mixin template generic_compare(T)
         }
         return result;
     }
+/**
+Compares each member and returns the result.
+ */
     int opCmp(inout(T) pk) const pure nothrow @nogc @safe
     {
         int result;

@@ -71,6 +71,11 @@ Throws:
     PrimaryKeyException if `this` already contains `item`.
  */
     void add(T item)
+    in
+    {
+        assert(item !is null, "Trying to add a null item.");
+    }
+    body
     {
         if (this.contains(item))
         {
@@ -102,6 +107,11 @@ Throws:
     PrimaryKeyException if `this` already contains `item`.
  */
     void add(T[] items)
+    in
+    {
+        assert(items !is null, "Trying to add a null array");
+    }
+    body
     {
         foreach(item; items)
         {
@@ -143,13 +153,34 @@ Returns:
         return this._items[pk];
     }
 /**
+Gets the approriate `T` that has primary key `a`.
+Params:
+    a = the fields of the primary key of the item you want back.
+Returns:
+    The item in the collection that has the primary key with fields `a`.
+ */
+    ref T opIndex(A...)(A a)
+    in
+    {
+        import std.conv;
+        static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
+                      " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
+                      " member(s). You included " ~ A.length.to!string ~
+                      " members when using the index.");
+    }
+    body
+    {
+        auto pk = T.PrimaryKey(a);
+        return this._items[pk];
+    }
+/**
 Forwards all methods not specified by this abstract class
 to the private associative array.
  */
-    auto opDispatch(string name, T...)(T t)
+    auto opDispatch(string name, A...)(A a)
     {
         debug(dispatch) pragma(msg, "opDispatch", name);
-        return mixin("this._items." ~ name ~ "(t)");
+        return mixin("this._items." ~ name ~ "(a)");
     }
 /**
 Allows you to use `this` in a foreach loop.
@@ -222,6 +253,35 @@ Returns:
         if (op == "in")
     {
         return this.contains(pk);
+    }
+/**
+Checks if `a` makes a primary key that is in the collection.
+Params:
+    a = the fields of the primary key of the item you want
+    to see is in the collection.
+Returns:
+    true if there is a primary key in the collection that
+    matches `a`.
+ */
+    bool contains(A...)(A a) nothrow pure @safe @nogc
+    in
+    {
+        import std.conv;
+        static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
+                      " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
+                      " member(s). You included " ~ A.length.to!string ~
+                      " members when using contains.");
+    }
+    body
+    {
+        auto pk = T.PrimaryKey(a);
+        return this.contains(pk);
+    }
+    /// ditto
+    bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
+        if (op == "in")
+    {
+        return this.contains(a);
     }
 }
 
@@ -331,6 +391,7 @@ unittest
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
     assert(mars[pk] == milkyWay);
+    assert(mars["Milkey Way"] == milkyWay);
 
     // milky way is in mars
     assert(pk in mars);
@@ -353,6 +414,7 @@ unittest
     {
         assert(mars[name_pk] == candy);
     }
+    assert("Snickers" in mars);
 
     // trying to add another candy with the same name will
     // result in a primary key violation

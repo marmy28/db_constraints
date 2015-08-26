@@ -11,9 +11,8 @@ keys in an associative array.
 struct PrimaryKeyColumn
 {
     /// PrimaryKeyColumn must have the name PrimaryKey.
-    string name = "PrimaryKey";
-    /// Disabled. Cannot change the name of `this`.
-    @disable this(string pName);
+    enum name = "PrimaryKey";
+    enum memberName = "key";
 }
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
@@ -26,7 +25,8 @@ Bugs:
 struct UniqueColumn(string constraint_name)
 {
     /// The name of the constraint.
-	enum name = constraint_name;
+    enum name = constraint_name;
+    enum memberName = constraint_name ~ "_key";
 }
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}

@@ -8,12 +8,7 @@ will create a struct made up of all of the properties marked with
 @PrimaryKeyColumn() which can be used with KeyedCollection as
 keys in an associative array.
  */
-struct PrimaryKeyColumn
-{
-    /// PrimaryKeyColumn must have the name PrimaryKey.
-    enum name = "PrimaryKey";
-    enum memberName = "key";
-}
+alias PrimaryKeyColumn = ConstraintColumn!("PrimaryKey", "key");
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct with name defined in the compile-time argument.
@@ -22,11 +17,17 @@ be part of the struct uc_Person.
 Bugs:
     Can only make one UniqueColumn struct.
  */
-struct UniqueColumn(string constraint_name)
+template UniqueColumn(string constraint_name = "Unique")
 {
-    /// The name of the constraint.
-    enum name = constraint_name;
-    enum memberName = constraint_name ~ "_key";
+    alias UniqueColumn = ConstraintColumn!(constraint_name, constraint_name ~ "_key");
+}
+
+struct ConstraintColumn(string pName, string pMemberName)
+{
+    /// The name of the constraint which is the structs name.
+    enum name = pName;
+    /// The name that the developer will access the constraint from the class.
+    enum memberName = pMemberName;
 }
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
@@ -87,12 +88,55 @@ Returns:
 Bugs:
     Currently this is under development.
  */
-    static string[][string] get_Columns(string Attr)()
+    // static string[][string] get_Columns(string Attr)()
+    // {
+    //     import std.string : format;
+    //     import std.array;
+    //     import std.algorithm : startsWith;
+    //     string[][string] result;
+    //     foreach(member; __traits(derivedMembers, T))
+    //     {
+    //         // the following excluded members are
+    //         // part of Signals and not the connected class
+    //         static if (member != "connect" &&
+    //                    member != "slot_t" &&
+    //                    member != "slots" &&
+    //                    member != "slots_idx" &&
+    //                    member != "__dtor" &&
+    //                    member != "unhook" &&
+    //                    member != "disconnect" &&
+    //                    member != "emit" &&
+    //                    member != "this")
+    //         {
+    //             enum fullName = format(`%s.%s`, T.stringof, member);
+    //             foreach(attr; __traits(getAttributes, mixin(fullName)))
+    //             {
+    //                 static if (attr.stringof.startsWith(Attr))
+    //                 {
+    //                     pragma(msg, fullName, " is ", attr.name);
+    //                     result[attr.name] ~= format("%s", member);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return result;
+    // }
+    static string[] getStructNames(string Attr)()
     {
-        import std.string : format;
-        import std.array;
         import std.algorithm : startsWith;
-        string[][string] result;
+        import std.string : format;
+        bool isIn(string[] array, string name)()
+        {
+            foreach(item; array)
+            {
+                static if (item == name)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        string[] result;
         foreach(member; __traits(derivedMembers, T))
         {
             // the following excluded members are
@@ -112,8 +156,7 @@ Bugs:
                 {
                     static if (attr.stringof.startsWith(Attr))
                     {
-                        pragma(msg, fullName, " is ", attr.name);
-                        result[attr.name] ~= format("%s", member);
+                        result ~= attr.name;
                     }
                 }
             }
@@ -125,32 +168,32 @@ Returns a string full of the structs. This is private.
 Bugs:
     Currently under development.
  */
-    static string createType(string class_name, string Attr)()
-    {
-        string result = "";
-        enum aa = get_Columns!(Attr)();
-        // currently fails if there is more than one key...
-        foreach(key; aa.keys)
-        {
-            result ~= "private:\n";
-            result ~= "    " ~ key ~ " _" ~ key ~ "_key;\n";
-            result ~= "public:\n";
-            result ~= "    struct " ~ key ~ "\n";
-            result ~= "    {\n";
-            foreach(columnName; aa[key])
-            {
-                result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-            }
-            result ~= "        import db_extensions.keyed.generickey;\n";
-            result ~= "        mixin generic_compare!(" ~ key ~ ");\n";
-            result ~= "    }\n";
-            result ~= "    " ~ key ~ " " ~ key ~ "_key() const @property nothrow pure @safe @nogc\n";
-            result ~= "    {\n";
-            result ~= "        return _" ~ key ~ "_key;\n";
-            result ~= "    }\n";
-        }
-        return result;
-    }
+    // static string createType(string class_name, string Attr)()
+    // {
+    //     string result = "";
+    //     enum aa = get_Columns!(Attr)();
+    //     // currently fails if there is more than one key...
+    //     foreach(key; aa.keys)
+    //     {
+    //         result ~= "private:\n";
+    //         result ~= "    " ~ key ~ " _" ~ key ~ "_key;\n";
+    //         result ~= "public:\n";
+    //         result ~= "    struct " ~ key ~ "\n";
+    //         result ~= "    {\n";
+    //         foreach(columnName; aa[key])
+    //         {
+    //             result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+    //         }
+    //         result ~= "        import db_extensions.keyed.generickey;\n";
+    //         result ~= "        mixin generic_compare!(" ~ key ~ ");\n";
+    //         result ~= "    }\n";
+    //         result ~= "    " ~ key ~ " " ~ key ~ "_key() const @property nothrow pure @safe @nogc\n";
+    //         result ~= "    {\n";
+    //         result ~= "        return _" ~ key ~ "_key;\n";
+    //         result ~= "    }\n";
+    //     }
+    //     return result;
+    // }
 public:
 /**
 Read-only property telling if `this` contains changes.
@@ -224,7 +267,7 @@ The primary key property for the class.
 Returns:
     The primary key for the class.
  */
-    PrimaryKey key() const @property nothrow pure @safe @nogc
+    typeof(_key) key() const @property nothrow pure @safe @nogc
     {
         return _key;
     }
@@ -290,7 +333,9 @@ Returns:
     {
         return _key.toHash();
     }
-    mixin(createType!(T.stringof, "UniqueColumn!"));
+    // mixin(createType!(T.stringof, "UniqueColumn"));
+    // mixin(createType!(T.stringof, "PrimaryKeyColumn"));
+    pragma(msg, getStructNames!("ConstraintColumn")());
 }
 
 ///
@@ -303,7 +348,7 @@ unittest
         int _ranking;
         string _brand;
     public:
-        string name() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+        string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
         {
             return _name;
         }
@@ -315,7 +360,7 @@ unittest
                 notify("name");
             }
         }
-        int ranking() const @property nothrow pure @safe @nogc
+        int ranking() const @property nothrow pure @safe @nogc @UniqueColumn!()
         {
             return _ranking;
         }

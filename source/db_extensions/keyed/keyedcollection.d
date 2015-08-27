@@ -16,20 +16,19 @@ Params:
  */
 abstract class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
-        hasMember!(T, "PrimaryKey") &&
         hasMember!(T, "key")
         )
 {
 private:
     bool _containsChanges;
 
-    void keyChanged(T.PrimaryKey oldPK, T.PrimaryKey newPK)
+    void keyChanged(typeof(T.key) oldPK, typeof(T.key) newPK)
     {
         T item = this._items[oldPK].dup();
         this._items.remove(oldPK);
         this._items[newPK] = item;
     }
-    T[T.PrimaryKey] _items;
+    T[typeof(T.key)] _items;
 public:
 /**
 Changes `this` to not contain changes. Should only
@@ -148,7 +147,7 @@ Params:
 Returns:
     The item in the collection that has primary key `pk`.
  */
-    ref T opIndex(T.PrimaryKey pk)
+    ref T opIndex(typeof(T.key) pk)
     {
         return this._items[pk];
     }
@@ -159,20 +158,20 @@ Params:
 Returns:
     The item in the collection that has the primary key with fields `a`.
  */
-    ref T opIndex(A...)(A a)
-    in
-    {
-        import std.conv;
-        static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
-                      " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
-                      " member(s). You included " ~ A.length.to!string ~
-                      " members when using the index.");
-    }
-    body
-    {
-        auto pk = T.PrimaryKey(a);
-        return this._items[pk];
-    }
+    // ref T opIndex(A...)(A a)
+    // in
+    // {
+    //     import std.conv;
+    //     static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
+    //                   " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
+    //                   " member(s). You included " ~ A.length.to!string ~
+    //                   " members when using the index.");
+    // }
+    // body
+    // {
+    //     auto pk = T.PrimaryKey(a);
+    //     return this._items[pk];
+    // }
 /**
 Forwards all methods not specified by this abstract class
 to the private associative array.
@@ -197,7 +196,7 @@ Allows you to use `this` in a foreach loop.
         return result;
     }
     /// ditto
-    int opApply(int delegate(T.PrimaryKey, ref T) dg)
+    int opApply(int delegate(typeof(T.key), ref T) dg)
     {
         int result = 0;
         foreach(T i; this._items.values)
@@ -243,13 +242,13 @@ Returns:
     true if there is a primary key in the collection that
     matches `pk`.
  */
-    bool contains(T.PrimaryKey pk) nothrow pure @safe @nogc
+    bool contains(typeof(T.key) pk) nothrow pure @safe @nogc
     {
         auto i = (pk in this._items);
         return (i !is null);
     }
     /// ditto
-    bool opBinaryRight(string op)(T.PrimaryKey pk) nothrow pure @safe @nogc
+    bool opBinaryRight(string op)(typeof(T.key) pk) nothrow pure @safe @nogc
         if (op == "in")
     {
         return this.contains(pk);
@@ -263,26 +262,26 @@ Returns:
     true if there is a primary key in the collection that
     matches `a`.
  */
-    bool contains(A...)(A a) nothrow pure @safe @nogc
-    in
-    {
-        import std.conv;
-        static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
-                      " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
-                      " member(s). You included " ~ A.length.to!string ~
-                      " members when using contains.");
-    }
-    body
-    {
-        auto pk = T.PrimaryKey(a);
-        return this.contains(pk);
-    }
-    /// ditto
-    bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
-        if (op == "in")
-    {
-        return this.contains(a);
-    }
+    // bool contains(A...)(A a) nothrow pure @safe @nogc
+    // in
+    // {
+    //     import std.conv;
+    //     static assert(A.length == T.PrimaryKey.tupleof.length, T.stringof ~
+    //                   " has a primary key with " ~ T.PrimaryKey.tupleof.length.to!string ~
+    //                   " member(s). You included " ~ A.length.to!string ~
+    //                   " members when using contains.");
+    // }
+    // body
+    // {
+    //     auto pk = T.PrimaryKey(a);
+    //     return this.contains(pk);
+    // }
+    // /// ditto
+    // bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
+    //     if (op == "in")
+    // {
+    //     return this.contains(a);
+    // }
 }
 
 ///
@@ -391,7 +390,6 @@ unittest
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
     assert(mars[pk] == milkyWay);
-    assert(mars["Milkey Way"] == milkyWay);
 
     // milky way is in mars
     assert(pk in mars);
@@ -414,7 +412,6 @@ unittest
     {
         assert(mars[name_pk] == candy);
     }
-    assert("Snickers" in mars);
 
     // trying to add another candy with the same name will
     // result in a primary key violation

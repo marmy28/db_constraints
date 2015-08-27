@@ -34,7 +34,7 @@ public:
         }
     }
 
-    this(immutable(char)[] pcName, immutable(int) pnNumClasses)
+    this(string pcName, immutable(int) pnNumClasses)
     {
 
         this._cName = pcName;
@@ -111,7 +111,7 @@ unittest
     auto j = new Student("Jake", 0);
     assert(i.key != j.key);
     assert(i != j);
-    //assert(i.uc_Student_key == j.uc_Student_key);
+    // assert(i.uc_Student_key == j.uc_Student_key);
 }
 
 

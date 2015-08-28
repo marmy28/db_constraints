@@ -8,7 +8,7 @@ will create a struct made up of all of the properties marked with
 @PrimaryKeyColumn() which can be used with KeyedCollection as
 keys in an associative array.
  */
-alias PrimaryKeyColumn = ConstraintColumn!("PrimaryKey", "key");
+alias PrimaryKeyColumn = ConstraintColumn!("PrimaryKey");
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct with name defined in the compile-time argument.
@@ -17,17 +17,12 @@ be part of the struct uc_Person.
 Bugs:
     Can only make one UniqueColumn struct.
  */
-template UniqueColumn(string constraint_name = "Unique")
-{
-    alias UniqueColumn = ConstraintColumn!(constraint_name, constraint_name ~ "_key");
-}
+alias UniqueColumn = ConstraintColumn!("Unique");
 
-struct ConstraintColumn(string pName, string pMemberName)
+struct ConstraintColumn(string pName)
 {
     /// The name of the constraint which is the structs name.
     enum name = pName;
-    /// The name that the developer will access the constraint from the class.
-    enum memberName = pMemberName;
 }
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
@@ -36,7 +31,7 @@ struct ConstraintColumn(string pName, string pMemberName)
 Use this in the singular class which would describe a row in your
 database.
  */
-mixin template KeyedItem(T)
+mixin template KeyedItem(T, string ClusteredName = PrimaryKeyColumn.name)
 {
     import std.array;
     import std.signals;
@@ -87,12 +82,18 @@ Returns:
     array of strings of the structs members.
 Bugs:
     Currently this is under development.
+Notes:
+    Look into what phobos traits does with
+    TypeTuple and see if I can do that here
+    since arrays are not working at compile time.
  */
     static auto getStructNames(string AttrName)()
     {
-        import std.algorithm : startsWith, sort;
+        import std.algorithm : startsWith, sort, uniq;
         import std.string : format;
         string[] result;
+        import std.typetuple;
+        auto TL = TypeTuple!();
         foreach(member; __traits(derivedMembers, T))
         {
             // the following excluded members are
@@ -112,45 +113,61 @@ Bugs:
                 {
                     static if (attr.stringof.startsWith(AttrName))
                     {
-                        result ~= attr.stringof;
+                        result ~= attr.name;
                     }
                 }
             }
         }
         sort(result);
-        return result;
+        return uniq(result).array;
     }
 /**
 Returns a string full of the structs. This is private.
 Bugs:
-    Currently under development.
+    Currently under development. Does not work at all.
  */
-    // static string createType(string class_name)()
-    // {
-    //     string result = "";
-    //     string currentAttr = "";
-    //     enum structNames = getStructNames!("ConstraintColumn")();
-    //     foreach(attr; structNames)
-    //     {
-    //         result ~= "private:\n";
-    //         result ~= "    " ~ attr.name ~ " _" ~ attr.memberName ~ ";\n";
-    //         result ~= "public:\n";
-    //         result ~= "    struct " ~ attr.name ~ "\n";
-    //         result ~= "    {\n";
-    //         foreach(columnName; getColumns!(attr)())
-    //         {
-    //             result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-    //         }
-    //         result ~= "        import db_extensions.keyed.generickey;\n";
-    //         result ~= "        mixin generic_compare!(" ~ attr.name ~ ");\n";
-    //         result ~= "    }\n";
-    //         result ~= "    " ~ attr.name ~ " " ~ attr.memberName ~ "() const @property nothrow pure @safe @nogc\n";
-    //         result ~= "    {\n";
-    //         result ~= "        return _" ~ attr.name ~ ";\n";
-    //         result ~= "    }\n";
-    //     }
-    //     return result;
-    // }
+    static string createType(string class_name)()
+    {
+        string result = "";
+        import std.typetuple;
+        foreach(name; TypeTuple!(getStructNames!("ConstraintColumn")()[$-1]))
+        {
+            result ~= "private:\n";
+            static if (name == ClusteredName)
+            {
+                result ~= "    " ~ name ~ " _key;\n";
+            }
+            else
+            {
+                result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
+            }
+            result ~= "public:\n";
+            result ~= "    struct " ~ name ~ "\n";
+            result ~= "    {\n";
+            foreach(columnName; getColumns!(ConstraintColumn!name)())
+            {
+                result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+            }
+            result ~= "        import db_extensions.keyed.generickey;\n";
+            result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
+            result ~= "    }\n";
+            static if (name == ClusteredName)
+            {
+                result ~= "    " ~ name ~ " key() const @property nothrow pure @safe @nogc\n";
+                result ~= "    {\n";
+                result ~= "        return _key;\n";
+                result ~= "    }\n";
+            }
+            else
+            {
+                result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
+                result ~= "    {\n";
+                result ~= "        return _" ~ name ~ "_key;\n";
+                result ~= "    }\n";
+            }
+        }
+        return result;
+    }
 public:
 /**
 Read-only property telling if `this` contains changes.
@@ -194,12 +211,11 @@ Params:
         simple.emit(propertyName);
     }
 
-    // this struct is made at compile time from the class
 /**
 Primary key struct created at compile-time.
 This is used to compare classes. The members
 are the members of the class marked with
-@PrimaryKeyColumn().
+@PrimaryKeyColumn.
  */
     struct PrimaryKey
     {
@@ -290,8 +306,8 @@ Returns:
     {
         return _key.toHash();
     }
-    pragma(msg, getStructNames!("ConstraintColumn")());
-    // pragma(msg, createType!(T.stringof));
+    //pragma(msg, getStructNames!("ConstraintColumn")());
+    pragma(msg,createType!(T.stringof));
 }
 
 ///
@@ -316,7 +332,7 @@ unittest
                 notify("name");
             }
         }
-        int ranking() const @property nothrow pure @safe @nogc @UniqueColumn!()
+        int ranking() const @property nothrow pure @safe @nogc @UniqueColumn
         {
             return _ranking;
         }
@@ -353,7 +369,7 @@ unittest
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!(typeof(this), UniqueColumn.name);
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm

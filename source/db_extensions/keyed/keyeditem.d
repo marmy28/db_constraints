@@ -88,54 +88,10 @@ Returns:
 Bugs:
     Currently this is under development.
  */
-    // static string[][string] get_Columns(string Attr)()
-    // {
-    //     import std.string : format;
-    //     import std.array;
-    //     import std.algorithm : startsWith;
-    //     string[][string] result;
-    //     foreach(member; __traits(derivedMembers, T))
-    //     {
-    //         // the following excluded members are
-    //         // part of Signals and not the connected class
-    //         static if (member != "connect" &&
-    //                    member != "slot_t" &&
-    //                    member != "slots" &&
-    //                    member != "slots_idx" &&
-    //                    member != "__dtor" &&
-    //                    member != "unhook" &&
-    //                    member != "disconnect" &&
-    //                    member != "emit" &&
-    //                    member != "this")
-    //         {
-    //             enum fullName = format(`%s.%s`, T.stringof, member);
-    //             foreach(attr; __traits(getAttributes, mixin(fullName)))
-    //             {
-    //                 static if (attr.stringof.startsWith(Attr))
-    //                 {
-    //                     pragma(msg, fullName, " is ", attr.name);
-    //                     result[attr.name] ~= format("%s", member);
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     return result;
-    // }
-    static string[] getStructNames(string Attr)()
+    static auto getStructNames(string AttrName)()
     {
-        import std.algorithm : startsWith;
+        import std.algorithm : startsWith, sort;
         import std.string : format;
-        bool isIn(string[] array, string name)()
-        {
-            foreach(item; array)
-            {
-                static if (item == name)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
         string[] result;
         foreach(member; __traits(derivedMembers, T))
         {
@@ -154,13 +110,14 @@ Bugs:
                 enum fullName = format(`%s.%s`, T.stringof, member);
                 foreach(attr; __traits(getAttributes, mixin(fullName)))
                 {
-                    static if (attr.stringof.startsWith(Attr))
+                    static if (attr.stringof.startsWith(AttrName))
                     {
-                        result ~= attr.name;
+                        result ~= attr.stringof;
                     }
                 }
             }
         }
+        sort(result);
         return result;
     }
 /**
@@ -168,28 +125,28 @@ Returns a string full of the structs. This is private.
 Bugs:
     Currently under development.
  */
-    // static string createType(string class_name, string Attr)()
+    // static string createType(string class_name)()
     // {
     //     string result = "";
-    //     enum aa = get_Columns!(Attr)();
-    //     // currently fails if there is more than one key...
-    //     foreach(key; aa.keys)
+    //     string currentAttr = "";
+    //     enum structNames = getStructNames!("ConstraintColumn")();
+    //     foreach(attr; structNames)
     //     {
     //         result ~= "private:\n";
-    //         result ~= "    " ~ key ~ " _" ~ key ~ "_key;\n";
+    //         result ~= "    " ~ attr.name ~ " _" ~ attr.memberName ~ ";\n";
     //         result ~= "public:\n";
-    //         result ~= "    struct " ~ key ~ "\n";
+    //         result ~= "    struct " ~ attr.name ~ "\n";
     //         result ~= "    {\n";
-    //         foreach(columnName; aa[key])
+    //         foreach(columnName; getColumns!(attr)())
     //         {
     //             result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
     //         }
     //         result ~= "        import db_extensions.keyed.generickey;\n";
-    //         result ~= "        mixin generic_compare!(" ~ key ~ ");\n";
+    //         result ~= "        mixin generic_compare!(" ~ attr.name ~ ");\n";
     //         result ~= "    }\n";
-    //         result ~= "    " ~ key ~ " " ~ key ~ "_key() const @property nothrow pure @safe @nogc\n";
+    //         result ~= "    " ~ attr.name ~ " " ~ attr.memberName ~ "() const @property nothrow pure @safe @nogc\n";
     //         result ~= "    {\n";
-    //         result ~= "        return _" ~ key ~ "_key;\n";
+    //         result ~= "        return _" ~ attr.name ~ ";\n";
     //         result ~= "    }\n";
     //     }
     //     return result;
@@ -333,9 +290,8 @@ Returns:
     {
         return _key.toHash();
     }
-    // mixin(createType!(T.stringof, "UniqueColumn"));
-    // mixin(createType!(T.stringof, "PrimaryKeyColumn"));
     pragma(msg, getStructNames!("ConstraintColumn")());
+    // pragma(msg, createType!(T.stringof));
 }
 
 ///

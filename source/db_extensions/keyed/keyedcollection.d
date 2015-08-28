@@ -297,7 +297,7 @@ unittest
         int _annualSales;
         string _brand;
     public:
-        string name() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+        string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
         {
             return _name;
         }

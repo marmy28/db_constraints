@@ -11,7 +11,7 @@ version(unittest)
         string _lastName;
         string _email;
     public:
-        int id() const @property @PrimaryKeyColumn() nothrow pure @safe @nogc
+        int id() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
         {
             return _id;
         }
@@ -35,6 +35,18 @@ version(unittest)
                 notify("firstName");
             }
         }
+        string email() const @property nothrow pure @UniqueColumn!("uc_PersonEmail") @safe @nogc
+        {
+            return _email;
+        }
+        void email(string value) @property
+        {
+            if (value != _email)
+            {
+                _email = value;
+                notify("email");
+            }
+        }
         string lastName() const @property @UniqueColumn!("uc_Person") nothrow pure @safe @nogc
         {
             return _lastName;
@@ -45,18 +57,6 @@ version(unittest)
             {
                 _lastName = value;
                 notify("lastName");
-            }
-        }
-        string email() const @property nothrow pure @UniqueColumn!("uc_Person") @safe @nogc
-        {
-            return _lastName;
-        }
-        void email(string value) @property
-        {
-            if (value != _email)
-            {
-                _email = value;
-                notify("email");
             }
         }
 

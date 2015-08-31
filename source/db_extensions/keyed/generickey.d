@@ -81,6 +81,7 @@ Compares each member and returns the result.
 Bugs:
     Does not work. Do not use this.
  */
+version(none)
 template UniqueConstraintStructNames(ClassName)
 {
     template Impl(T...)

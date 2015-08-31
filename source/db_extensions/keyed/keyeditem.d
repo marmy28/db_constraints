@@ -124,6 +124,7 @@ Returns a string full of the structs. This is private.
 Bugs:
     Currently under development. Does not work at all.
  */
+    version(none)
     static string createType(string class_name)()
     {
         string result = "";

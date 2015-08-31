@@ -8,7 +8,7 @@ will create a struct made up of all of the properties marked with
 @PrimaryKeyColumn() which can be used with KeyedCollection as
 keys in an associative array.
  */
-alias PrimaryKeyColumn = ConstraintColumn!("PrimaryKey");
+alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct with name defined in the compile-time argument.
@@ -17,9 +17,7 @@ be part of the struct uc_Person.
 Bugs:
     Can only make one UniqueColumn struct.
  */
-alias UniqueColumn = ConstraintColumn!("Unique");
-
-struct ConstraintColumn(string pName)
+struct UniqueConstraintColumn(string pName)
 {
     /// The name of the constraint which is the structs name.
     enum name = pName;
@@ -129,8 +127,8 @@ Bugs:
     static string createType(string class_name)()
     {
         string result = "";
-        import std.typetuple;
-        foreach(name; TypeTuple!(getStructNames!("ConstraintColumn")()[$-1]))
+        import db_extensions.keyed.generickey;
+        foreach(name; UniqueConstraintStructNames!(T))
         {
             result ~= "private:\n";
             static if (name == ClusteredName)
@@ -144,7 +142,7 @@ Bugs:
             result ~= "public:\n";
             result ~= "    struct " ~ name ~ "\n";
             result ~= "    {\n";
-            foreach(columnName; getColumns!(ConstraintColumn!name)())
+            foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
             {
                 result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
             }
@@ -306,8 +304,8 @@ Returns:
     {
         return _key.toHash();
     }
-    //pragma(msg, getStructNames!("ConstraintColumn")());
-    pragma(msg,createType!(T.stringof));
+    // pragma(msg, getStructNames!("UniqueConstraintColumn")());
+    // pragma(msg,createType!(T.stringof));
 }
 
 ///
@@ -332,7 +330,7 @@ unittest
                 notify("name");
             }
         }
-        int ranking() const @property nothrow pure @safe @nogc @UniqueColumn
+        int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
         {
             return _ranking;
         }
@@ -369,7 +367,7 @@ unittest
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
-        mixin KeyedItem!(typeof(this), UniqueColumn.name);
+        mixin KeyedItem!(typeof(this));
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm

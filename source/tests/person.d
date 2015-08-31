@@ -23,7 +23,7 @@ version(unittest)
                 notify("id");
             }
         }
-        string firstName() const @property @ConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        string firstName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
         {
             return _firstName;
         }
@@ -35,7 +35,7 @@ version(unittest)
                 notify("firstName");
             }
         }
-        string email() const @property nothrow pure @ConstraintColumn!("uc_PersonEmail") @safe @nogc
+        string email() const @property nothrow pure @UniqueConstraintColumn!("uc_PersonEmail") @safe @nogc
         {
             return _email;
         }
@@ -47,7 +47,7 @@ version(unittest)
                 notify("email");
             }
         }
-        string lastName() const @property @ConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        string lastName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
         {
             return _lastName;
         }

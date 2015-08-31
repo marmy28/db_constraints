@@ -21,7 +21,7 @@ public:
             notify("cName");
         }
     }
-    int nNumClasses() const @property @UniqueColumn nothrow pure @safe @nogc
+    int nNumClasses() const @property @UniqueConstraintColumn!("uc_Student") nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }

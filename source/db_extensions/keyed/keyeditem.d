@@ -124,49 +124,48 @@ Returns a string full of the structs. This is private.
 Bugs:
     Currently under development. Does not work at all.
  */
-    version(none)
-    static string createType(string class_name)()
-    {
-        string result = "";
-        import db_extensions.keyed.generickey;
-        foreach(name; UniqueConstraintStructNames!(T))
-        {
-            result ~= "private:\n";
-            static if (name == ClusteredName)
-            {
-                result ~= "    " ~ name ~ " _key;\n";
-            }
-            else
-            {
-                result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
-            }
-            result ~= "public:\n";
-            result ~= "    struct " ~ name ~ "\n";
-            result ~= "    {\n";
-            foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
-            {
-                result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-            }
-            result ~= "        import db_extensions.keyed.generickey;\n";
-            result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
-            result ~= "    }\n";
-            static if (name == ClusteredName)
-            {
-                result ~= "    " ~ name ~ " key() const @property nothrow pure @safe @nogc\n";
-                result ~= "    {\n";
-                result ~= "        return _key;\n";
-                result ~= "    }\n";
-            }
-            else
-            {
-                result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
-                result ~= "    {\n";
-                result ~= "        return _" ~ name ~ "_key;\n";
-                result ~= "    }\n";
-            }
-        }
-        return result;
-    }
+    // static string createType(string class_name)()
+    // {
+    //     string result = "";
+    //     import db_extensions.keyed.generickey;
+    //     foreach(name; UniqueConstraintStructNames!(T))
+    //     {
+    //         result ~= "private:\n";
+    //         static if (name == ClusteredName)
+    //         {
+    //             result ~= "    " ~ name ~ " _key;\n";
+    //         }
+    //         else
+    //         {
+    //             result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
+    //         }
+    //         result ~= "public:\n";
+    //         result ~= "    struct " ~ name ~ "\n";
+    //         result ~= "    {\n";
+    //         foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
+    //         {
+    //             result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+    //         }
+    //         result ~= "        import db_extensions.keyed.generickey;\n";
+    //         result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
+    //         result ~= "    }\n";
+    //         static if (name == ClusteredName)
+    //         {
+    //             result ~= "    " ~ name ~ " key() const @property nothrow pure @safe @nogc\n";
+    //             result ~= "    {\n";
+    //             result ~= "        return _key;\n";
+    //             result ~= "    }\n";
+    //         }
+    //         else
+    //         {
+    //             result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
+    //             result ~= "    {\n";
+    //             result ~= "        return _" ~ name ~ "_key;\n";
+    //             result ~= "    }\n";
+    //         }
+    //     }
+    //     return result;
+    // }
 public:
 /**
 Read-only property telling if `this` contains changes.

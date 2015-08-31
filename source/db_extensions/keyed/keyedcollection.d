@@ -23,11 +23,15 @@ private:
     alias key_type = typeof(T.key);
     bool _containsChanges;
 
-    void keyChanged(key_type oldPK, key_type newPK)
+    void itemChanged(string propertyName, key_type item_key)
     {
-        T item = this._items[oldPK].dup();
-        this._items.remove(oldPK);
-        this._items[newPK] = item;
+        if (propertyName == "key")
+        {
+            T item = this._items[item_key].dup();
+            this.remove(item_key);
+            this.add(item);
+        }
+        notify(propertyName);
     }
     T[key_type] _items;
 public:
@@ -62,6 +66,23 @@ Params:
         emit(propertyName);
         debug(signal) writeln("You changed ", propertyName);
     }
+    void remove(key_type item_key)
+    {
+        if (this.contains(item_key))
+        {
+            this._items[item_key].disconnect(&itemChanged);
+            this._items.remove(item_key);
+        }
+    }
+    void remove(T item)
+    in
+    {
+        assert(item !is null, "Trying to remove a null item.");
+    }
+    body
+    {
+        this.remove(item.key);
+    }
 /**
 Adds `item` to `this` and connects to the signals emitted by `item`.
 Notifies that the length of `this` has changed.
@@ -81,8 +102,7 @@ Throws:
         {
             throw new PrimaryKeyException(item.toString ~ " was added again.");
         }
-        item.simple.connect(&notify);
-        item.primary_key.connect(&keyChanged);
+        item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
         notify("length");
     }

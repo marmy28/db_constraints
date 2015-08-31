@@ -185,11 +185,7 @@ be used after a save.
         _containsChanges = false;
     }
 
-    static assert(!getColumns!(PrimaryKeyColumn).empty,
-                  "Must have primary key columns to use this mixin.");
-
-    mixin Signal!(string) simple;
-    mixin Signal!(PrimaryKey, PrimaryKey) primary_key;
+    mixin Signal!(string, typeof(_key)) emitChange;
 
 /**
 Notifies `this` which property changed. If the property is
@@ -201,12 +197,13 @@ Params:
     void notify(string propertyName)
     {
         import std.algorithm : canFind;
+        _containsChanges = true;
+        emitChange.emit(propertyName, _key);
         if (getColumns!(PrimaryKeyColumn).canFind(propertyName))
         {
+            emitChange.emit("key", _key);
             setPrimaryKey();
         }
-        _containsChanges = true;
-        simple.emit(propertyName);
     }
 
 /**
@@ -261,10 +258,6 @@ primary key for `this`.
                   }
                   return result;
               }());
-        if (this._key != PrimaryKey.init)
-        {
-            primary_key.emit(this._key, new_key);
-        }
         this._key = new_key;
     }
 /**

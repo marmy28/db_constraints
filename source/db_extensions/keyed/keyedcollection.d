@@ -184,7 +184,7 @@ Returns:
     {
         import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a primary key with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered key with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using the index.");
     }
@@ -372,8 +372,8 @@ unittest
             this._ranking = ranking;
             this._annualSales = annualSales;
             this._brand = brand;
-            // do not forget to set the primary key
-            setPrimaryKey();
+            // do not forget to set the clustered key
+            setClusteredKey();
         }
         Candy dup() const
         {
@@ -409,7 +409,7 @@ unittest
     // use the class as an index
     assert(mars[milkyWay] == milkyWay);
     // use the primary key as an index
-    auto pk = Candy.PrimaryKey("Milkey Way");
+    auto pk = Candy.ClusteredKey("Milkey Way");
     assert(mars[pk] == milkyWay);
     assert(mars["Milkey Way"] == milkyWay);
 

@@ -28,14 +28,18 @@ struct UniqueConstraintColumn(string pName)
 /**
 Use this in the singular class which would describe a row in your
 database.
+Params:
+    T = the type of the class this is mixed into.
+    ClusteredKeyAttribute = the attribute associated with the clustered key.
+    The default is @PrimaryKeyColumn.
  */
-mixin template KeyedItem(T, string ClusteredName = PrimaryKeyColumn.name)
+mixin template KeyedItem(T, ClusteredKeyAttribute = PrimaryKeyColumn)
 {
     import std.array;
     import std.signals;
 private:
     bool _containsChanges;
-    PrimaryKey _key;
+    ClusteredKey _key;
 
 /**
 Gets the properties of the class marked with @Attr. This is private.
@@ -73,99 +77,111 @@ Deprecated:
         return result;
     }
 
-/**
-Gets the properties of the class that start with Attr. This is private.
-Returns:
-    An associative array with the structs name as the key and an
-    array of strings of the structs members.
-Bugs:
-    Currently this is under development.
-Notes:
-    Look into what phobos traits does with
-    TypeTuple and see if I can do that here
-    since arrays are not working at compile time.
- */
-    static auto getStructNames(string AttrName)()
+    template UniqueConstraintStructNames(ClassName)
     {
-        import std.algorithm : startsWith, sort, uniq;
-        import std.string : format;
-        string[] result;
         import std.typetuple;
-        auto TL = TypeTuple!();
-        foreach(member; __traits(derivedMembers, T))
+        template Impl(T...)
         {
-            // the following excluded members are
-            // part of Signals and not the connected class
-            static if (member != "connect" &&
-                       member != "slot_t" &&
-                       member != "slots" &&
-                       member != "slots_idx" &&
-                       member != "__dtor" &&
-                       member != "unhook" &&
-                       member != "disconnect" &&
-                       member != "emit" &&
-                       member != "this")
+            static if (T.length == 0)
             {
-                enum fullName = format(`%s.%s`, T.stringof, member);
-                foreach(attr; __traits(getAttributes, mixin(fullName)))
+                alias Impl = TypeTuple!();
+            }
+            else
+            {
+                import std.string : format;
+                static if (T[0] != "connect" &&
+                           T[0] != "slot_t" &&
+                           T[0] != "slots" &&
+                           T[0] != "slots_idx" &&
+                           T[0] != "__dtor" &&
+                           T[0] != "unhook" &&
+                           T[0] != "disconnect" &&
+                           T[0] != "emit" &&
+                           T[0] != "this")
                 {
-                    static if (attr.stringof.startsWith(AttrName))
+                    enum fullName = format(`%s.%s`, ClassName.stringof, T[0]);
+                    enum attributes =  Get!(__traits(getAttributes, mixin(fullName)));
+                    static if (attributes == "")
                     {
-                        result ~= attr.name;
+                        alias Impl = TypeTuple!(Impl!(T[1 .. $]));
                     }
+                    else
+                    {
+                        alias Impl = TypeTuple!(attributes, Impl!(T[1 .. $]));
+                    }
+                }
+                else
+                {
+                    alias Impl = TypeTuple!(Impl!(T[1 .. $]));
                 }
             }
         }
-        sort(result);
-        return uniq(result).array;
+        template Get(P...)
+        {
+            static if (P.length == 0)
+            {
+                enum Get = "";
+            }
+            else
+            {
+                import std.string;
+                static if (P[0].stringof.startsWith("UniqueConstraint"))
+                {
+                    alias Get = P[0].name;
+                }
+                else
+                {
+                    alias Get = Get!(P[1 .. $]);
+                }
+            }
+        }
+        import std.meta : NoDuplicates;
+        alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
     }
+
 /**
 Returns a string full of the structs. This is private.
 Bugs:
-    Currently under development. Does not work at all.
+    Currently under development.
  */
-    // static string createType(string class_name)()
-    // {
-    //     string result = "";
-    //     import db_extensions.keyed.generickey;
-    //     foreach(name; UniqueConstraintStructNames!(T))
-    //     {
-    //         result ~= "private:\n";
-    //         static if (name == ClusteredName)
-    //         {
-    //             result ~= "    " ~ name ~ " _key;\n";
-    //         }
-    //         else
-    //         {
-    //             result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
-    //         }
-    //         result ~= "public:\n";
-    //         result ~= "    struct " ~ name ~ "\n";
-    //         result ~= "    {\n";
-    //         foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
-    //         {
-    //             result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-    //         }
-    //         result ~= "        import db_extensions.keyed.generickey;\n";
-    //         result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
-    //         result ~= "    }\n";
-    //         static if (name == ClusteredName)
-    //         {
-    //             result ~= "    " ~ name ~ " key() const @property nothrow pure @safe @nogc\n";
-    //             result ~= "    {\n";
-    //             result ~= "        return _key;\n";
-    //             result ~= "    }\n";
-    //         }
-    //         else
-    //         {
-    //             result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
-    //             result ~= "    {\n";
-    //             result ~= "        return _" ~ name ~ "_key;\n";
-    //             result ~= "    }\n";
-    //         }
-    //     }
-    //     return result;
-    // }
+    static string createType(string class_name)()
+    {
+        string result = "";
+        foreach(name; UniqueConstraintStructNames!(T))
+        {
+            static if (name == ClusteredKeyAttribute.name)
+            {
+                result ~= "public:\n";
+                result ~= "    alias " ~ name ~ " = ClusteredKey;\n";
+                result ~= "    alias " ~ name ~ "_key = key;\n";
+            }
+            else
+            {
+                // result ~= "private:\n";
+                // result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
+                result ~= "public:\n";
+                result ~= "    struct " ~ name ~ "\n";
+                result ~= "    {\n";
+                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
+                {
+                    result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+                }
+                result ~= "        import db_extensions.keyed.generickey;\n";
+                result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
+                result ~= "    }\n";
+                result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
+                result ~= "    {\n";
+                result ~= "        auto _" ~ name ~ "_key = " ~ name ~ "();\n";
+                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
+                {
+                    result ~= "        _" ~ name ~ "_key." ~ columnName ~ " = this._" ~ columnName ~ ";\n";
+                }
+                result ~= "        return _" ~ name ~ "_key;\n";
+                result ~= "    }\n";
+            }
+        }
+        return result;
+    }
 public:
 /**
 Read-only property telling if `this` contains changes.
@@ -189,8 +205,9 @@ be used after a save.
 
 /**
 Notifies `this` which property changed. If the property is
-part of the primary key then the primary key is updated.
-This also emits a signal with the property name that changed.
+part of the clustered key then the clustered key is updated.
+This also emits a signal with the property name that changed
+along with the clustered key.
 Params:
     propertyName = the property name that changed.
  */
@@ -199,60 +216,59 @@ Params:
         import std.algorithm : canFind;
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        if (getColumns!(PrimaryKeyColumn).canFind(propertyName))
+        if (getColumns!(ClusteredKeyAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
-            setPrimaryKey();
+            setClusteredKey();
         }
     }
 
 /**
-Primary key struct created at compile-time.
+Clustered key struct created at compile-time.
 This is used to compare classes. The members
-are the members of the class marked with
-@PrimaryKeyColumn.
+are the members of the class marked with the
+attribute selected as the Clustered Key.
  */
-    struct PrimaryKey
+    struct ClusteredKey
     {
         import db_extensions.keyed.generickey;
-        // creates the members of the primary key with appropriate type.
+        // creates the members of the clustered key with appropriate type.
         mixin(function string()
               {
                   import std.string;
                   string result = "";
-                  foreach(pkcolumn; getColumns!(PrimaryKeyColumn))
+                  foreach(pkcolumn; getColumns!(ClusteredKeyAttribute))
                   {
                       result ~= format("typeof(%s.%s) %s;", T.stringof, pkcolumn, pkcolumn);
                   }
                   return result;
               }());
         // adds the generic comparison for structs
-        mixin generic_compare!(PrimaryKey);
+        mixin generic_compare!(ClusteredKey);
     }
 
+
 /**
-The primary key property for the class.
+The clustered key property for the class.
 Returns:
-    The primary key for the class.
+    The clustered key for the class.
  */
-    typeof(_key) key() const @property nothrow pure @safe @nogc
+    ClusteredKey key() const @property nothrow pure @safe @nogc
     {
         return _key;
     }
 
 /**
-Sets the primary key for `this`. This also emits a
-signal if it is not the first time setting the
-primary key for `this`.
+Sets the clustered key for `this`.
  */
-    void setPrimaryKey()
+    void setClusteredKey()
     {
-        auto new_key = PrimaryKey();
+        auto new_key = ClusteredKey();
         mixin(function string()
               {
                   import std.string;
                   string result = "";
-                  foreach(pkcolumn; getColumns!(PrimaryKeyColumn))
+                  foreach(pkcolumn; getColumns!(ClusteredKeyAttribute))
                   {
                       result ~= format("new_key.%s = this.%s;", pkcolumn, pkcolumn);
                   }
@@ -260,10 +276,12 @@ primary key for `this`.
               }());
         this._key = new_key;
     }
+    deprecated("Use setClusteredKey instead.")
+    alias setPrimaryKey = setClusteredKey;
 /**
-Compares `this` based on the primary key.
+Compares `this` based on the clustered key.
 Returns:
-    true if the primary keys equal.
+    true if the clustered keys equal.
  */
     override bool opEquals(Object o) const pure nothrow @nogc
     {
@@ -272,9 +290,9 @@ Returns:
     }
 
 /**
-Compares `this` based on the primary key if comparison is with the same class.
+Compares `this` based on the clustered key if comparison is with the same class.
 Returns:
-    The comparison from the primary key.
+    The comparison from the clustered key.
  */
     override int opCmp(Object o) const
     {
@@ -289,16 +307,15 @@ Returns:
 
 
 /**
-Gets the hash of the primary key.
+Gets the hash of the clustered key.
 Returns:
-    The hash of the primary key.
+    The hash of the clustered key.
  */
     override size_t toHash() const nothrow @safe
     {
         return _key.toHash();
     }
-    // pragma(msg, getStructNames!("UniqueConstraintColumn")());
-    // pragma(msg,createType!(T.stringof));
+    mixin(createType!(T.stringof));
 }
 
 ///
@@ -347,20 +364,28 @@ unittest
                 notify("brand");
             }
         }
+        this()
+        {
+            this._name = string.init;
+            this._ranking = int.init;
+            this._brand = string.init;
+            setClusteredKey();
+        }
 
         this(string name, immutable(int) ranking, string brand)
         {
             this._name = name;
             this._ranking = ranking;
             this._brand = brand;
-            // do not forget to set the primary key
-            setPrimaryKey();
+            // do not forget to set the clustered key
+            setClusteredKey();
         }
         Candy dup() const
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
-        mixin KeyedItem!(typeof(this));
+        // The primary key is now the clustered key
+        mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
@@ -368,12 +393,13 @@ unittest
 
     assert(!i.containsChanges);
 
-    auto pk = Candy.PrimaryKey("Opal Fruit");
+    auto pk = Candy.ClusteredKey("Opal Fruit");
     assert(i.key == pk);
+    assert(i.key == i.PrimaryKey_key);
     assert(i.key.name == pk.name);
 
     auto j = new Candy("Opal Fruit", 0, "");
-    // since name is the primary key i and j are equal because the names are equal
+    // since name is the clustered key i and j are equal because the names are equal
     assert(i == j);
 
     // in 1967 Opal Fruits came to America and changed its name
@@ -382,7 +408,7 @@ unittest
     i.markAsSaved();
     assert(!i.containsChanges);
 
-    // by changing the name it also changes the primary key
+    // by changing the name it also changes the clustered key
     assert(i.key != pk);
     assert(i != j);
 }

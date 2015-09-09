@@ -23,12 +23,12 @@ BACKTICK   = `
 DOLLAR     = $
 DEPRECATED = $0
 
-RED    = <font color=red>$0</font>
-BLUE   = <font color=blue>$0</font>
-GREEN  = <font color=green>$0</font>
-YELLOW = <font color=yellow>$0</font>
-BLACK  = <font color=black>$0</font>
-WHITE  = <font color=white>$0</font>
+RED    = $0
+BLUE   = $0
+GREEN  = $0
+YELLOW = $0
+BLACK  = $0
+WHITE  = $0
 
 D_CODE       = <pre class="d_code">$0</pre>
 D_INLINECODE = <pre style="display:inline;" class="d_inline_code">$0</pre>
@@ -59,7 +59,9 @@ DDOC_BUGS             = $(RED BUGS:)$(BR)$0$(BR)$(BR)
 DDOC_COPYRIGHT        = $(B Copyright:)$(BR)$0$(BR)$(BR)
 DDOC_DATE             = $(B Date:)$(BR)$0$(BR)$(BR)
 DDOC_DEPRECATED       = $(RED Deprecated:)$(BR)$0$(BR)$(BR)
-DDOC_EXAMPLES         = $(B Examples:)$(BR)$0$(BR)$(BR)
+DDOC_EXAMPLES         = $(B Examples:)$(BR)```d
+$0
+```$(BR)$(BR)
 DDOC_HISTORY          = $(B History:)$(BR)$0$(BR)$(BR)
 DDOC_LICENSE          = $(B License:)$(BR)$0$(BR)$(BR)
 DDOC_RETURNS          = $(B Returns:)$(BR)$0$(BR)$(BR)

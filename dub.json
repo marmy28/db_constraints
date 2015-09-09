@@ -28,7 +28,7 @@
 	"buildTypes": {
 	    "docs": {
 	        "buildOptions": ["syntaxOnly"],
-	        "dflags": ["-c", "-Dddocs", "$PACKAGE_DIR/db_extensions.ddoc"]
+	        "dflags": ["-c", "-Dddocs", "$PACKAGE_DIR/github_markdown.ddoc"]
 	    }
 	}
 }

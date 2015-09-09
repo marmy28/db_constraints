@@ -8,10 +8,10 @@ import db_extensions.extra.db_exceptions;
 
 /**
 Turns the inheriting class into a base keyed collection.
-The key is based on the singular class' Primary Key.
+The key is based on the singular class' Clustered Key.
 Params:
-    $(D T) must have a dup property, a primary key, and
-    a key property. The primary key and key are created
+    $(D T) must have a dup property and
+    a key property. The clustered key and key are created
     when you include the keyeditem in your class.
  */
 abstract class BaseKeyedCollection(T)
@@ -22,6 +22,7 @@ abstract class BaseKeyedCollection(T)
 private:
     alias key_type = typeof(T.key);
     bool _containsChanges;
+    bool _enforceUniqueConstraints = true;
 
     void itemChanged(string propertyName, key_type item_key)
     {
@@ -48,14 +49,22 @@ Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    bool containsChanges() @property nothrow pure @safe @nogc
+    bool containsChanges() const @property nothrow pure @safe @nogc
     {
         return _containsChanges;
+    }
+    bool enforceUniqueConstraints() const @property nothrow pure @safe @nogc
+    {
+        return _enforceUniqueConstraints;
+    }
+    void enforceUniqueConstraints(bool value) @property nothrow pure @safe @nogc
+    {
+        _enforceUniqueConstraints = value;
     }
     mixin Signal!(string);
 /**
 Notifies `this` which property changed. If the property is
-part of the primary key then the primary key is updated.
+part of the clustered key then the clustered key is updated.
 This also emits a signal with the property name that changed.
 Params:
     propertyName = the property name that changed.
@@ -64,7 +73,6 @@ Params:
     {
         _containsChanges = true;
         emit(propertyName);
-        debug(signal) writeln("You changed ", propertyName);
     }
     void remove(key_type item_key)
     {
@@ -72,6 +80,7 @@ Params:
         {
             this._items[item_key].disconnect(&itemChanged);
             this._items.remove(item_key);
+            notify("length");
         }
     }
     void remove(T item)
@@ -89,7 +98,8 @@ Notifies that the length of `this` has changed.
 Params:
     item = the item you want to add to `this`.
 Throws:
-    PrimaryKeyException if `this` already contains `item`.
+    UniqueConstraintException if `this` already contains `item` and
+    enforceUniqueConstraints is true.
  */
     void add(T item)
     in
@@ -98,9 +108,9 @@ Throws:
     }
     body
     {
-        if (this.contains(item))
+        if (_enforceUniqueConstraints && this.contains(item))
         {
-            throw new PrimaryKeyException(item.toString ~ " was added again.");
+            throw new UniqueConstraintException(item.toString ~ " was added again.");
         }
         item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
@@ -124,7 +134,7 @@ Notifies that the length of `this` has changed.
 Params:
     items = the items you want to add to `this`.
 Throws:
-    PrimaryKeyException if `this` already contains `item`.
+    UniqueConstraintException if `this` already contains `item`.
  */
     void add(T[] items)
     in
@@ -162,22 +172,22 @@ Returns:
         return this._items[item.key];
     }
 /**
-Gets the approriate `T` that has primary key `pk`.
+Gets the approriate `T` that has clustered key `clIdx`.
 Params:
-    pk = the primary key of the item you want back.
+    clIdx = the clustered key of the item you want back.
 Returns:
-    The item in the collection that has primary key `pk`.
+    The item in the collection that has clustered key `clIdx`.
  */
-    ref T opIndex(key_type pk)
+    ref T opIndex(key_type clIdx)
     {
-        return this._items[pk];
+        return this._items[clIdx];
     }
 /**
-Gets the approriate `T` that has primary key `a`.
+Gets the approriate `T` that has clustered key `a`.
 Params:
-    a = the fields of the primary key of the item you want back.
+    a = the fields of the clustered key of the item you want back.
 Returns:
-    The item in the collection that has the primary key with fields `a`.
+    The item in the collection that has the clustered key with fields `a`.
  */
     ref T opIndex(A...)(A a)
     in
@@ -190,8 +200,8 @@ Returns:
     }
     body
     {
-        auto pk = key_type(a);
-        return this._items[pk];
+        auto clIdx = key_type(a);
+        return this._items[clIdx];
     }
 /**
 Forwards all methods not specified by this abstract class
@@ -255,32 +265,32 @@ Returns:
         return this.contains(item);
     }
 /**
-Checks if `pk` is in the collection.
+Checks if `clIdx` is in the collection.
 Params:
-    pk = the primary key of the item you want
+    clIdx = the clustered key of the item you want
     to see is in the collection.
 Returns:
-    true if there is a primary key in the collection that
-    matches `pk`.
+    true if there is a clustered key in the collection that
+    matches `clIdx`.
  */
-    bool contains(key_type pk) nothrow pure @safe @nogc
+    bool contains(key_type clIdx) nothrow pure @safe @nogc
     {
-        auto i = (pk in this._items);
+        auto i = (clIdx in this._items);
         return (i !is null);
     }
     /// ditto
-    bool opBinaryRight(string op)(key_type pk) nothrow pure @safe @nogc
+    bool opBinaryRight(string op)(key_type clIdx) nothrow pure @safe @nogc
         if (op == "in")
     {
-        return this.contains(pk);
+        return this.contains(clIdx);
     }
 /**
-Checks if `a` makes a primary key that is in the collection.
+Checks if `a` makes a clustered key that is in the collection.
 Params:
-    a = the fields of the primary key of the item you want
+    a = the fields of the clustered key of the item you want
     to see is in the collection.
 Returns:
-    true if there is a primary key in the collection that
+    true if there is a clustered key in the collection that
     matches `a`.
  */
     bool contains(A...)(A a) nothrow pure @safe @nogc
@@ -288,14 +298,14 @@ Returns:
     {
         import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a primary key with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered key with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using contains.");
     }
     body
     {
-        auto pk = key_type(a);
-        return this.contains(pk);
+        auto clIdx = key_type(a);
+        return this.contains(clIdx);
     }
     /// ditto
     bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
@@ -317,6 +327,7 @@ unittest
         int _annualSales;
         string _brand;
     public:
+        // marking name as part of the primary key
         string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
         {
             return _name;
@@ -373,12 +384,14 @@ unittest
             this._annualSales = annualSales;
             this._brand = brand;
             // do not forget to set the clustered key
-            setClusteredKey();
+            setClusteredIndex();
         }
         Candy dup() const
         {
             return new Candy(this._name, this._ranking, this._annualSales, this._brand);
         }
+        // the default is to make the primary key into the clustered index
+        // which allows you to search based on the primary key
         mixin KeyedItem!(typeof(this));
     }
 
@@ -409,7 +422,7 @@ unittest
     // use the class as an index
     assert(mars[milkyWay] == milkyWay);
     // use the primary key as an index
-    auto pk = Candy.ClusteredKey("Milkey Way");
+    auto pk = Candy.PrimaryKey("Milkey Way");
     assert(mars[pk] == milkyWay);
     assert(mars["Milkey Way"] == milkyWay);
 
@@ -437,7 +450,7 @@ unittest
     }
 
     // trying to add another candy with the same name will
-    // result in a primary key violation
+    // result in a unique constraint violation
     auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
     import std.exception : assertThrown;
     assertThrown!(Throwable)(mars ~= milkyWay2);

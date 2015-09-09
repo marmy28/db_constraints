@@ -30,22 +30,19 @@ Use this in the singular class which would describe a row in your
 database.
 Params:
     T = the type of the class this is mixed into.
-    ClusteredKeyAttribute = the attribute associated with the clustered key.
+    ClusteredIndexAttribute = the attribute associated with the clustered index.
     The default is @PrimaryKeyColumn.
  */
-mixin template KeyedItem(T, ClusteredKeyAttribute = PrimaryKeyColumn)
+mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
 {
     import std.array;
     import std.signals;
 private:
     bool _containsChanges;
-    ClusteredKey _key;
+    ClusteredIndex _key;
 
 /**
 Gets the properties of the class marked with @Attr. This is private.
-Deprecated:
-    This will be phased out soon. Instead I will use get_Columns.
-    Currently only the primary key uses this.
  */
     static string[] getColumns(Attr)()
     {
@@ -146,20 +143,16 @@ Bugs:
  */
     static string createType(string class_name)()
     {
-        string result = "";
+        string result = "public:\n";
         foreach(name; UniqueConstraintStructNames!(T))
         {
-            static if (name == ClusteredKeyAttribute.name)
+            static if (name == ClusteredIndexAttribute.name)
             {
-                result ~= "public:\n";
-                result ~= "    alias " ~ name ~ " = ClusteredKey;\n";
+                result ~= "    alias " ~ name ~ " = ClusteredIndex;\n";
                 result ~= "    alias " ~ name ~ "_key = key;\n";
             }
             else
             {
-                // result ~= "private:\n";
-                // result ~= "    " ~ name ~ " _" ~ name ~ "_key;\n";
-                result ~= "public:\n";
                 result ~= "    struct " ~ name ~ "\n";
                 result ~= "    {\n";
                 foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
@@ -205,31 +198,39 @@ be used after a save.
 
 /**
 Notifies `this` which property changed. If the property is
-part of the clustered key then the clustered key is updated.
+part of the clustered index then the clustered index is updated.
 This also emits a signal with the property name that changed
-along with the clustered key.
+along with the clustered index.
 Params:
     propertyName = the property name that changed.
  */
     void notify(string propertyName)
     {
         import std.algorithm : canFind;
+        import std.meta : Erase;
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        if (getColumns!(ClusteredKeyAttribute).canFind(propertyName))
+        if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
-            setClusteredKey();
+            setClusteredIndex();
+        }
+        foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
+        {
+            if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
+            {
+                emitChange.emit(name ~ "_key", _key);
+            }
         }
     }
 
 /**
-Clustered key struct created at compile-time.
+Clustered index struct created at compile-time.
 This is used to compare classes. The members
 are the members of the class marked with the
-attribute selected as the Clustered Key.
+attribute selected as the Clustered Index.
  */
-    struct ClusteredKey
+    struct ClusteredIndex
     {
         import db_extensions.keyed.generickey;
         // creates the members of the clustered key with appropriate type.
@@ -237,38 +238,38 @@ attribute selected as the Clustered Key.
               {
                   import std.string;
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredKeyAttribute))
+                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
                   {
                       result ~= format("typeof(%s.%s) %s;", T.stringof, pkcolumn, pkcolumn);
                   }
                   return result;
               }());
         // adds the generic comparison for structs
-        mixin generic_compare!(ClusteredKey);
+        mixin generic_compare!(ClusteredIndex);
     }
 
 
 /**
-The clustered key property for the class.
+The clustered index property for the class.
 Returns:
-    The clustered key for the class.
+    The clustered index for the class.
  */
-    ClusteredKey key() const @property nothrow pure @safe @nogc
+    ClusteredIndex key() const @property nothrow pure @safe @nogc
     {
         return _key;
     }
 
 /**
-Sets the clustered key for `this`.
+Sets the clustered index for `this`.
  */
-    void setClusteredKey()
+    void setClusteredIndex()
     {
-        auto new_key = ClusteredKey();
+        auto new_key = ClusteredIndex();
         mixin(function string()
               {
                   import std.string;
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredKeyAttribute))
+                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
                   {
                       result ~= format("new_key.%s = this.%s;", pkcolumn, pkcolumn);
                   }
@@ -276,12 +277,11 @@ Sets the clustered key for `this`.
               }());
         this._key = new_key;
     }
-    deprecated("Use setClusteredKey instead.")
-    alias setPrimaryKey = setClusteredKey;
+
 /**
-Compares `this` based on the clustered key.
+Compares `this` based on the clustered index.
 Returns:
-    true if the clustered keys equal.
+    true if the clustered index equal.
  */
     override bool opEquals(Object o) const pure nothrow @nogc
     {
@@ -290,9 +290,9 @@ Returns:
     }
 
 /**
-Compares `this` based on the clustered key if comparison is with the same class.
+Compares `this` based on the clustered index if comparison is with the same class.
 Returns:
-    The comparison from the clustered key.
+    The comparison from the clustered index.
  */
     override int opCmp(Object o) const
     {
@@ -307,9 +307,9 @@ Returns:
 
 
 /**
-Gets the hash of the clustered key.
+Gets the hash of the clustered index.
 Returns:
-    The hash of the clustered key.
+    The hash of the clustered index.
  */
     override size_t toHash() const nothrow @safe
     {
@@ -369,7 +369,7 @@ unittest
             this._name = string.init;
             this._ranking = int.init;
             this._brand = string.init;
-            setClusteredKey();
+            setClusteredIndex();
         }
 
         this(string name, immutable(int) ranking, string brand)
@@ -378,13 +378,13 @@ unittest
             this._ranking = ranking;
             this._brand = brand;
             // do not forget to set the clustered key
-            setClusteredKey();
+            setClusteredIndex();
         }
         Candy dup() const
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
-        // The primary key is now the clustered key
+        // The primary key is now the clustered index
         mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
     }
 
@@ -393,13 +393,13 @@ unittest
 
     assert(!i.containsChanges);
 
-    auto pk = Candy.ClusteredKey("Opal Fruit");
+    auto pk = Candy.ClusteredIndex("Opal Fruit");
     assert(i.key == pk);
     assert(i.key == i.PrimaryKey_key);
     assert(i.key.name == pk.name);
 
     auto j = new Candy("Opal Fruit", 0, "");
-    // since name is the clustered key i and j are equal because the names are equal
+    // since name is the clustered index i and j are equal because the names are equal
     assert(i == j);
 
     // in 1967 Opal Fruits came to America and changed its name
@@ -408,7 +408,27 @@ unittest
     i.markAsSaved();
     assert(!i.containsChanges);
 
-    // by changing the name it also changes the clustered key
+    // by changing the name it also changes the clustered index
     assert(i.key != pk);
     assert(i != j);
+
+    // below is what is created when you include the mixin KeyedItem
+    enum candyStructs =
+`public:
+    alias PrimaryKey = ClusteredIndex;
+    alias PrimaryKey_key = key;
+    struct uc_Candy_ranking
+    {
+        typeof(Candy.ranking) ranking;
+        import db_extensions.keyed.generickey;
+        mixin generic_compare!(uc_Candy_ranking);
+    }
+    uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
+    {
+        auto _uc_Candy_ranking_key = uc_Candy_ranking();
+        _uc_Candy_ranking_key.ranking = this._ranking;
+        return _uc_Candy_ranking_key;
+    }
+`;
+    static assert(Candy.createType!(Candy.stringof) == candyStructs);
 }

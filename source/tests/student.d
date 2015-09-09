@@ -39,7 +39,7 @@ public:
 
         this._cName = pcName;
         this._nNumClasses = pnNumClasses;
-        setClusteredKey();
+        setClusteredIndex();
     }
     Student dup() const
     {

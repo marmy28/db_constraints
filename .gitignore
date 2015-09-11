@@ -4,5 +4,4 @@ __dummy.html
 *.o
 *.obj
 *.a
-docs
 dub.userprefs

@@ -8,9 +8,9 @@ import db_extensions.extra.db_exceptions;
 
 /**
 Turns the inheriting class into a base keyed collection.
-The key is based on the singular class' Clustered Key.
+The key is based on the singular class' clustered index.
 T must have a dup property and a key property.
-The clustered key and key are created when you include the keyeditem in your class.
+The clustered index and key are created when you include the keyeditem in your class.
 Params:
     T = the singular class.
  */
@@ -20,6 +20,10 @@ abstract class BaseKeyedCollection(T)
         )
 {
 private:
+/**
+The key type is alias'd at the type since it looked better than having
+typeof(T.key) everywhere.
+ */
     alias key_type = typeof(T.key);
     bool _containsChanges;
     bool _enforceUniqueConstraints = true;
@@ -32,6 +36,7 @@ private:
             this.remove(item_key);
             this.add(item);
         }
+        // TODO: catch anything ending in key and make sure there is only one of it...
         notify(propertyName);
     }
     T[key_type] _items;
@@ -53,18 +58,26 @@ Returns:
     {
         return _containsChanges;
     }
+/**
+Getter and setter to enforce the unique constraints. By default
+this is true but you may set it to false if you have a lot of
+initial data and already trust that is unique.
+
+Setting this to false means that there are no checks and if there
+is a duplicate clustered index, it will be overwritten.
+*/
     bool enforceUniqueConstraints() const @property nothrow pure @safe @nogc
     {
         return _enforceUniqueConstraints;
     }
+    /// ditto
     void enforceUniqueConstraints(bool value) @property nothrow pure @safe @nogc
     {
         _enforceUniqueConstraints = value;
     }
     mixin Signal!(string);
 /**
-Notifies `this` which property changed. If the property is
-part of the clustered key then the clustered key is updated.
+Notifies `this` which property changed.
 This also emits a signal with the property name that changed.
 Params:
     propertyName = the property name that changed.
@@ -74,6 +87,10 @@ Params:
         _containsChanges = true;
         emit(propertyName);
     }
+/**
+Removes an item from `this` and disconnects the signals. Notifies
+that the length of `this` has changed.
+ */
     void remove(key_type item_key)
     {
         if (this.contains(item_key))
@@ -83,6 +100,7 @@ Params:
             notify("length");
         }
     }
+    /// ditto
     void remove(T item)
     in
     {
@@ -91,6 +109,21 @@ Params:
     body
     {
         this.remove(item.key);
+    }
+    /// ditto
+    void remove(A...)(A a)
+    in
+    {
+        import std.conv;
+        static assert(A.length == key_type.tupleof.length, T.stringof ~
+                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " member(s). You included " ~ A.length.to!string ~
+                      " members when using remove.");
+    }
+    body
+    {
+        auto clIdx = key_type(a);
+        return this.remove(clIdx);
     }
 /**
 Adds `item` to `this` and connects to the signals emitted by `item`.
@@ -168,33 +201,38 @@ Returns:
     The item in the collection that matches `item`.
  */
     ref T opIndex(T item) nothrow pure @safe
+    in
+    {
+        assert(item !is null, "Trying to lookup with a null.");
+    }
+    body
     {
         return this._items[item.key];
     }
 /**
-Gets the approriate `T` that has clustered key `clIdx`.
+Gets the approriate `T` that has clustered index `clIdx`.
 Params:
-    clIdx = the clustered key of the item you want back.
+    clIdx = the clustered index of the item you want back.
 Returns:
-    The item in the collection that has clustered key `clIdx`.
+    The item in the collection that has clustered index `clIdx`.
  */
     ref T opIndex(key_type clIdx)
     {
         return this._items[clIdx];
     }
 /**
-Gets the approriate `T` that has clustered key `a`.
+Gets the approriate `T` that has clustered index `a`.
 Params:
-    a = the fields of the clustered key of the item you want back.
+    a = the fields of the clustered index of the item you want back.
 Returns:
-    The item in the collection that has the clustered key with fields `a`.
+    The item in the collection that has the clustered index with fields `a`.
  */
     ref T opIndex(A...)(A a)
     in
     {
         import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered key with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using the index.");
     }
@@ -267,10 +305,10 @@ Returns:
 /**
 Checks if `clIdx` is in the collection.
 Params:
-    clIdx = the clustered key of the item you want
+    clIdx = the clustered index of the item you want
     to see is in the collection.
 Returns:
-    true if there is a clustered key in the collection that
+    true if there is a clustered index in the collection that
     matches `clIdx`.
  */
     bool contains(key_type clIdx) nothrow pure @safe @nogc
@@ -285,12 +323,12 @@ Returns:
         return this.contains(clIdx);
     }
 /**
-Checks if `a` makes a clustered key that is in the collection.
+Checks if `a` makes a clustered index that is in the collection.
 Params:
-    a = the fields of the clustered key of the item you want
+    a = the fields of the clustered index of the item you want
     to see is in the collection.
 Returns:
-    true if there is a clustered key in the collection that
+    true if there is a clustered index in the collection that
     matches `a`.
  */
     bool contains(A...)(A a) nothrow pure @safe @nogc
@@ -298,7 +336,7 @@ Returns:
     {
         import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered key with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using contains.");
     }
@@ -383,7 +421,7 @@ unittest
             this._ranking = ranking;
             this._annualSales = annualSales;
             this._brand = brand;
-            // do not forget to set the clustered key
+            // do not forget to set the clustered index
             setClusteredIndex();
         }
         Candy dup() const
@@ -424,6 +462,7 @@ unittest
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
     assert(mars[pk] == milkyWay);
+    // use the contents of the primary key as an index
     assert(mars["Milkey Way"] == milkyWay);
 
     // milky way is in mars
@@ -439,9 +478,7 @@ unittest
     // and changed it, the primary key in mars has
     // updated so Milkey Way is no longer in it but
     // Milky Way is.
-    assert(pk !in mars);
-    pk.name = "Milky Way";
-    assert(mars.contains(pk));
+    assert("Milkey Way" !in mars);
     assert(mars.contains("Milky Way"));
 
     foreach(name_pk, candy; mars)
@@ -454,4 +491,6 @@ unittest
     auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
     import std.exception : assertThrown;
     assertThrown!(Throwable)(mars ~= milkyWay2);
+
+    // TODO: add in remove example
 }

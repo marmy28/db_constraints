@@ -19,24 +19,36 @@ abstract class BaseKeyedCollection(T)
         hasMember!(T, "key")
         )
 {
-private:
+public:
 /**
 The key type is alias'd at the type since it looked better than having
 typeof(T.key) everywhere.
  */
     alias key_type = typeof(T.key);
+private:
     bool _containsChanges;
     bool _enforceUniqueConstraints = true;
 
     void itemChanged(string propertyName, key_type item_key)
     {
+        import std.algorithm : endsWith;
         if (propertyName == "key")
         {
             T item = this._items[item_key].dup();
             this.remove(item_key);
             this.add(item);
         }
-        // TODO: catch anything ending in key and make sure there is only one of it...
+        else if (propertyName.endsWith("_key"))
+        {
+            auto constraintName = "";
+            auto item = this[item_key];
+            if (_enforceUniqueConstraints && this.isDuplicateItem(item, constraintName))
+            {
+                throw new UniqueConstraintException("The " ~ constraintName ~
+                                                    " constraint was violated by " ~
+                                                    item.toString ~ ".");
+            }
+        }
         notify(propertyName);
     }
     T[key_type] _items;
@@ -141,9 +153,10 @@ Throws:
     }
     body
     {
-        if (_enforceUniqueConstraints && this.contains(item))
+        auto constraintName = "";
+        if (_enforceUniqueConstraints && this.isDuplicateItem(item, constraintName))
         {
-            throw new UniqueConstraintException(item.toString ~ " was added again.");
+            throw new UniqueConstraintException("The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
         }
         item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
@@ -351,6 +364,50 @@ Returns:
     {
         return this.contains(a);
     }
+/**
+Checks if the item has any conflicting unique constraints. This
+is more extensive than `contains`.
+ */
+    bool isDuplicateItem(T item, out string constraintName)
+    in
+    {
+        assert(item !is null, "Cannot check if a null item is duplicated.");
+    }
+    out (result)
+    {
+        if (result)
+            assert(constraintName !is null && constraintName != "");
+        else
+            assert(constraintName == "");
+    }
+    body
+    {
+        import std.algorithm : canFind, endsWith;
+
+        bool result = false;
+        constraintName = "";
+        foreach(uniqueName; T.UniqueConstraintStructNames!(T))
+        {
+            if (this.byValue.canFind!("a !is b && a." ~ uniqueName ~ "_key == b." ~ uniqueName ~ "_key")(item))
+            {
+                result = true;
+                constraintName ~= uniqueName ~ ", ";
+            }
+        }
+
+        if (constraintName.endsWith(", "))
+        {
+            constraintName = constraintName[0..$-2];
+        }
+        return result;
+    }
+    // ditto
+    bool isDuplicateItem(T item)
+    {
+        auto constraintName = "";
+        auto result = this.isDuplicateItem(item, constraintName);
+        return result;
+    }
 }
 
 ///
@@ -492,5 +549,12 @@ unittest
     import std.exception : assertThrown;
     assertThrown!(Throwable)(mars ~= milkyWay2);
 
-    // TODO: add in remove example
+    auto violatedConstraint = "";
+    assert(mars.isDuplicateItem(milkyWay2, violatedConstraint));
+    assert(violatedConstraint == "Clustered index" || violatedConstraint == "PrimaryKey");
+
+    // removing milky way from mars
+    mars.remove("Milky Way");
+    // this means milkyWay2 is no longer a duplicate
+    assert(!mars.isDuplicateItem(milkyWay2, violatedConstraint));
 }

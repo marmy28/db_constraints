@@ -28,7 +28,7 @@ Use this in the singular class which would describe a row in your
 database.
 Params:
     T = the type of the class this is mixed into.
-    ClusteredIndexAttribute = the attribute associated with the clustered index. The default is @PrimaryKeyColumn.
+    ClusteredIndexAttribute = the attribute associated with the clustered index.
  */
 mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
 {

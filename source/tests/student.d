@@ -21,7 +21,8 @@ public:
             notify("cName");
         }
     }
-    int nNumClasses() const @property @UniqueConstraintColumn!("uc_Student") nothrow pure @safe @nogc
+    @UniqueConstraintColumn!("uc_Student")
+    int nNumClasses() const @property nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }
@@ -195,4 +196,16 @@ unittest
 
     import std.exception : assertThrown;
     assertThrown!Throwable(i ~= j);
+}
+
+unittest
+{
+    auto i = new Students(new Student("Tom", 7));
+    auto jake = new Student("Jake", 7);
+    import std.exception : assertThrown;
+    assertThrown!Throwable(i.add(jake));
+    jake.nNumClasses = 5;
+    i.add(jake);
+    assertThrown!Throwable(i["Jake"].nNumClasses = 7);
+
 }

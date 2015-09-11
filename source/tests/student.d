@@ -195,7 +195,7 @@ unittest
     assert(j in i);
 
     import std.exception : assertThrown;
-    assertThrown!Throwable(i ~= j);
+    assertThrown!UniqueConstraintException(i ~= j);
 }
 
 unittest
@@ -203,9 +203,41 @@ unittest
     auto i = new Students(new Student("Tom", 7));
     auto jake = new Student("Jake", 7);
     import std.exception : assertThrown;
-    assertThrown!Throwable(i.add(jake));
+    assertThrown!UniqueConstraintException(i.add(jake));
     jake.nNumClasses = 5;
     i.add(jake);
-    assertThrown!Throwable(i["Jake"].nNumClasses = 7);
+    assertThrown!UniqueConstraintException(i["Jake"].nNumClasses = 7);
+}
 
+unittest
+{
+    auto i = new Students(new Student("Tom", 7));
+    auto jake = new Student("Jake", 7);
+    import std.exception : assertThrown, assertNotThrown;
+    assertThrown!UniqueConstraintException(i.add(jake));
+    jake.nNumClasses = 5;
+    i.add(jake);
+    assertNotThrown!UniqueConstraintException(i["Jake"].nNumClasses = 6);
+}
+
+unittest
+{
+    import std.exception : assertThrown, assertNotThrown;
+
+    auto tom1 = new Student("Tom", 7);
+    auto tom2 = new Student("Tom", 7);
+    auto i = new Students(tom1);
+    assert(i.length == 1);
+    string j;
+    assert(i.isDuplicateItem(tom2, j));
+    assert(j == "PrimaryKey, uc_Student");
+    assert(!i.isDuplicateItem(tom1));
+    assertNotThrown!UniqueConstraintException(i.add(tom1));
+    assertThrown!UniqueConstraintException(i.add(tom2));
+    assert(i.length == 1);
+    tom2.cName = "James";
+    assertThrown!UniqueConstraintException(i.add(tom2));
+    i.enforceUniqueConstraints = false;
+    assertNotThrown!UniqueConstraintException(i.add(tom2));
+    assert(i.length == 2);
 }

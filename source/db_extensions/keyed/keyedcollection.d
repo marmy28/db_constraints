@@ -388,7 +388,8 @@ is more extensive than `contains`.
         constraintName = "";
         foreach(uniqueName; T.UniqueConstraintStructNames!(T))
         {
-            if (this.byValue.canFind!("a !is b && a." ~ uniqueName ~ "_key == b." ~ uniqueName ~ "_key")(item))
+            if (this.byValue.canFind!("a !is b && " ~
+                                      "a." ~ uniqueName ~ "_key == b." ~ uniqueName ~ "_key")(item))
             {
                 result = true;
                 constraintName ~= uniqueName ~ ", ";
@@ -547,11 +548,11 @@ unittest
     // result in a unique constraint violation
     auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
     import std.exception : assertThrown;
-    assertThrown!(Throwable)(mars ~= milkyWay2);
+    assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
     auto violatedConstraint = "";
     assert(mars.isDuplicateItem(milkyWay2, violatedConstraint));
-    assert(violatedConstraint == "Clustered index" || violatedConstraint == "PrimaryKey");
+    assert(violatedConstraint == "PrimaryKey");
 
     // removing milky way from mars
     mars.remove("Milky Way");

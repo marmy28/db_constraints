@@ -9,10 +9,10 @@ import db_extensions.extra.db_exceptions;
 /**
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' Clustered Key.
+T must have a dup property and a key property.
+The clustered key and key are created when you include the keyeditem in your class.
 Params:
-    $(D T) must have a dup property and
-    a key property. The clustered key and key are created
-    when you include the keyeditem in your class.
+    T = the singular class.
  */
 abstract class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&

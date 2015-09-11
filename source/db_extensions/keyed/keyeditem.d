@@ -5,8 +5,8 @@ import std.typecons : Flag, Yes;
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct made up of all of the properties marked with
-@PrimaryKeyColumn() which can be used with KeyedCollection as
-keys in an associative array.
+@PrimaryKeyColumn which can be used with KeyedCollection as
+keys in an associative array by default.
  */
 alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 /**
@@ -14,13 +14,11 @@ User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct with name defined in the compile-time argument.
 For example a property marked with @UniqueColumn!("uc_Person") will
 be part of the struct uc_Person.
-Bugs:
-    Can only make one UniqueColumn struct.
  */
-struct UniqueConstraintColumn(string pName)
+struct UniqueConstraintColumn(string name_)
 {
     /// The name of the constraint which is the structs name.
-    enum name = pName;
+    enum name = name_;
 }
 
 // @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
@@ -30,8 +28,7 @@ Use this in the singular class which would describe a row in your
 database.
 Params:
     T = the type of the class this is mixed into.
-    ClusteredIndexAttribute = the attribute associated with the clustered index.
-    The default is @PrimaryKeyColumn.
+    ClusteredIndexAttribute = the attribute associated with the clustered index. The default is @PrimaryKeyColumn.
  */
 mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
 {
@@ -41,9 +38,8 @@ private:
     bool _containsChanges;
     ClusteredIndex _key;
 
-/**
-Gets the properties of the class marked with @Attr. This is private.
- */
+
+    //Gets the properties of the class marked with @Attr. This is private.
     static string[] getColumns(Attr)()
     {
         import std.traits;
@@ -73,10 +69,11 @@ Gets the properties of the class marked with @Attr. This is private.
         }
         return result;
     }
-
+    // Gets the names given to the different UniqueConstraints
     template UniqueConstraintStructNames(ClassName)
     {
         import std.typetuple;
+        // Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
         template Impl(T...)
         {
             static if (T.length == 0)
@@ -113,6 +110,7 @@ Gets the properties of the class marked with @Attr. This is private.
                 }
             }
         }
+        // takes a members attributes and finds if it has one that starts with UniqueConstraint
         template Get(P...)
         {
             static if (P.length == 0)
@@ -136,11 +134,7 @@ Gets the properties of the class marked with @Attr. This is private.
         alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
     }
 
-/**
-Returns a string full of the structs. This is private.
-Bugs:
-    Currently under development.
- */
+    //Returns a string full of the structs.
     static string createType(string class_name)()
     {
         string result = "public:\n";
@@ -193,7 +187,9 @@ be used after a save.
     {
         _containsChanges = false;
     }
-
+/**
+The signal used to emit changes that occur in `this`.
+ */
     mixin Signal!(string, typeof(_key)) emitChange;
 
 /**
@@ -377,7 +373,7 @@ unittest
             this._name = name;
             this._ranking = ranking;
             this._brand = brand;
-            // do not forget to set the clustered key
+            // do not forget to set the clustered index
             setClusteredIndex();
         }
         Candy dup() const
@@ -393,7 +389,7 @@ unittest
 
     assert(!i.containsChanges);
 
-    auto pk = Candy.ClusteredIndex("Opal Fruit");
+    auto pk = Candy.PrimaryKey("Opal Fruit");
     assert(i.key == pk);
     assert(i.key == i.PrimaryKey_key);
     assert(i.key.name == pk.name);
@@ -408,7 +404,7 @@ unittest
     i.markAsSaved();
     assert(!i.containsChanges);
 
-    // by changing the name it also changes the clustered index
+    // by changing the name it also changes the primary key
     assert(i.key != pk);
     assert(i != j);
 

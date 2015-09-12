@@ -18,11 +18,40 @@ this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next 
 Params |
 ---|
 *string msg*|
-&nbsp;&nbsp;&nbsp;&nbsp;the message thrown with the unique constraint violation.|
+&nbsp;&nbsp;&nbsp;&nbsp;the message thrown with the unique constraint violation|
 *string file*|
-&nbsp;&nbsp;&nbsp;&nbsp;the file where the exception occurred.|
+&nbsp;&nbsp;&nbsp;&nbsp;the file where the exception occurred|
 *size_t line*|
-&nbsp;&nbsp;&nbsp;&nbsp;the line number where the exception occurred.|
+&nbsp;&nbsp;&nbsp;&nbsp;the line number where the exception occurred|
+*Throwable next*|
+&nbsp;&nbsp;&nbsp;&nbsp;references the exception that was being handled when this one was generated|
+
+ 
+
+
+
+***
+```d
+class KeyedException: object.Exception;
+
+```
+**Summary:**
+Inherits from Exception. This is thrown whenever
+there is an exception dealing with the keyed items.
+ 
+***
+```d
+this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null);
+
+```
+Params |
+---|
+*string msg*|
+&nbsp;&nbsp;&nbsp;&nbsp;the message thrown|
+*string file*|
+&nbsp;&nbsp;&nbsp;&nbsp;the file where the exception occurred|
+*size_t line*|
+&nbsp;&nbsp;&nbsp;&nbsp;the line number where the exception occurred|
 *Throwable next*|
 &nbsp;&nbsp;&nbsp;&nbsp;references the exception that was being handled when this one was generated|
 

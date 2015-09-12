@@ -286,7 +286,7 @@ UniqueConstraintException if this already contains item.
 
 ***
 ```d
-pure nothrow ref @safe T opIndex(T item);
+ref T opIndex(T item);
 
 ```
 **Summary:**

@@ -213,14 +213,14 @@ Params:
 Returns:
     The item in the collection that matches `item`.
  */
-    ref T opIndex(T item) nothrow pure @safe
+    ref T opIndex(T item)
     in
     {
         assert(item !is null, "Trying to lookup with a null.");
     }
     body
     {
-        return this._items[item.key];
+        return this[item.key];
     }
 /**
 Gets the approriate `T` that has clustered index `clIdx`.
@@ -231,7 +231,20 @@ Returns:
  */
     ref T opIndex(key_type clIdx)
     {
-        return this._items[clIdx];
+        if (this.contains(clIdx))
+        {
+            return this._items[clIdx];
+        }
+        else
+        {
+            auto fields = "\nAn item with clustered index of:\n";
+            foreach(i, j; clIdx.tupleof)
+            {
+                fields ~= clIdx.tupleof[i].stringof ~ " = " ~ std.conv.to!string(j) ~ "\n";
+            }
+            fields ~= "does not exist in " ~ typeof(this).stringof;
+            throw new KeyedException(fields);
+        }
     }
 /**
 Gets the approriate `T` that has clustered index `a`.
@@ -252,7 +265,7 @@ Returns:
     body
     {
         auto clIdx = key_type(a);
-        return this._items[clIdx];
+        return this[clIdx];
     }
 /**
 Forwards all methods not specified by this abstract class

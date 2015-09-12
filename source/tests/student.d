@@ -218,6 +218,7 @@ unittest
     jake.nNumClasses = 5;
     i.add(jake);
     assertNotThrown!UniqueConstraintException(i["Jake"].nNumClasses = 6);
+    assertThrown!KeyedException(i["Sup"].nNumClasses = 9);
 }
 
 unittest

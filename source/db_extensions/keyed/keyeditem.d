@@ -1,7 +1,5 @@
 module db_extensions.keyed.keyeditem;
 
-import std.typecons : Flag, Yes;
-
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct made up of all of the properties marked with
@@ -38,6 +36,9 @@ private:
     bool _containsChanges;
     ClusteredIndex _key;
 
+    static assert(!getColumns!(ClusteredIndexAttribute).empty,
+                  "Must have columns with UniqueConstraintColumn!\"" ~
+                  ClusteredIndexAttribute.name ~ "\" to use this mixin.");
 
     //Gets the properties of the class marked with @Attr. This is private.
     static string[] getColumns(Attr)()

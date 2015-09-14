@@ -19,15 +19,43 @@ struct UniqueConstraintColumn(string name_)
     enum name = name_;
 }
 
-// @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
+///
 enum ForeignKeyActions
 {
+/**
+When a parent key is modified or deleted from the collection, no special action is taken.
+If you are using MySQL or MSSQL use `ForeignKeyActions.restrict` instead for the desired
+effect.
+ */
     noAction,
+/**
+The item is prohibited from deleting or modifying a parent key when there exists
+one or more child keys mapped to it.
+Throws:
+    ForeignKeyException when a member changes.
+ */
     restrict,
+/**
+Sets the member to `null` when deleting or modifying a parent key.
+Throws:
+    ForeignKeyException when the type cannot be set to null.
+ */
     setNull,
+/**
+Sets the member to the types initial value when deleting or modifying a parent key.
+Bugs:
+   Currently can only set to the initial value.
+ */
     setDefault,
+/**
+Updates or deletes the item based on what happened to the parent key.
+ */
     cascade
 }
+
+/**
+The foreign key user-defined attribute. Currently under :construction:
+ */
 struct ForeignKey(string name_, T)
     if (is(T == class))
 {
@@ -35,16 +63,6 @@ struct ForeignKey(string name_, T)
     ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
     ForeignKeyActions onDelete = ForeignKeyActions.noAction;
     T parentType;
-}
-
-// MySQL && MSSQL treats noAction like restrict
-version(MySQL)
-{
-    version = noActionIsRestrict;
-}
-else version(MSSQL)
-{
-    version = noActionIsRestrict;
 }
 
 // mixin template ForeignKeyConstraint(ForeignClass, string ForeignClassConstraintName)

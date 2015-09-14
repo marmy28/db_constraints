@@ -9,6 +9,14 @@ module tests.one_to_one_class;
 
 import db_extensions;
 
+version(unittest)
+{
+    ///Fake class
+    class JustForDocs
+    {
+    }
+}
+
 ///
 unittest
 {

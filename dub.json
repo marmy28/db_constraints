@@ -4,7 +4,7 @@
 	"copyright": "Copyright © 2015, matthew",
 	"homepage": "https://github.com/marmy28/db_extensions",
 	"authors": ["Matthew Armbruster"],
-	"version": "0.0.2",
+	"version": "0.0.3-alpha",
 	"mainSourceFile": "source/app.d",
 	"configurations": [
 		{
@@ -28,7 +28,7 @@
 	"buildTypes": {
 	    "docs": {
 	        "buildOptions": ["syntaxOnly"],
-	        "dflags": ["-c", "-Dddocs", "$PACKAGE_DIR/github.ddoc"],
+	        "dflags": ["-c", "-Dddocs", "$PACKAGE_DIR/github.ddoc", "-unittest"],
 	        "postBuildCommands": ["./buildDocs.sh"]
 	    }
 	}

@@ -117,13 +117,13 @@ alias PrimaryKey = ClusteredIndex;
 alias PrimaryKey_key = key;
 struct uc_Candy_ranking
 {
-    typeof\(Candy.ranking\) ranking;
+    typeof(Candy.ranking) ranking;
     import db_extensions.keyed.generickey;
-    mixin generic_compare!\(uc_Candy_ranking\);
+    mixin generic_compare!(uc_Candy_ranking);
 }
-uc_Candy_ranking uc_Candy_ranking_key\(\) const @property nothrow pure @safe @nogc
+uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
 {
-    auto _uc_Candy_ranking_key = uc_Candy_ranking\(\);
+    auto _uc_Candy_ranking_key = uc_Candy_ranking();
     _uc_Candy_ranking_key.ranking = this._ranking;
     return _uc_Candy_ranking_key;
 }

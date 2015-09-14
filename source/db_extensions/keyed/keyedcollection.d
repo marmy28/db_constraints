@@ -16,7 +16,8 @@ Params:
  */
 abstract class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
-        hasMember!(T, "key")
+        hasMember!(T, "key") &&
+        hasMember!(T, "emitChange")
         )
 {
 public:

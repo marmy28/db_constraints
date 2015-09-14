@@ -1,25 +1,6 @@
 module db_extensions.keyed.keyeditem;
 
-/**
-User-defined attribute that can be used with KeyedItem. KeyedItem
-will create a struct made up of all of the properties marked with
-@PrimaryKeyColumn which can be used with KeyedCollection as
-keys in an associative array by default.
- */
-alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
-/**
-User-defined attribute that can be used with KeyedItem. KeyedItem
-will create a struct with name defined in the compile-time argument.
-For example a property marked with @UniqueColumn!("uc_Person") will
-be part of the struct uc_Person.
- */
-struct UniqueConstraintColumn(string name_)
-{
-    /// The name of the constraint which is the structs name.
-    enum name = name_;
-}
-
-// @ForeignKey{Area.nAreaID, Cascade on delete, cascade on update}
+public import db_extensions.extra.constraints;
 
 /**
 Use this in the singular class which would describe a row in your
@@ -29,6 +10,7 @@ Params:
     ClusteredIndexAttribute = the attribute associated with the clustered index.
  */
 mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
+    if (is(T == class))
 {
     import std.array;
     import std.signals;
@@ -212,7 +194,8 @@ Params:
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
-        foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
+        //foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
+        foreach(name; ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T))
         {
             if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
             {
@@ -253,13 +236,17 @@ Returns:
  */
     ClusteredIndex key() const @property nothrow pure @safe @nogc
     {
+        // if (this._key == ClusteredIndex.init)
+        // {
+        //     setClusteredIndex();
+        // }
         return _key;
     }
 
 /**
 Sets the clustered index for `this`.
  */
-    void setClusteredIndex()
+    void setClusteredIndex() nothrow pure @safe @nogc
     {
         auto new_key = ClusteredIndex();
         mixin(function string()

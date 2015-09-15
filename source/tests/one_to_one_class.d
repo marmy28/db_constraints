@@ -43,8 +43,23 @@ unittest
             this._name = name_;
             setClusteredIndex();
         }
+        Human dup()
+        {
+            return new Human(this.name);
+        }
 
         mixin KeyedItem!(typeof(this));
+    }
+    class Humans : BaseKeyedCollection!Human
+    {
+        this(Human item)
+        {
+            super(item);
+        }
+        this(Human[] items)
+        {
+            super(items);
+        }
     }
 
     class Phone
@@ -70,9 +85,9 @@ unittest
         string brand;
 
         // foreign key struct
-        Human human() @property nothrow pure @safe @nogc
+        Human *human() @property nothrow pure @safe @nogc
         {
-            return *_human;
+            return _human;
         }
         void human(Human *value) @property
         {
@@ -143,8 +158,52 @@ unittest
             this.brand = brand_;
             setClusteredIndex();
         }
+        Phone dup()
+        {
+            return new Phone(this.name_h, this.brand);
+        }
 
         mixin KeyedItem!(typeof(this), UniqueConstraintColumn!("human_phone_name"));
+    }
+
+    // move foreignkeychanged into the plural class
+    class Phones : BaseKeyedCollection!Phone
+    {
+        this(Phone item)
+        {
+            super(item);
+        }
+        this(Phone[] items)
+        {
+            super(items);
+        }
+
+        ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
+        ForeignKeyActions onDelete = ForeignKeyActions.noAction;
+        void associateParent(Humans humans_)
+        {
+            this._humans = &humans_;
+            import std.algorithm : filter;
+            if (humans_ !is null)
+            {
+                import std.parallelism;
+                foreach(i, ref item; taskPool.parallel(this.byValue))
+                {
+                    auto human = humans_.byValue.filter!(a => a.name == item.name_h);
+                    if (!human.empty)
+                    {
+                        item.human = &(human.front());
+                    }
+                }
+            }
+        }
+    protected:
+        override void itemChanged(string propertyName, key_type item_key)
+        {
+            std.stdio.writeln(propertyName);
+            super.itemChanged(propertyName, item_key);
+        }
+        Humans *_humans;
     }
 
     auto i = new Human("Dave");
@@ -152,11 +211,11 @@ unittest
     auto j = new Phone(null, "Apple");
     j.human = &i;
     assert(i.name == "Dave");
-    assert(i == j.human);
+    assert(i == *j.human);
     assert(j.name_h == i.name);
     j.onUpdate = ForeignKeyActions.cascade;
     i.name = "David";
-    assert(i == j.human);
+    assert(i == *j.human);
     assert(i.name == j.human.name);
     assert(j.name_h == i.name);
     j.onUpdate = ForeignKeyActions.noAction;
@@ -167,4 +226,27 @@ unittest
     j.onUpdate = ForeignKeyActions.restrict;
     import std.exception : assertThrown;
     assertThrown!ForeignKeyException(i.name = "Dave");
+
+
+
+    auto humans = new Humans([new Human("Anne"), new Human("Dave"),
+                              new Human("Deb"), new Human("Jane")]);
+    auto phones = new Phones([new Phone("Dave", "Apple"),
+                              new Phone("Deb", "Flip"),
+                              new Phone("Anne", "Ubuntu")]);
+
+    foreach(phone; phones)
+    {
+        assert(phone.human is null);
+        phone.onUpdate = ForeignKeyActions.cascade;
+        phone.onDelete = ForeignKeyActions.cascade;
+    }
+
+    phones.associateParent(humans);
+    foreach(phone; phones)
+    {
+        assert(phone.human !is null);
+        assert(phone.human.name == phone.name_h);
+    }
+
 }

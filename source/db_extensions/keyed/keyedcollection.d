@@ -29,7 +29,7 @@ typeof(T.key) everywhere.
 private:
     bool _containsChanges;
     bool _enforceUniqueConstraints = true;
-
+protected:
     void itemChanged(string propertyName, key_type item_key)
     {
         import std.algorithm : endsWith;

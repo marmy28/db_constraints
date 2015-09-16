@@ -179,7 +179,7 @@ unittest
             if (humans_ !is null)
             {
                 import std.parallelism;
-                foreach(i, ref item; taskPool.parallel(this.byValue))
+                foreach(ref item; taskPool.parallel(this.byValue))
                 {
                     auto human = humans_.byValue.filter!(a => a.name == item.name_h);
                     if (!human.empty)

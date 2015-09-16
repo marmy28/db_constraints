@@ -32,11 +32,7 @@ unittest
         }
         void name(string value) @property
         {
-            if (value != _name)
-            {
-                _name = value;
-                notify("name");
-            }
+            setter(_name, value, "name");
         }
         this(string name_)
         {
@@ -75,11 +71,7 @@ unittest
         }
         void name_h(string value) @property
         {
-            if (value != this.name_h)
-            {
-                _name_h = value;
-                notify("name_h");
-            }
+            setter(_name_h, value, "name_h");
         }
 
         string brand;
@@ -110,7 +102,7 @@ unittest
         ForeignKeyActions onDelete = ForeignKeyActions.cascade;
         void foreignKeyChanged(string propertyName, typeof(Human.key) item_key)
         {
-            if (propertyName == "PrimaryKey_key")
+            if (propertyName == "name")
             {
                 final switch (onUpdate) with (ForeignKeyActions)
                 {

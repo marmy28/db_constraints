@@ -381,6 +381,8 @@ Returns:
 /**
 Checks if the item has any conflicting unique constraints. This
 is more extensive than `contains`.
+Rename to:
+    violatesUniqueConstraints
  */
     bool isDuplicateItem(T item, out string constraintName)
     in
@@ -444,11 +446,7 @@ unittest
         }
         void name(string value) @property
         {
-            if (value != _name)
-            {
-                _name = value;
-                notify("name");
-            }
+            setter(_name, value, "name");
         }
         int ranking() const @property nothrow pure @safe @nogc
         {
@@ -456,11 +454,7 @@ unittest
         }
         void ranking(int value) @property
         {
-            if (value != _ranking)
-            {
-                _ranking = value;
-                notify("ranking");
-            }
+            setter(_ranking, value, "ranking");
         }
         int annualSales() const @property nothrow pure @safe @nogc
         {
@@ -468,23 +462,18 @@ unittest
         }
         void annualSales(int value) @property
         {
-            if (value != _annualSales)
-            {
-                _annualSales = value;
-                notify("annualSales");
-            }
+            setter(_annualSales, value, "annualSales");
         }
         string brand() const @property nothrow pure @safe @nogc
         {
             return _brand;
         }
+        @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
-            if (value != _brand)
-            {
-                _brand = value;
-                notify("brand");
-            }
+            // this can only be Mars or Hershey
+            //setter!((string a) => a == "Mars" || a == "Hershey")(_brand, value, "brand");
+            setter!("brand")(_brand, value);
         }
 
         this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
@@ -562,6 +551,8 @@ unittest
     // result in a unique constraint violation
     auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
     import std.exception : assertThrown;
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
     auto violatedConstraint = "";
@@ -572,4 +563,6 @@ unittest
     mars.remove("Milky Way");
     // this means milkyWay2 is no longer a duplicate
     assert(!mars.isDuplicateItem(milkyWay2, violatedConstraint));
+
+
 }

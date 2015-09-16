@@ -18,6 +18,67 @@ private:
     bool _containsChanges;
     ClusteredIndex _key;
 
+    import std.functional : unaryFun;
+    import std.conv : to;
+    bool getCheckConstraint(string name, C)(C value)
+    {
+        import std.string;
+
+        enum fullName = format("%s.%s", typeof(this).stringof, name);
+        pragma(msg, fullName);
+        foreach(attr; __traits(getAttributes, fullName))// __traits(getMember, typeof(this), name)))
+        {
+
+            pragma(msg, attr.stringof);
+            static if (attr.stringof.startsWith("CheckConstraint"))
+            {
+                return attr.check(value);
+            }
+        }
+        // FIXME: this should be true but not going in function!
+        return false;
+    }
+
+    template setter(alias check = "true")
+        if (is(typeof(unaryFun!check)))
+    {
+        void setter(P)(ref P member, P value, string name)
+        {
+            if (value != member)
+            {
+                if (unaryFun!check(value))
+                {
+                    member = value;
+                    notify(name);
+                }
+                else
+                {
+                    import db_extensions.extra.db_exceptions;
+                    throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
+                }
+            }
+        }
+    }
+    template setter(string name)
+    {
+        void setter(P)(ref P member, P value)
+        {
+            if (value != member)
+            {
+                if (getCheckConstraint!(name)(value))
+                {
+                    member = value;
+                    notify(name);
+                }
+                else
+                {
+                    import db_extensions.extra.db_exceptions;
+                    throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
+                }
+            }
+        }
+    }
+
     static assert(!getColumns!(ClusteredIndexAttribute).empty,
                   "Must have columns with UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
@@ -106,6 +167,12 @@ private:
                 static if (P[0].stringof.startsWith("UniqueConstraint"))
                 {
                     alias Get = P[0].name;
+                }
+                else static if (P[0].stringof.startsWith("CheckConstraint"))
+                {
+                    // does not appear to come in here
+                    pragma(msg, P[0].stringof, " has it");
+                    alias Get = Get!(P[1 .. $]);
                 }
                 else
                 {
@@ -318,11 +385,7 @@ unittest
         }
         void name(string value) @property
         {
-            if (value != _name)
-            {
-                _name = value;
-                notify("name");
-            }
+            setter(_name, value, "name");
         }
         int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
         {
@@ -330,11 +393,7 @@ unittest
         }
         void ranking(int value) @property
         {
-            if (value != _ranking)
-            {
-                _ranking = value;
-                notify("ranking");
-            }
+            setter(_ranking, value, "ranking");
         }
         string brand() const @property nothrow pure @safe @nogc
         {
@@ -342,11 +401,7 @@ unittest
         }
         void brand(string value) @property
         {
-            if (value != _brand)
-            {
-                _brand = value;
-                notify("brand");
-            }
+            setter(_brand, value, "brand");
         }
         this()
         {

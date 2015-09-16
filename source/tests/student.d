@@ -15,11 +15,7 @@ public:
     }
     void cName(immutable(char)[] value) @property
     {
-        if (value != _cName)
-        {
-            _cName = value;
-            notify("cName");
-        }
+        setter(_cName, value, "cName");
     }
     @UniqueConstraintColumn!("uc_Student")
     int nNumClasses() const @property nothrow pure @safe @nogc
@@ -28,11 +24,7 @@ public:
     }
     void nNumClasses(immutable(int) value) @property
     {
-        if (value != _nNumClasses)
-        {
-            _nNumClasses = value;
-            notify("nNumClasses");
-        }
+        setter(_nNumClasses, value, "nNumClasses");
     }
 
     this(string pcName, immutable(int) pnNumClasses)

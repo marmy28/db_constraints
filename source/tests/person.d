@@ -17,11 +17,7 @@ version(unittest)
         }
         void id(immutable(int) value) @property
         {
-            if (value != _id)
-            {
-                _id = value;
-                notify("id");
-            }
+            setter(_id, value, "id");
         }
         string firstName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
         {
@@ -29,11 +25,7 @@ version(unittest)
         }
         void firstName(string value) @property
         {
-            if (value != _firstName)
-            {
-                _firstName = value;
-                notify("firstName");
-            }
+            setter(_firstName, value, "firstName");
         }
         string email() const @property nothrow pure @UniqueConstraintColumn!("uc_PersonEmail") @safe @nogc
         {
@@ -41,11 +33,7 @@ version(unittest)
         }
         void email(string value) @property
         {
-            if (value != _email)
-            {
-                _email = value;
-                notify("email");
-            }
+            setter(_email, value, "email");
         }
         string lastName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
         {
@@ -53,11 +41,7 @@ version(unittest)
         }
         void lastName(string value) @property
         {
-            if (value != _lastName)
-            {
-                _lastName = value;
-                notify("lastName");
-            }
+            setter(_lastName, value, "lastName");
         }
 
         mixin KeyedItem!(typeof(this));

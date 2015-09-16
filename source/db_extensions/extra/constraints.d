@@ -19,6 +19,13 @@ struct UniqueConstraintColumn(string name_)
     enum name = name_;
 }
 
+import std.functional : unaryFun;
+struct CheckConstraint(alias check_)
+    if (is(typeof(unaryFun!check_)))
+{
+    alias check = unaryFun!check_;
+}
+
 ///
 enum ForeignKeyActions
 {

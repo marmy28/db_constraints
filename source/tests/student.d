@@ -15,7 +15,7 @@ public:
     }
     void cName(immutable(char)[] value) @property
     {
-        setter(_cName, value, "cName");
+        setter(_cName, value);
     }
     @UniqueConstraintColumn!("uc_Student")
     int nNumClasses() const @property nothrow pure @safe @nogc
@@ -24,7 +24,7 @@ public:
     }
     void nNumClasses(immutable(int) value) @property
     {
-        setter(_nNumClasses, value, "nNumClasses");
+        setter(_nNumClasses, value);
     }
 
     this(string pcName, immutable(int) pnNumClasses)

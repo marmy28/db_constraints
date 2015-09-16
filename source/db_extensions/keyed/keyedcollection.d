@@ -446,7 +446,7 @@ unittest
         }
         void name(string value) @property
         {
-            setter(_name, value, "name");
+            setter(_name, value);
         }
         int ranking() const @property nothrow pure @safe @nogc
         {
@@ -454,7 +454,7 @@ unittest
         }
         void ranking(int value) @property
         {
-            setter(_ranking, value, "ranking");
+            setter(_ranking, value);
         }
         int annualSales() const @property nothrow pure @safe @nogc
         {
@@ -462,18 +462,16 @@ unittest
         }
         void annualSales(int value) @property
         {
-            setter(_annualSales, value, "annualSales");
+            setter(_annualSales, value);
         }
         string brand() const @property nothrow pure @safe @nogc
         {
             return _brand;
         }
-        @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
             // this can only be Mars or Hershey
-            //setter!((string a) => a == "Mars" || a == "Hershey")(_brand, value, "brand");
-            setter!("brand")(_brand, value);
+            setter!((string a) => a == "Mars" || a == "Hershey")(_brand, value);
         }
 
         this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)

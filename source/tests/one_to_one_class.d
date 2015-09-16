@@ -32,7 +32,7 @@ unittest
         }
         void name(string value) @property
         {
-            setter(_name, value, "name");
+            setter(_name, value);
         }
         this(string name_)
         {
@@ -71,7 +71,7 @@ unittest
         }
         void name_h(string value) @property
         {
-            setter(_name_h, value, "name_h");
+            setter(_name_h, value);
         }
 
         string brand;

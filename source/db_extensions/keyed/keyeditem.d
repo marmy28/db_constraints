@@ -20,61 +20,25 @@ private:
 
     import std.functional : unaryFun;
     import std.conv : to;
-    bool getCheckConstraint(string name, C)(C value)
-    {
-        import std.string;
 
-        enum fullName = format("%s.%s", typeof(this).stringof, name);
-        pragma(msg, fullName);
-        foreach(attr; __traits(getAttributes, fullName))// __traits(getMember, typeof(this), name)))
-        {
-
-            pragma(msg, attr.stringof);
-            static if (attr.stringof.startsWith("CheckConstraint"))
-            {
-                return attr.check(value);
-            }
-        }
-        // FIXME: this should be true but not going in function!
-        return false;
-    }
-
-    template setter(alias check = "true")
+    template setter(alias check = "true", string name_ = __FUNCTION__)
         if (is(typeof(unaryFun!check)))
-    {
-        void setter(P)(ref P member, P value, string name)
-        {
-            if (value != member)
-            {
-                if (unaryFun!check(value))
-                {
-                    member = value;
-                    notify(name);
-                }
-                else
-                {
-                    import db_extensions.extra.db_exceptions;
-                    throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
-                }
-            }
-        }
-    }
-    template setter(string name)
     {
         void setter(P)(ref P member, P value)
         {
-            if (value != member)
+            enum name = name_[std.string.lastIndexOf(name_, '.') + 1 .. $];
+            if (unaryFun!check(value))
             {
-                if (getCheckConstraint!(name)(value))
+                if (value != member)
                 {
                     member = value;
                     notify(name);
                 }
-                else
-                {
-                    import db_extensions.extra.db_exceptions;
-                    throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
-                }
+            }
+            else
+            {
+                import db_extensions.extra.db_exceptions;
+                throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
             }
         }
     }
@@ -385,7 +349,7 @@ unittest
         }
         void name(string value) @property
         {
-            setter(_name, value, "name");
+            setter(_name, value);
         }
         int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
         {
@@ -393,7 +357,7 @@ unittest
         }
         void ranking(int value) @property
         {
-            setter(_ranking, value, "ranking");
+            setter(_ranking, value);
         }
         string brand() const @property nothrow pure @safe @nogc
         {
@@ -401,7 +365,7 @@ unittest
         }
         void brand(string value) @property
         {
-            setter(_brand, value, "brand");
+            setter(_brand, value);
         }
         this()
         {

@@ -222,9 +222,9 @@ unittest
     auto i = new Students(tom1);
     assert(i.length == 1);
     string j;
-    assert(i.isDuplicateItem(tom2, j));
+    assert(i.violatesUniqueConstraints(tom2, j));
     assert(j == "PrimaryKey, uc_Student");
-    assert(!i.isDuplicateItem(tom1));
+    assert(!i.violatesUniqueConstraints(tom1));
     assertNotThrown!UniqueConstraintException(i.add(tom1));
     assertThrown!UniqueConstraintException(i.add(tom2));
     assert(i.length == 1);

@@ -43,7 +43,7 @@ protected:
         {
             auto constraintName = "";
             auto item = this[item_key];
-            if (_enforceUniqueConstraints && this.isDuplicateItem(item, constraintName))
+            if (_enforceUniqueConstraints && this.violatesUniqueConstraints(item, constraintName))
             {
                 throw new UniqueConstraintException("The " ~ constraintName ~
                                                     " constraint was violated by " ~
@@ -155,7 +155,7 @@ Throws:
     body
     {
         auto constraintName = "";
-        if (_enforceUniqueConstraints && this.isDuplicateItem(item, constraintName))
+        if (_enforceUniqueConstraints && this.violatesUniqueConstraints(item, constraintName))
         {
             throw new UniqueConstraintException("The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
         }
@@ -381,10 +381,8 @@ Returns:
 /**
 Checks if the item has any conflicting unique constraints. This
 is more extensive than `contains`.
-Rename to:
-    violatesUniqueConstraints
  */
-    bool isDuplicateItem(T item, out string constraintName)
+    bool violatesUniqueConstraints(T item, out string constraintName)
     in
     {
         assert(item !is null, "Cannot check if a null item is duplicated.");
@@ -405,7 +403,8 @@ Rename to:
         foreach(uniqueName; T.UniqueConstraintStructNames!(T))
         {
             if (this.byValue.canFind!("a !is b && " ~
-                                      "a." ~ uniqueName ~ "_key == b." ~ uniqueName ~ "_key")(item))
+                                      "a." ~ uniqueName ~ "_key == " ~
+                                      "b." ~ uniqueName ~ "_key")(item))
             {
                 result = true;
                 constraintName ~= uniqueName ~ ", ";
@@ -419,10 +418,10 @@ Rename to:
         return result;
     }
     // ditto
-    bool isDuplicateItem(T item)
+    bool violatesUniqueConstraints(T item)
     {
         auto constraintName = "";
-        auto result = this.isDuplicateItem(item, constraintName);
+        auto result = this.violatesUniqueConstraints(item, constraintName);
         return result;
     }
 }
@@ -554,13 +553,14 @@ unittest
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
     auto violatedConstraint = "";
-    assert(mars.isDuplicateItem(milkyWay2, violatedConstraint));
+    assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
     assert(violatedConstraint == "PrimaryKey");
 
     // removing milky way from mars
     mars.remove("Milky Way");
     // this means milkyWay2 is no longer a duplicate
-    assert(!mars.isDuplicateItem(milkyWay2, violatedConstraint));
+    assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
+    assert(violatedConstraint == "");
 
 
 }

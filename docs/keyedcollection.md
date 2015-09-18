@@ -36,11 +36,7 @@ public:
     }
     void name(string value) @property
     {
-        if (value != _name)
-        {
-            _name = value;
-            notify("name");
-        }
+        setter(_name, value);
     }
     int ranking() const @property nothrow pure @safe @nogc
     {
@@ -48,11 +44,7 @@ public:
     }
     void ranking(int value) @property
     {
-        if (value != _ranking)
-        {
-            _ranking = value;
-            notify("ranking");
-        }
+        setter(_ranking, value);
     }
     int annualSales() const @property nothrow pure @safe @nogc
     {
@@ -60,11 +52,7 @@ public:
     }
     void annualSales(int value) @property
     {
-        if (value != _annualSales)
-        {
-            _annualSales = value;
-            notify("annualSales");
-        }
+        setter(_annualSales, value);
     }
     string brand() const @property nothrow pure @safe @nogc
     {
@@ -72,11 +60,8 @@ public:
     }
     void brand(string value) @property
     {
-        if (value != _brand)
-        {
-            _brand = value;
-            notify("brand");
-        }
+        // this can only be Mars or Hershey
+        setter!((string a) =&gt; a == "Mars" || a == "Hershey")(_brand, value);
     }
 
     this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
@@ -85,8 +70,6 @@ public:
         this._ranking = ranking;
         this._annualSales = annualSales;
         this._brand = brand;
-        // do not forget to set the clustered index
-        setClusteredIndex();
     }
     Candy dup() const
     {
@@ -154,16 +137,19 @@ foreach(name_pk, candy; mars)
 // result in a unique constraint violation
 auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
 import std.exception : assertThrown;
+assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+
 assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
 auto violatedConstraint = "";
-assert(mars.isDuplicateItem(milkyWay2, violatedConstraint));
+assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
 assert(violatedConstraint == "PrimaryKey");
 
 // removing milky way from mars
 mars.remove("Milky Way");
 // this means milkyWay2 is no longer a duplicate
-assert(!mars.isDuplicateItem(milkyWay2, violatedConstraint));
+assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
+assert(violatedConstraint == "");
 
 
 ``` 
@@ -427,7 +413,7 @@ true if there is a clustered index in the collection that
 
 ***
 ```d
-bool isDuplicateItem(T item, out string constraintName);
+bool violatesUniqueConstraints(T item, out string constraintName);
 
 ```
 **Summary:**

@@ -21,7 +21,7 @@ Gets the hash code of the struct by looping over the members.
 
 ***
 ```d
-const pure nothrow @nogc bool opEquals(inout(T) pk);
+const pure nothrow @nogc @safe bool opEquals(inout(T) pk);
 
 ```
 **Summary:**

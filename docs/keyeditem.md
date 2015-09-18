@@ -32,11 +32,7 @@ public:
     }
     void name(string value) @property
     {
-        if (value != _name)
-        {
-            _name = value;
-            notify("name");
-        }
+        setter(_name, value);
     }
     int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
     {
@@ -44,11 +40,7 @@ public:
     }
     void ranking(int value) @property
     {
-        if (value != _ranking)
-        {
-            _ranking = value;
-            notify("ranking");
-        }
+        setter(_ranking, value);
     }
     string brand() const @property nothrow pure @safe @nogc
     {
@@ -56,18 +48,13 @@ public:
     }
     void brand(string value) @property
     {
-        if (value != _brand)
-        {
-            _brand = value;
-            notify("brand");
-        }
+        setter(_brand, value);
     }
     this()
     {
         this._name = string.init;
         this._ranking = int.init;
         this._brand = string.init;
-        setClusteredIndex();
     }
 
     this(string name, immutable(int) ranking, string brand)
@@ -75,8 +62,6 @@ public:
         this._name = name;
         this._ranking = ranking;
         this._brand = brand;
-        // do not forget to set the clustered index
-        setClusteredIndex();
     }
     Candy dup() const
     {
@@ -134,7 +119,7 @@ static assert(Candy.createType!(Candy.stringof) == candyStructs);
 ``` 
 ***
 ```d
-pure nothrow @nogc @property @safe bool containsChanges();
+final const pure nothrow @nogc @property @safe bool containsChanges();
 
 ```
 **Summary:**
@@ -146,7 +131,7 @@ true if this contains changes.
 
 ***
 ```d
-pure nothrow @nogc @safe void markAsSaved();
+final pure nothrow @nogc @safe void markAsSaved();
 
 ```
 **Summary:**
@@ -156,7 +141,7 @@ be used after a save.
 
 ***
 ```d
-void notify(string propertyName);
+final void notify(string propertyName)();
 
 ```
 **Summary:**
@@ -167,7 +152,7 @@ along with the clustered index.
 
 Params |
 ---|
-*string propertyName*|
+*propertyName*|
 &nbsp;&nbsp;&nbsp;&nbsp;the property name that changed.|
 
  
@@ -186,7 +171,7 @@ attribute selected as the Clustered Index.
 
 ***
 ```d
-const pure nothrow @nogc @property @safe ClusteredIndex key();
+final pure nothrow @nogc @property @safe ClusteredIndex key();
 
 ```
 **Summary:**
@@ -198,7 +183,7 @@ The clustered index for the class.
 
 ***
 ```d
-pure nothrow @nogc @safe void setClusteredIndex();
+final pure nothrow @nogc @safe void setClusteredIndex();
 
 ```
 **Summary:**
@@ -207,7 +192,7 @@ Sets the clustered index for this.
 
 ***
 ```d
-const pure nothrow @nogc bool opEquals(Object o);
+pure nothrow @nogc bool opEquals(Object o);
 
 ```
 **Summary:**
@@ -219,7 +204,7 @@ true if the clustered index equal.
 
 ***
 ```d
-const int opCmp(Object o);
+int opCmp(Object o);
 
 ```
 **Summary:**

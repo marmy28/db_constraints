@@ -29,19 +29,29 @@ public:
     }
     void name(string value) @property
     {
-        if (value != _name)
-        {
-            _name = value;
-            notify("name");
-        }
+        setter(_name, value);
     }
     this(string name_)
     {
         this._name = name_;
-        setClusteredIndex();
+    }
+    Human dup()
+    {
+        return new Human(this.name);
     }
 
     mixin KeyedItem!(typeof(this));
+}
+class Humans : BaseKeyedCollection!Human
+{
+    this(Human item)
+    {
+        super(item);
+    }
+    this(Human[] items)
+    {
+        super(items);
+    }
 }
 
 class Phone
@@ -57,19 +67,15 @@ public:
     }
     void name_h(string value) @property
     {
-        if (value != this.name_h)
-        {
-            _name_h = value;
-            notify("name_h");
-        }
+        setter(_name_h, value);
     }
 
     string brand;
 
     // foreign key struct
-    Human human() @property nothrow pure @safe @nogc
+    Human *human() @property nothrow pure @safe @nogc
     {
-        return *_human;
+        return _human;
     }
     void human(Human *value) @property
     {
@@ -85,14 +91,14 @@ public:
                 this._human.emitChange.connect(&foreignKeyChanged);
                 this.name_h = _human.name;
             }
-            notify("human");
+            notify!("human");
         }
     }
     ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
     ForeignKeyActions onDelete = ForeignKeyActions.cascade;
     void foreignKeyChanged(string propertyName, typeof(Human.key) item_key)
     {
-        if (propertyName == "PrimaryKey_key")
+        if (propertyName == "name")
         {
             final switch (onUpdate) with (ForeignKeyActions)
             {
@@ -138,10 +144,53 @@ public:
     {
         this._name_h = name_;
         this.brand = brand_;
-        setClusteredIndex();
+    }
+    Phone dup()
+    {
+        return new Phone(this.name_h, this.brand);
     }
 
     mixin KeyedItem!(typeof(this), UniqueConstraintColumn!("human_phone_name"));
+}
+
+// move foreignkeychanged into the plural class
+class Phones : BaseKeyedCollection!Phone
+{
+    this(Phone item)
+    {
+        super(item);
+    }
+    this(Phone[] items)
+    {
+        super(items);
+    }
+
+    ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
+    ForeignKeyActions onDelete = ForeignKeyActions.noAction;
+    void associateParent(Humans humans_)
+    {
+        this._humans = &humans_;
+        import std.algorithm : filter;
+        if (humans_ !is null)
+        {
+            import std.parallelism;
+            foreach(ref item; taskPool.parallel(this.byValue))
+            {
+                auto human = humans_.byValue.filter!(a =&gt; a.name == item.name_h);
+                if (!human.empty)
+                {
+                    item.human = &(human.front());
+                }
+            }
+        }
+    }
+protected:
+    override void itemChanged(string propertyName, key_type item_key)
+    {
+        std.stdio.writeln(propertyName);
+        super.itemChanged(propertyName, item_key);
+    }
+    Humans *_humans;
 }
 
 auto i = new Human("Dave");
@@ -149,11 +198,11 @@ assert(!i.containsChanges());
 auto j = new Phone(null, "Apple");
 j.human = &i;
 assert(i.name == "Dave");
-assert(i == j.human);
+assert(i == *j.human);
 assert(j.name_h == i.name);
 j.onUpdate = ForeignKeyActions.cascade;
 i.name = "David";
-assert(i == j.human);
+assert(i == *j.human);
 assert(i.name == j.human.name);
 assert(j.name_h == i.name);
 j.onUpdate = ForeignKeyActions.noAction;
@@ -164,6 +213,28 @@ j.name_h = "Tom";
 j.onUpdate = ForeignKeyActions.restrict;
 import std.exception : assertThrown;
 assertThrown!ForeignKeyException(i.name = "Dave");
+
+
+
+auto humans = new Humans([new Human("Anne"), new Human("Dave"),
+                          new Human("Deb"), new Human("Jane")]);
+auto phones = new Phones([new Phone("Dave", "Apple"),
+                          new Phone("Deb", "Flip"),
+                          new Phone("Anne", "Ubuntu")]);
+
+foreach(phone; phones)
+{
+    assert(phone.human is null);
+    phone.onUpdate = ForeignKeyActions.cascade;
+    phone.onDelete = ForeignKeyActions.cascade;
+}
+
+phones.associateParent(humans);
+foreach(phone; phones)
+{
+    assert(phone.human !is null);
+    assert(phone.human.name == phone.name_h);
+}
 
 
 ``` 

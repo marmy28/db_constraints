@@ -30,7 +30,7 @@ Gets the hash code of the struct by looping over the members.
 /**
 Checks each member to determine if the structs are equal.
  */
-    bool opEquals(inout(T) pk) const pure nothrow @nogc
+    bool opEquals(inout(T) pk) const pure nothrow @nogc @safe
     {
         bool result;
         foreach(i, dummy; pk.tupleof)

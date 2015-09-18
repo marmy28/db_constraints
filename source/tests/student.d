@@ -9,13 +9,14 @@ private:
     string _cName;
     int _nNumClasses;
 public:
-    string cName() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+    @PrimaryKeyColumn
+    string cName() const @property nothrow pure @safe @nogc
     {
         return _cName;
     }
     void cName(immutable(char)[] value) @property
     {
-        setter(_cName, value);
+        setter!("a.length < 13")(_cName, value);
     }
     @UniqueConstraintColumn!("uc_Student")
     int nNumClasses() const @property nothrow pure @safe @nogc
@@ -32,7 +33,9 @@ public:
 
         this._cName = pcName;
         this._nNumClasses = pnNumClasses;
-        setClusteredIndex();
+        // setting this again here to hit the check but
+        // not emit the signal
+        this.cName = pcName;
     }
     Student dup() const
     {

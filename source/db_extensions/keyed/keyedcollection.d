@@ -479,8 +479,6 @@ unittest
             this._ranking = ranking;
             this._annualSales = annualSales;
             this._brand = brand;
-            // do not forget to set the clustered index
-            setClusteredIndex();
         }
         Candy dup() const
         {

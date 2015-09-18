@@ -189,7 +189,7 @@ Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    bool containsChanges() @property nothrow pure @safe @nogc
+    bool containsChanges() const @property nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -225,8 +225,7 @@ Params:
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
-        //foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
-        foreach(name; ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T))
+        foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
         {
             if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
             {
@@ -265,12 +264,12 @@ The clustered index property for the class.
 Returns:
     The clustered index for the class.
  */
-    ClusteredIndex key() const @property nothrow pure @safe @nogc
+    ClusteredIndex key() @property nothrow pure @safe @nogc
     {
-        // if (this._key == ClusteredIndex.init)
-        // {
-        //     setClusteredIndex();
-        // }
+        if (this._key == ClusteredIndex.init)
+        {
+            setClusteredIndex();
+        }
         return _key;
     }
 
@@ -298,9 +297,9 @@ Compares `this` based on the clustered index.
 Returns:
     true if the clustered index equal.
  */
-    override bool opEquals(Object o) const pure nothrow @nogc
+    override bool opEquals(Object o) pure nothrow @nogc
     {
-        auto rhs = cast(immutable T)o;
+        auto rhs = cast(T)o;
         return (rhs !is null && this.key == rhs.key);
     }
 
@@ -309,14 +308,14 @@ Compares `this` based on the clustered index if comparison is with the same clas
 Returns:
     The comparison from the clustered index.
  */
-    override int opCmp(Object o) const
+    override int opCmp(Object o)
     {
         // Taking advantage of the automatically-maintained order of the types.
         if (typeid(this) != typeid(o))
         {
             return typeid(this).opCmp(typeid(o));
         }
-        auto rhs = cast(const T)o;
+        auto rhs = cast(T)o;
         return this.key.opCmp(rhs.key);
     }
 
@@ -372,7 +371,6 @@ unittest
             this._name = string.init;
             this._ranking = int.init;
             this._brand = string.init;
-            setClusteredIndex();
         }
 
         this(string name, immutable(int) ranking, string brand)
@@ -380,8 +378,6 @@ unittest
             this._name = name;
             this._ranking = ranking;
             this._brand = brand;
-            // do not forget to set the clustered index
-            setClusteredIndex();
         }
         Candy dup() const
         {

@@ -37,7 +37,6 @@ unittest
         this(string name_)
         {
             this._name = name_;
-            setClusteredIndex();
         }
         Human dup()
         {
@@ -148,7 +147,6 @@ unittest
         {
             this._name_h = name_;
             this.brand = brand_;
-            setClusteredIndex();
         }
         Phone dup()
         {

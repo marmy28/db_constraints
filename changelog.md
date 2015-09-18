@@ -1,5 +1,22 @@
 # Change log
 
+## 0.0.3-alpha (release date: 2015-09-??)
+
+### Name changes
+
+ * isDuplicateItem -> violatesUniqueConstraints
+
+### New additions
+
+ * template KeyedItem.setter!(alias check = "true", string name_ = __FUNCTION__)
+
+### Misc.
+
+ * marked functions as final for keyedcollection and keyeditem
+ * setClustedIndex is now called inside the key function if key has not been set
+   + this means you can remove it from your constructor now
+ * notify now takes the property name that changed as a compile time argument
+
 ## 0.0.2 (release date: 2015-09-13)
 
 ### Name changes

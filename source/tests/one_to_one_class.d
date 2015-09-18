@@ -94,7 +94,7 @@ unittest
                     this._human.emitChange.connect(&foreignKeyChanged);
                     this.name_h = _human.name;
                 }
-                notify("human");
+                notify!("human");
             }
         }
         ForeignKeyActions onUpdate = ForeignKeyActions.noAction;

@@ -6,6 +6,7 @@ import std.traits;
 import db_extensions.keyed.keyeditem;
 import db_extensions.extra.db_exceptions;
 
+
 /**
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
@@ -54,6 +55,8 @@ protected:
     }
     T[key_type] _items;
 public:
+    mixin Signal!(string);
+final:
 /**
 Changes `this` to not contain changes. Should only
 be used after a save.
@@ -88,7 +91,7 @@ is a duplicate clustered index, it will be overwritten.
     {
         _enforceUniqueConstraints = value;
     }
-    mixin Signal!(string);
+
 /**
 Notifies `this` which property changed.
 This also emits a signal with the property name that changed.

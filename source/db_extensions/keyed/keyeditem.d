@@ -32,7 +32,7 @@ private:
                 if (value != member)
                 {
                     member = value;
-                    notify(name);
+                    notify!(name);
                 }
             }
             else
@@ -189,7 +189,7 @@ Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    bool containsChanges() const @property nothrow pure @safe @nogc
+    final bool containsChanges() const @property nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -197,7 +197,7 @@ Returns:
 Changes `this` to not contain changes. Should only
 be used after a save.
  */
-    void markAsSaved() nothrow pure @safe @nogc
+    final void markAsSaved() nothrow pure @safe @nogc
     {
         _containsChanges = false;
     }
@@ -214,20 +214,20 @@ along with the clustered index.
 Params:
     propertyName = the property name that changed.
  */
-    void notify(string propertyName)
+    final void notify(string propertyName)()
     {
         import std.algorithm : canFind;
         import std.meta : Erase;
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
+        static if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
         foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
         {
-            if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
+            static if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
             {
                 emitChange.emit(name ~ "_key", _key);
             }
@@ -264,7 +264,7 @@ The clustered index property for the class.
 Returns:
     The clustered index for the class.
  */
-    ClusteredIndex key() @property nothrow pure @safe @nogc
+    final ClusteredIndex key() @property nothrow pure @safe @nogc
     {
         if (this._key == ClusteredIndex.init)
         {
@@ -276,7 +276,7 @@ Returns:
 /**
 Sets the clustered index for `this`.
  */
-    void setClusteredIndex() nothrow pure @safe @nogc
+    final void setClusteredIndex() nothrow pure @safe @nogc
     {
         auto new_key = ClusteredIndex();
         mixin(function string()

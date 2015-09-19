@@ -470,10 +470,11 @@ unittest
         {
             return _brand;
         }
+        @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
             // this can only be Mars or Hershey
-            setter!((string a) => a == "Mars" || a == "Hershey")(_brand, value);
+            setter(_brand, value);
         }
 
         this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)

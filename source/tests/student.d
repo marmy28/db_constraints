@@ -14,9 +14,10 @@ public:
     {
         return _cName;
     }
+    @CheckConstraint!("a.length < 13")
     void cName(immutable(char)[] value) @property
     {
-        setter!("a.length < 13")(_cName, value);
+        setter(_cName, value);
     }
     @UniqueConstraintColumn!("uc_Student")
     int nNumClasses() const @property nothrow pure @safe @nogc

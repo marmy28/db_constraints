@@ -18,29 +18,61 @@ private:
     bool _containsChanges;
     ClusteredIndex _key;
 
+    import std.algorithm : canFind;
+    import std.typetuple : TypeTuple;
     import std.functional : unaryFun;
     import std.conv : to;
+    import std.exception : collectException, enforceEx;
+    import std.meta : Erase, NoDuplicates;
+    import db_extensions.extra.db_exceptions : CheckConstraintException;
+    import std.traits : isInstanceOf, hasUDA;
 
-    template setter(alias check = "true", string name_ = __FUNCTION__)
-        if (is(typeof(unaryFun!check)))
+    template setter(string name_ = __FUNCTION__)
+        if (name_ !is null)
     {
         void setter(P)(ref P member, P value)
         {
             enum name = name_[std.string.lastIndexOf(name_, '.') + 1 .. $];
-            if (unaryFun!check(value))
+            if (value != member)
             {
-                if (value != member)
+                P memberValue = member;
+                member = value;
+                auto ex = collectException!CheckConstraintException(checkConstraints());
+                if (ex is null)
                 {
-                    member = value;
                     notify!(name);
                 }
-            }
-            else
-            {
-                import db_extensions.extra.db_exceptions;
-                throw new CheckConstraintException(name ~ " failed its check with value " ~ value.to!string());
+                else
+                {
+                    member = memberValue;
+                    throw ex;
+                }
             }
         }
+    }
+    void checkConstraints()
+    {
+        foreach(member; __traits(derivedMembers, T))
+        {
+            static if (member != "this")
+            {
+                foreach(ov; __traits(getOverloads, T, member))
+                {
+                    foreach(attr; __traits(getAttributes, ov))
+                    {
+                        static if (isInstanceOf!(CheckConstraint, attr))
+                        {
+                            mixin("enforceEx!(CheckConstraintException)(attr.check(this." ~ member ~ "), \"" ~ member ~ " failed its check with value \" ~ this." ~ member ~ ".to!string());");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    void initializeItem()
+    {
+        setClusteredIndex();
+        checkConstraints();
     }
 
     static assert(!getColumns!(ClusteredIndexAttribute).empty,
@@ -50,28 +82,18 @@ private:
     //Gets the properties of the class marked with @Attr. This is private.
     static string[] getColumns(Attr)()
     {
-        import std.traits;
-        import std.string;
         string[] result;
         foreach(member; __traits(derivedMembers, T))
         {
-            // the following excluded members are
-            // part of Signals and not the connected class
-            static if (member != "connect" &&
-                       member != "slot_t" &&
-                       member != "slots" &&
-                       member != "slots_idx" &&
-                       member != "__dtor" &&
-                       member != "unhook" &&
-                       member != "disconnect" &&
-                       member != "emit" &&
-                       member != "this")
+            static if (member != "this")
             {
-                enum fullName = format(`%s.%s`, T.stringof, member);
-                static if (hasUDA!(mixin(fullName), Attr))
+                foreach(ov; __traits(getOverloads, T, member))
                 {
-                    pragma(msg, fullName, " is ", Attr.stringof);
-                    result ~= format(`%s`, member);
+                    static if (hasUDA!(ov, Attr))
+                    {
+                        pragma(msg, T.stringof, ".", member, " is ", Attr.stringof);
+                        result ~= member;
+                    }
                 }
             }
         }
@@ -80,7 +102,6 @@ private:
     // Gets the names given to the different UniqueConstraints
     template UniqueConstraintStructNames(ClassName)
     {
-        import std.typetuple;
         // Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
         template Impl(T...)
         {
@@ -127,16 +148,9 @@ private:
             }
             else
             {
-                import std.string;
-                static if (P[0].stringof.startsWith("UniqueConstraint"))
+                static if (isInstanceOf!(UniqueConstraintColumn, P[0]))
                 {
                     alias Get = P[0].name;
-                }
-                else static if (P[0].stringof.startsWith("CheckConstraint"))
-                {
-                    // does not appear to come in here
-                    pragma(msg, P[0].stringof, " has it");
-                    alias Get = Get!(P[1 .. $]);
                 }
                 else
                 {
@@ -144,7 +158,6 @@ private:
                 }
             }
         }
-        import std.meta : NoDuplicates;
         alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
     }
 
@@ -216,8 +229,6 @@ Params:
  */
     final void notify(string propertyName)()
     {
-        import std.algorithm : canFind;
-        import std.meta : Erase;
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
         static if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
@@ -246,11 +257,10 @@ attribute selected as the Clustered Index.
         // creates the members of the clustered key with appropriate type.
         mixin(function string()
               {
-                  import std.string;
                   string result = "";
                   foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
                   {
-                      result ~= format("typeof(%s.%s) %s;", T.stringof, pkcolumn, pkcolumn);
+                      result ~= "typeof(" ~ T.stringof ~ "." ~ pkcolumn ~ ") " ~ pkcolumn ~ ";\n";
                   }
                   return result;
               }());
@@ -281,11 +291,10 @@ Sets the clustered index for `this`.
         auto new_key = ClusteredIndex();
         mixin(function string()
               {
-                  import std.string;
                   string result = "";
                   foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
                   {
-                      result ~= format("new_key.%s = this.%s;", pkcolumn, pkcolumn);
+                      result ~= "new_key." ~ pkcolumn ~ " = this." ~ pkcolumn ~ ";\n";
                   }
                   return result;
               }());
@@ -342,7 +351,8 @@ unittest
         int _ranking;
         string _brand;
     public:
-        string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+        @PrimaryKeyColumn
+        string name() const @property nothrow pure @safe @nogc
         {
             return _name;
         }
@@ -350,7 +360,8 @@ unittest
         {
             setter(_name, value);
         }
-        int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
+        @UniqueConstraintColumn!("uc_Candy_ranking")
+        int ranking() const @property nothrow pure @safe @nogc
         {
             return _ranking;
         }

@@ -6,7 +6,7 @@ import std.exception : enforceEx;
 import std.signals;
 import std.traits;
 
-import db_constraints.extra.db_exceptions;
+import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
 
 /**

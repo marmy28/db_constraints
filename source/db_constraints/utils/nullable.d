@@ -1,4 +1,4 @@
-module db_constraints.extra.nullable;
+module db_constraints.utils.nullable;
 
 /**
 Defines a value paired with a distinctive "null" state that denotes

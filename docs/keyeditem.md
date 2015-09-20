@@ -115,7 +115,7 @@ uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
 assert(Candy.createType!(Candy.stringof) == candyStructs);
 
 import std.exception : assertThrown;
-import db_constraints.extra.db_exceptions : CheckConstraintException;
+import db_constraints.db_exceptions : CheckConstraintException;
 // we expect setting the ranking to 0 will result in an exception
 // since we labeled that column with
 // @CheckConstraint!(a =&gt; a &gt; 0, "chk_Candy_ranking")

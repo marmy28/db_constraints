@@ -1,4 +1,4 @@
-module db_constraints.extra.db_exceptions;
+module db_constraints.db_exceptions;
 
 /**
 Inherits from Exception. This is thrown whenever

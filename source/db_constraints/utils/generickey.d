@@ -1,4 +1,4 @@
-module db_constraints.keyed.generickey;
+module db_constraints.utils.generickey;
 
 /**
 Used in KeyedItem for the generated structs.
@@ -11,7 +11,7 @@ mixin template generic_compare(T)
 /**
 Gets the hash code of the struct by looping over the members.
  */
-    size_t toHash() const nothrow @safe
+    final size_t toHash() const nothrow @safe
     {
         size_t result;
         foreach(i, dummy; this.tupleof)
@@ -30,7 +30,7 @@ Gets the hash code of the struct by looping over the members.
 /**
 Checks each member to determine if the structs are equal.
  */
-    bool opEquals(inout(T) pk) const pure nothrow @nogc @safe
+    final bool opEquals(inout(T) pk) const pure nothrow @nogc @safe
     {
         bool result;
         foreach(i, dummy; pk.tupleof)
@@ -52,7 +52,7 @@ Checks each member to determine if the structs are equal.
 /**
 Compares each member and returns the result.
  */
-    int opCmp(inout(T) pk) const pure nothrow @nogc @safe
+    final int opCmp(inout(T) pk) const pure nothrow @nogc @safe
     {
         int result;
         foreach(i, dummy; pk.tupleof)

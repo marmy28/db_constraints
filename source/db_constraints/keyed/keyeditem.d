@@ -317,7 +317,7 @@ Sets the clustered index for `this`.
                   string result = "";
                   foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
                   {
-                      result ~= "new_key." ~ pkcolumn ~ " = this." ~ pkcolumn ~ ";\n";
+                      result ~= "new_key." ~ pkcolumn ~ " = this._" ~ pkcolumn ~ ";\n";
                   }
                   return result;
               }());

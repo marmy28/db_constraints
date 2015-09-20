@@ -9,7 +9,7 @@
 
 ### New additions
 
- * template KeyedItem.setter!(string name_ = __FUNCTION__)
+ * template KeyedItem.setter!(string name_ = \__FUNCTION__)
  * void KeyedItem.initializeKeyedItem()
  * void KeyedItem.checkConstraints()
  * void BaseKeyedCollection.checkConstraints()

@@ -19,11 +19,11 @@ public:
     {
         setter(_cName, value);
     }
-    @UniqueConstraintColumn!("uc_Student")
     int nNumClasses() const @property nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }
+    @UniqueConstraintColumn!("uc_Student")
     void nNumClasses(immutable(int) value) @property
     {
         setter(_nNumClasses, value);

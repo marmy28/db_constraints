@@ -5,7 +5,7 @@
 - [ ] Release package on dub
 
 # Bugs
-- [ ] Overloads for unique constraints is a problem
+- [X] Overloads for unique constraints is a problem
 
 # Next
 - [ ] Add in struct functionality

@@ -29,6 +29,11 @@ private:
     bool _containsChanges;
     ClusteredIndex _key;
 
+/**
+The setter should be in your setter member. This checks your check constraint.
+Throws:
+    CheckConstraintException if your value makes checkConstraints fail.
+ */
     template setter(string name_ = __FUNCTION__)
         if (name_ !is null)
     {
@@ -52,7 +57,10 @@ private:
             }
         }
     }
-
+/**
+Initializes the keyed item by running *setClusteredIndex* and *checkConstraints*.
+This should be in your constructor.
+ */
     void initializeKeyedItem()
     {
         setClusteredIndex();
@@ -101,30 +109,35 @@ Takes a type tuple of class members and alias' as a typetuple with all unique co
             }
             else
             {
-                static if (T[0] != "connect" &&
-                           T[0] != "slot_t" &&
-                           T[0] != "slots" &&
-                           T[0] != "slots_idx" &&
-                           T[0] != "__dtor" &&
-                           T[0] != "unhook" &&
-                           T[0] != "disconnect" &&
-                           T[0] != "emit" &&
-                           T[0] != "this")
+                static if (T[0] != "this")
                 {
-                    enum fullName = ClassName.stringof ~ "." ~ T[0];
-                    enum attributes =  Get!(__traits(getAttributes, mixin(fullName)));
-                    static if (attributes == "")
-                    {
-                        alias Impl = TypeTuple!(Impl!(T[1 .. $]));
-                    }
-                    else
-                    {
-                        alias Impl = TypeTuple!(attributes, Impl!(T[1 .. $]));
-                    }
+                    alias Impl = TypeTuple!(Overloads!(__traits(getOverloads, ClassName, T[0])), Impl!(T[1 .. $]));
                 }
                 else
                 {
                     alias Impl = TypeTuple!(Impl!(T[1 .. $]));
+                }
+            }
+        }
+/**
+Looks at the overloads for the functions.
+ */
+        template Overloads(S...)
+        {
+            static if (S.length == 0)
+            {
+                alias Overloads = TypeTuple!();
+            }
+            else
+            {
+                enum attributes = Get!(__traits(getAttributes, S[0]));
+                static if (attributes == "")
+                {
+                    alias Overloads = TypeTuple!(Overloads!(S[1 .. $]));
+                }
+                else
+                {
+                    alias Overloads = TypeTuple!(attributes, Overloads!(S[1 .. $]));
                 }
             }
         }

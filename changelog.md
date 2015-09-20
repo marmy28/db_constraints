@@ -7,6 +7,10 @@
  * db_extensions -> db_constraints
    + the repo name was changed and all followed.
 
+### Misc.
+
+ * UniqueConstraintColumn marked on overloaded functions are now recognized.
+
 ## 0.0.3 (release date: 2015-09-19)
 
 ### Name changes

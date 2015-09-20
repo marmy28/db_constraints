@@ -228,8 +228,10 @@ Params:
     item = the item you want back from the collection.
 Returns:
     The item in the collection that matches `item`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(T item)
+    ref T opIndex(in T item)
     in
     {
         assert(item !is null, "Trying to lookup with a null.");
@@ -244,8 +246,10 @@ Params:
     clIdx = the clustered index of the item you want back.
 Returns:
     The item in the collection that has clustered index `clIdx`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(key_type clIdx)
+    ref T opIndex(in key_type clIdx)
     {
         if (this.contains(clIdx))
         {
@@ -268,8 +272,10 @@ Params:
     a = the fields of the clustered index of the item you want back.
 Returns:
     The item in the collection that has the clustered index with fields `a`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(A...)(A a)
+    ref T opIndex(A...)(in A a)
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -291,13 +297,21 @@ to the private associative array.
         debug(dispatch) pragma(msg, "opDispatch", name);
         return mixin("this._items." ~ name ~ "(a)");
     }
+    auto byValue() pure @nogc nothrow
+    {
+        return this._items.byValue;
+    }
+    auto byValue() inout pure @nogc nothrow
+    {
+        return this._items.byValue;
+    }
 /**
 Allows you to use `this` in a foreach loop.
  */
     int opApply(int delegate(ref T) dg)
     {
         int result = 0;
-        foreach(T i; this._items.values)
+        foreach(T i; this.byValue)
         {
             result = dg(i);
             if (result)
@@ -309,7 +323,7 @@ Allows you to use `this` in a foreach loop.
     int opApply(int delegate(key_type, ref T) dg)
     {
         int result = 0;
-        foreach(T i; this._items.values)
+        foreach(T i; this.byValue)
         {
             result = dg(i.key, i);
             if (result)
@@ -322,7 +336,7 @@ Gets the length of the collection.
 Returns:
     The number of items in the collection.
  */
-    size_t length() @property @safe nothrow pure
+    size_t length() const @property @safe nothrow pure
     {
         return this._items.length;
     }
@@ -333,12 +347,12 @@ Params:
 Returns:
     true if `item` is in the collection.
  */
-    bool contains(T item) nothrow pure @safe @nogc
+    bool contains(in T item) const nothrow pure @safe @nogc
     {
         return this.contains(item.key);
     }
     /// ditto
-    bool opBinaryRight(string op)(T item) nothrow pure @safe @nogc
+    bool opBinaryRight(string op)(in T item) const nothrow pure @safe @nogc
         if (op == "in")
     {
         return this.contains(item);
@@ -352,13 +366,13 @@ Returns:
     true if there is a clustered index in the collection that
     matches `clIdx`.
  */
-    bool contains(key_type clIdx) nothrow pure @safe @nogc
+    bool contains(in key_type clIdx) const nothrow pure @safe @nogc
     {
         auto i = (clIdx in this._items);
         return (i !is null);
     }
     /// ditto
-    bool opBinaryRight(string op)(key_type clIdx) nothrow pure @safe @nogc
+    bool opBinaryRight(string op)(in key_type clIdx) const nothrow pure @safe @nogc
         if (op == "in")
     {
         return this.contains(clIdx);
@@ -372,7 +386,7 @@ Returns:
     true if there is a clustered index in the collection that
     matches `a`.
  */
-    bool contains(A...)(A a) nothrow pure @safe @nogc
+    bool contains(A...)(in A a) const nothrow pure @safe @nogc
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -386,7 +400,7 @@ Returns:
         return this.contains(clIdx);
     }
     /// ditto
-    bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
+    bool opBinaryRight(string op, A...)(in A a) const nothrow pure @safe @nogc
         if (op == "in")
     {
         return this.contains(a);
@@ -395,7 +409,7 @@ Returns:
 Checks if the item has any conflicting unique constraints. This
 is more extensive than `contains`.
  */
-    bool violatesUniqueConstraints(T item, out string constraintName)
+    bool violatesUniqueConstraints(in T item, out string constraintName) const nothrow pure
     in
     {
         assert(item !is null, "Cannot check if a null item is duplicated.");
@@ -418,18 +432,17 @@ is more extensive than `contains`.
                                       "b." ~ uniqueName ~ "_key")(item))
             {
                 result = true;
-                constraintName ~= uniqueName ~ ", ";
+                if (constraintName != "")
+                {
+                    constraintName ~= ", ";
+                }
+                constraintName ~= uniqueName;
             }
-        }
-
-        if (constraintName.endsWith(", "))
-        {
-            constraintName = constraintName[0..$-2];
         }
         return result;
     }
     // ditto
-    bool violatesUniqueConstraints(T item)
+    bool violatesUniqueConstraints(in T item) const nothrow pure
     {
         auto constraintName = "";
         auto result = this.violatesUniqueConstraints(item, constraintName);

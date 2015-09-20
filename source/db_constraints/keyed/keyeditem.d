@@ -74,7 +74,7 @@ This should be in your constructor.
 /**
 Gets the properties of the class marked with @Attr.
  */
-    static string[] getColumns(Attr)()
+    static string[] getColumns(Attr)() @safe pure nothrow
     {
         string[] result;
         foreach(member; __traits(derivedMembers, T))
@@ -168,7 +168,7 @@ Takes a members attributes and finds if it has one that starts with UniqueConstr
 /**
 Returns a string full of the structs.
  */
-    static string createType(string class_name)()
+    static string createType(string class_name)() @safe pure nothrow
     {
         string result = "public:\n";
         foreach(name; UniqueConstraintStructNames!(T))

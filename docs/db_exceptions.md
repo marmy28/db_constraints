@@ -61,35 +61,6 @@ Params |
 
 ***
 ```d
-class ForeignKeyException: object.Exception;
-
-```
-**Summary:**
-Inherits from Exception. This is thrown whenever
-there is an exception dealing with the foreign keys.
- 
-***
-```d
-this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null);
-
-```
-Params |
----|
-*string msg*|
-&nbsp;&nbsp;&nbsp;&nbsp;the message thrown with the foreign key|
-*string file*|
-&nbsp;&nbsp;&nbsp;&nbsp;the file where the exception occurred|
-*size_t line*|
-&nbsp;&nbsp;&nbsp;&nbsp;the line number where the exception occurred|
-*Throwable next*|
-&nbsp;&nbsp;&nbsp;&nbsp;references the exception that was being handled when this one was generated|
-
- 
-
-
-
-***
-```d
 class CheckConstraintException: object.Exception;
 
 ```

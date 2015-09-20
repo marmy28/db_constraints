@@ -26,7 +26,8 @@ private:
     int _ranking;
     string _brand;
 public:
-    string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+    @PrimaryKeyColumn
+    string name() const @property nothrow pure @safe @nogc
     {
         return _name;
     }
@@ -34,7 +35,8 @@ public:
     {
         setter(_name, value);
     }
-    int ranking() const @property nothrow pure @safe @nogc @UniqueConstraintColumn!("uc_Candy_ranking")
+    @UniqueConstraintColumn!("uc_Candy_ranking")
+    int ranking() const @property nothrow pure @safe @nogc
     {
         return _ranking;
     }
@@ -55,6 +57,7 @@ public:
         this._name = string.init;
         this._ranking = int.init;
         this._brand = string.init;
+        initializeKeyedItem();
     }
 
     this(string name, immutable(int) ranking, string brand)
@@ -62,6 +65,7 @@ public:
         this._name = name;
         this._ranking = ranking;
         this._brand = brand;
+        initializeKeyedItem();
     }
     Candy dup() const
     {
@@ -113,7 +117,7 @@ uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
     return _uc_Candy_ranking_key;
 }
 `;
-static assert(Candy.createType!(Candy.stringof) == candyStructs);
+assert(Candy.createType!(Candy.stringof) == candyStructs);
 
 
 ``` 
@@ -171,7 +175,7 @@ attribute selected as the Clustered Index.
 
 ***
 ```d
-final pure nothrow @nogc @property @safe ClusteredIndex key();
+final const pure nothrow @nogc @property @safe ClusteredIndex key();
 
 ```
 **Summary:**
@@ -192,7 +196,7 @@ Sets the clustered index for this.
 
 ***
 ```d
-pure nothrow @nogc bool opEquals(Object o);
+const pure nothrow @nogc bool opEquals(Object o);
 
 ```
 **Summary:**
@@ -204,7 +208,7 @@ true if the clustered index equal.
 
 ***
 ```d
-int opCmp(Object o);
+const int opCmp(Object o);
 
 ```
 **Summary:**

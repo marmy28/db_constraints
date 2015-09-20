@@ -41,27 +41,6 @@ Params:
 
 /**
 Inherits from Exception. This is thrown whenever
-there is an exception dealing with the foreign keys.
- */
-class ForeignKeyException : Exception
-{
-/**
-Params:
-    msg = the message thrown with the foreign key
-    file = the file where the exception occurred
-    line = the line number where the exception occurred
-    next = references the exception that was being handled when this one was generated
- */
-    this(string msg, string file = __FILE__, size_t line = __LINE__,
-         Throwable next = null)
-    {
-        super("Foreign key exception. " ~ msg, file, line, next);
-    }
-}
-
-
-/**
-Inherits from Exception. This is thrown whenever
 there is a check constraint violation.
  */
 class CheckConstraintException : Exception

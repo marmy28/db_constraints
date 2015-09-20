@@ -1,0 +1,11 @@
+# To do
+- [ ] Add in foreign keys
+- [ ] Add in description for repo.
+- [ ] Add in a contribute.md
+- [ ] Release package on dub
+
+# Bugs
+- [ ] Overloads for unique constraints is a problem
+
+# Next
+- [ ] Add in struct functionality

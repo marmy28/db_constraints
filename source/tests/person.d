@@ -2,7 +2,7 @@ module tests.person;
 
 version(unittest)
 {
-    import db_extensions;
+    import db_constraints;
     class Person
     {
     private:

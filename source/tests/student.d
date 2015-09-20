@@ -1,6 +1,6 @@
 module tests.student;
 
-import db_extensions;
+import db_constraints;
 
 version(unittest)
 class Student

@@ -1,4 +1,4 @@
-# db_extensions
+# db_constraints
 
 [![Build Status](https://travis-ci.org/marmy28/db_extensions.svg)](https://travis-ci.org/marmy28/db_extensions)
 

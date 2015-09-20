@@ -37,6 +37,7 @@ unittest
         this(string name_)
         {
             this._name = name_;
+            initializeKeyedItem();
         }
         Human dup()
         {
@@ -147,6 +148,7 @@ unittest
         {
             this._name_h = name_;
             this.brand = brand_;
+            initializeKeyedItem();
         }
         Phone dup()
         {

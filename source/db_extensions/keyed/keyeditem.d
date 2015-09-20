@@ -21,6 +21,7 @@ private:
     import std.algorithm : canFind;
     import std.typetuple : TypeTuple;
     import std.functional : unaryFun;
+    import std.string : lastIndexOf;
     import std.conv : to;
     import std.exception : collectException, enforceEx;
     import std.meta : Erase, NoDuplicates;
@@ -32,7 +33,7 @@ private:
     {
         void setter(P)(ref P member, P value)
         {
-            enum name = name_[std.string.lastIndexOf(name_, '.') + 1 .. $];
+            enum name = name_[lastIndexOf(name_, '.') + 1 .. $];
             if (value != member)
             {
                 P memberValue = member;
@@ -50,36 +51,20 @@ private:
             }
         }
     }
-    void checkConstraints()
-    {
-        foreach(member; __traits(derivedMembers, T))
-        {
-            static if (member != "this")
-            {
-                foreach(ov; __traits(getOverloads, T, member))
-                {
-                    foreach(attr; __traits(getAttributes, ov))
-                    {
-                        static if (isInstanceOf!(CheckConstraint, attr))
-                        {
-                            mixin("enforceEx!(CheckConstraintException)(attr.check(this." ~ member ~ "), \"" ~ member ~ " failed its check with value \" ~ this." ~ member ~ ".to!string());");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    void initializeItem()
+
+    void initializeKeyedItem()
     {
         setClusteredIndex();
         checkConstraints();
     }
 
     static assert(!getColumns!(ClusteredIndexAttribute).empty,
-                  "Must have columns with UniqueConstraintColumn!\"" ~
+                  "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
 
-    //Gets the properties of the class marked with @Attr. This is private.
+/**
+Gets the properties of the class marked with @Attr.
+ */
     static string[] getColumns(Attr)()
     {
         string[] result;
@@ -99,10 +84,14 @@ private:
         }
         return result;
     }
-    // Gets the names given to the different UniqueConstraints
+/**
+Gets the names given to the different UniqueConstraints
+ */
     template UniqueConstraintStructNames(ClassName)
     {
-        // Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
+/**
+Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
+ */
         template Impl(T...)
         {
             static if (T.length == 0)
@@ -111,7 +100,6 @@ private:
             }
             else
             {
-                import std.string : format;
                 static if (T[0] != "connect" &&
                            T[0] != "slot_t" &&
                            T[0] != "slots" &&
@@ -122,7 +110,7 @@ private:
                            T[0] != "emit" &&
                            T[0] != "this")
                 {
-                    enum fullName = format(`%s.%s`, ClassName.stringof, T[0]);
+                    enum fullName = ClassName.stringof ~ "." ~ T[0];
                     enum attributes =  Get!(__traits(getAttributes, mixin(fullName)));
                     static if (attributes == "")
                     {
@@ -139,7 +127,9 @@ private:
                 }
             }
         }
-        // takes a members attributes and finds if it has one that starts with UniqueConstraint
+/**
+Takes a members attributes and finds if it has one that starts with UniqueConstraint
+ */
         template Get(P...)
         {
             static if (P.length == 0)
@@ -161,7 +151,9 @@ private:
         alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
     }
 
-    //Returns a string full of the structs.
+/**
+Returns a string full of the structs.
+ */
     static string createType(string class_name)()
     {
         string result = "public:\n";
@@ -244,6 +236,28 @@ Params:
             }
         }
     }
+    final void checkConstraints()
+    {
+        foreach(member; __traits(derivedMembers, T))
+        {
+            static if (member != "this")
+            {
+                foreach(ov; __traits(getOverloads, T, member))
+                {
+                    foreach(attr; __traits(getAttributes, ov))
+                    {
+                        static if (isInstanceOf!(CheckConstraint, attr))
+                        {
+                            enforceEx!(CheckConstraintException)(
+                                attr.check(mixin("this." ~ member)),
+                                member ~ " failed its check with value " ~
+                                mixin("this." ~ member).to!string());
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 /**
 Clustered index struct created at compile-time.
@@ -274,12 +288,8 @@ The clustered index property for the class.
 Returns:
     The clustered index for the class.
  */
-    final ClusteredIndex key() @property nothrow pure @safe @nogc
+    final ClusteredIndex key() const @property nothrow pure @safe @nogc
     {
-        if (this._key == ClusteredIndex.init)
-        {
-            setClusteredIndex();
-        }
         return _key;
     }
 
@@ -306,9 +316,9 @@ Compares `this` based on the clustered index.
 Returns:
     true if the clustered index equal.
  */
-    override bool opEquals(Object o) pure nothrow @nogc
+    override bool opEquals(Object o) const pure nothrow @nogc
     {
-        auto rhs = cast(T)o;
+        auto rhs = cast(immutable T)o;
         return (rhs !is null && this.key == rhs.key);
     }
 
@@ -317,14 +327,14 @@ Compares `this` based on the clustered index if comparison is with the same clas
 Returns:
     The comparison from the clustered index.
  */
-    override int opCmp(Object o)
+    override int opCmp(Object o) const
     {
         // Taking advantage of the automatically-maintained order of the types.
         if (typeid(this) != typeid(o))
         {
             return typeid(this).opCmp(typeid(o));
         }
-        auto rhs = cast(T)o;
+        auto rhs = cast(immutable T)o;
         return this.key.opCmp(rhs.key);
     }
 
@@ -336,7 +346,7 @@ Returns:
  */
     override size_t toHash() const nothrow @safe
     {
-        return _key.toHash();
+        return this.key.toHash();
     }
     mixin(createType!(T.stringof));
 }
@@ -382,6 +392,7 @@ unittest
             this._name = string.init;
             this._ranking = int.init;
             this._brand = string.init;
+            initializeKeyedItem();
         }
 
         this(string name, immutable(int) ranking, string brand)
@@ -389,6 +400,7 @@ unittest
             this._name = name;
             this._ranking = ranking;
             this._brand = brand;
+            initializeKeyedItem();
         }
         Candy dup() const
         {
@@ -440,5 +452,5 @@ unittest
         return _uc_Candy_ranking_key;
     }
 `;
-    static assert(Candy.createType!(Candy.stringof) == candyStructs);
+    assert(Candy.createType!(Candy.stringof) == candyStructs);
 }

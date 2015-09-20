@@ -34,9 +34,8 @@ public:
 
         this._cName = pcName;
         this._nNumClasses = pnNumClasses;
-        // setting this again here to hit the check but
-        // not emit the signal
-        this.cName = pcName;
+
+        initializeKeyedItem();
     }
     Student dup() const
     {
@@ -234,7 +233,7 @@ unittest
     assert(i.length == 1);
     tom2.cName = "James";
     assertThrown!UniqueConstraintException(i.add(tom2));
-    i.enforceUniqueConstraints = false;
+    i.enforceConstraints = false;
     assertNotThrown!UniqueConstraintException(i.add(tom2));
     assert(i.length == 2);
 }

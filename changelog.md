@@ -5,17 +5,25 @@
 ### Name changes
 
  * isDuplicateItem -> violatesUniqueConstraints
+ * enforceUniqueConstraints -> enforceConstraints
 
 ### New additions
 
- * template KeyedItem.setter!(alias check = "true", string name_ = __FUNCTION__)
+ * template KeyedItem.setter!(string name_ = __FUNCTION__)
+ * void KeyedItem.initializeKeyedItem()
+ * void KeyedItem.checkConstraints()
+ * void BaseKeyedCollection.checkConstraints()
 
 ### Misc.
 
  * marked functions as final for keyedcollection and keyeditem
- * setClustedIndex is now called inside the key function if key has not been set
-   + this means you can remove it from your constructor now
+ * to properly initialize the keyed item mixin you need to add initializeKeyedItem in your constructor
+ * setClustedIndex is now called inside initializeKeyedItem
  * notify now takes the property name that changed as a compile time argument
+
+### Bugs
+
+ * UniqueConstraintColumn marked overloaded functions (getters and setters) might not be picked up
 
 ## 0.0.2 (release date: 2015-09-13)
 

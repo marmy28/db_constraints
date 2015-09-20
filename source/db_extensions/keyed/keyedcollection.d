@@ -2,6 +2,7 @@ module db_extensions.keyed.keyedcollection;
 
 import std.signals;
 import std.traits;
+import std.exception : enforceEx;
 
 import db_extensions.keyed.keyeditem;
 import db_extensions.extra.db_exceptions;
@@ -18,7 +19,8 @@ Params:
 abstract class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
         hasMember!(T, "key") &&
-        hasMember!(T, "emitChange")
+        hasMember!(T, "emitChange") &&
+        hasMember!(T, "checkConstraints")
         )
 {
 public:
@@ -29,7 +31,22 @@ typeof(T.key) everywhere.
     alias key_type = typeof(T.key);
 private:
     bool _containsChanges;
-    bool _enforceUniqueConstraints = true;
+    bool _enforceConstraints = true;
+    final void checkConstraints(key_type item_key)
+    {
+        checkConstraints(this[item_key]);
+    }
+    final void checkConstraints(T item)
+    {
+        if (_enforceConstraints)
+        {
+            auto constraintName = "";
+            item.checkConstraints();
+            enforceEx!UniqueConstraintException(
+                !violatesUniqueConstraints(item, constraintName),
+                "The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
+        }
+    }
 protected:
     void itemChanged(string propertyName, key_type item_key)
     {
@@ -42,14 +59,7 @@ protected:
         }
         else if (propertyName.endsWith("_key"))
         {
-            auto constraintName = "";
-            auto item = this[item_key];
-            if (_enforceUniqueConstraints && this.violatesUniqueConstraints(item, constraintName))
-            {
-                throw new UniqueConstraintException("The " ~ constraintName ~
-                                                    " constraint was violated by " ~
-                                                    item.toString ~ ".");
-            }
+            checkConstraints(item_key);
         }
         notify(propertyName);
     }
@@ -82,14 +92,14 @@ initial data and already trust that is unique.
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    bool enforceUniqueConstraints() const @property nothrow pure @safe @nogc
+    bool enforceConstraints() const @property nothrow pure @safe @nogc
     {
-        return _enforceUniqueConstraints;
+        return _enforceConstraints;
     }
     /// ditto
-    void enforceUniqueConstraints(bool value) @property nothrow pure @safe @nogc
+    void enforceConstraints(bool value) @property nothrow pure @safe @nogc
     {
-        _enforceUniqueConstraints = value;
+        _enforceConstraints = value;
     }
 
 /**
@@ -148,7 +158,7 @@ Params:
     item = the item you want to add to `this`.
 Throws:
     UniqueConstraintException if `this` already contains `item` and
-    enforceUniqueConstraints is true.
+    enforceConstraints is true.
  */
     void add(T item)
     in
@@ -157,11 +167,7 @@ Throws:
     }
     body
     {
-        auto constraintName = "";
-        if (_enforceUniqueConstraints && this.violatesUniqueConstraints(item, constraintName))
-        {
-            throw new UniqueConstraintException("The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
-        }
+        this.checkConstraints(item);
         item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
         notify("length");
@@ -470,10 +476,10 @@ unittest
         {
             return _brand;
         }
+        // this can only be Mars or Hershey
         @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
-            // this can only be Mars or Hershey
             setter(_brand, value);
         }
 
@@ -483,6 +489,7 @@ unittest
             this._ranking = ranking;
             this._annualSales = annualSales;
             this._brand = brand;
+            initializeKeyedItem();
         }
         Candy dup() const
         {
@@ -548,7 +555,7 @@ unittest
 
     // trying to add another candy with the same name will
     // result in a unique constraint violation
-    auto milkyWay2 = new Candy("Milky Way", 0, 0, "");
+    auto milkyWay2 = new Candy("Milky Way", 0, 0, "Mars");
     import std.exception : assertThrown;
     assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
 

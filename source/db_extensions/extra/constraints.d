@@ -1,5 +1,7 @@
 module db_extensions.extra.constraints;
 
+import std.functional : unaryFun;
+
 /**
 User-defined attribute that can be used with KeyedItem. KeyedItem
 will create a struct made up of all of the properties marked with
@@ -19,7 +21,6 @@ struct UniqueConstraintColumn(string name_)
     enum name = name_;
 }
 
-import std.functional : unaryFun;
 struct CheckConstraint(alias check_)
     if (is(typeof(unaryFun!check_)))
 {

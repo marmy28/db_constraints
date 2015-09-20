@@ -1,4 +1,4 @@
-module db_extensions.keyed.generickey;
+module db_constraints.keyed.generickey;
 
 /**
 Used in KeyedItem for the generated structs.

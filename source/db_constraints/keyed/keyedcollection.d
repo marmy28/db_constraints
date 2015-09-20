@@ -1,4 +1,4 @@
-module db_extensions.keyed.keyedcollection;
+module db_constraints.keyed.keyedcollection;
 
 import std.algorithm : canFind, endsWith;
 import std.conv : to;
@@ -6,8 +6,8 @@ import std.exception : enforceEx;
 import std.signals;
 import std.traits;
 
-import db_extensions.extra.db_exceptions;
-import db_extensions.keyed.keyeditem;
+import db_constraints.extra.db_exceptions;
+import db_constraints.keyed.keyeditem;
 
 /**
 Turns the inheriting class into a base keyed collection.

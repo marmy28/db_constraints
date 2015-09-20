@@ -1,7 +1,7 @@
 /**
 User-defined attributes that can be used with the KeyedItem mixin.
  */
-module db_extensions.extra.constraints;
+module db_constraints.extra.constraints;
 
 import std.functional : unaryFun;
 

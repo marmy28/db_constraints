@@ -1,5 +1,12 @@
 # Change log
 
+## 0.0.4-alpha (release date: 2015-??-??)
+
+### Name changes
+
+ * db_extensions -> db_constraints
+   + the repo name was changed and all followed.
+
 ## 0.0.3 (release date: 2015-09-19)
 
 ### Name changes

@@ -1,6 +1,6 @@
 import std.stdio;
 
-import db_extensions;
+import db_constraints;
 
 void main()
 {

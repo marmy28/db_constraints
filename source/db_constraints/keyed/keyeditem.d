@@ -1,6 +1,6 @@
-module db_extensions.keyed.keyeditem;
+module db_constraints.keyed.keyeditem;
 
-public import db_extensions.extra.constraints;
+public import db_constraints.extra.constraints;
 
 /**
 Use this in the singular class which would describe a row in your
@@ -23,8 +23,8 @@ mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
     import std.traits : isInstanceOf, hasUDA;
     import std.typetuple : TypeTuple;
 
-    import db_extensions.extra.db_exceptions : CheckConstraintException;
-    import db_extensions.keyed.generickey : generic_compare;
+    import db_constraints.extra.db_exceptions : CheckConstraintException;
+    import db_constraints.keyed.generickey : generic_compare;
 private:
     bool _containsChanges;
     ClusteredIndex _key;
@@ -450,7 +450,7 @@ unittest
     assert(Candy.createType!(Candy.stringof) == candyStructs);
 
     import std.exception : assertThrown;
-    import db_extensions.extra.db_exceptions : CheckConstraintException;
+    import db_constraints.extra.db_exceptions : CheckConstraintException;
     // we expect setting the ranking to 0 will result in an exception
     // since we labeled that column with
     // @CheckConstraint!(a => a > 0, "chk_Candy_ranking")

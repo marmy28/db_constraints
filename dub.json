@@ -1,10 +1,10 @@
 {
-	"name": "db_extensions",
+	"name": "db_constraints",
 	"description": "User defined attributes and mixin templates to build a class database.",
 	"copyright": "Copyright © 2015, matthew",
-	"homepage": "https://github.com/marmy28/db_extensions",
+	"homepage": "https://github.com/marmy28/db_constraints",
 	"authors": ["Matthew Armbruster"],
-	"version": "0.0.3",
+	"version": "0.0.4-alpha",
 	"mainSourceFile": "source/app.d",
 	"configurations": [
 		{

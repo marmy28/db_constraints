@@ -173,7 +173,7 @@ typeof(T.key) everywhere.
 
 ***
 ```d
-final void itemChanged(string propertyName, key_type item_key);
+void itemChanged(string propertyName, key_type item_key);
 
 ```
 **Summary:**

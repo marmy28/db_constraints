@@ -7,7 +7,7 @@ foreign key with the necessary information.
  */
 module tests.one_to_one_class;
 
-import db_extensions;
+import db_constraints;
 
 version(unittest)
 {

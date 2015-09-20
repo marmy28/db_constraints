@@ -58,7 +58,7 @@ protected:
 itemChanged is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
  */
-    final void itemChanged(string propertyName, key_type item_key)
+    void itemChanged(string propertyName, key_type item_key)
     {
         if (propertyName == "key")
         {

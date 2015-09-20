@@ -12,21 +12,22 @@ Params:
 mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
     if (is(T == class))
 {
+    import std.algorithm : canFind;
     import std.array;
+    import std.conv : to;
+    import std.exception : collectException, enforceEx;
+    import std.functional : unaryFun;
+    import std.meta : Erase, NoDuplicates;
     import std.signals;
+    import std.string : lastIndexOf;
+    import std.traits : isInstanceOf, hasUDA;
+    import std.typetuple : TypeTuple;
+
+    import db_extensions.extra.db_exceptions : CheckConstraintException;
+    import db_extensions.keyed.generickey : generic_compare;
 private:
     bool _containsChanges;
     ClusteredIndex _key;
-
-    import std.algorithm : canFind;
-    import std.typetuple : TypeTuple;
-    import std.functional : unaryFun;
-    import std.string : lastIndexOf;
-    import std.conv : to;
-    import std.exception : collectException, enforceEx;
-    import std.meta : Erase, NoDuplicates;
-    import db_extensions.extra.db_exceptions : CheckConstraintException;
-    import std.traits : isInstanceOf, hasUDA;
 
     template setter(string name_ = __FUNCTION__)
         if (name_ !is null)
@@ -172,7 +173,6 @@ Returns a string full of the structs.
                 {
                     result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                 }
-                result ~= "        import db_extensions.keyed.generickey;\n";
                 result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
                 result ~= "    }\n";
                 result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
@@ -250,6 +250,7 @@ Params:
                         {
                             enforceEx!(CheckConstraintException)(
                                 attr.check(mixin("this." ~ member)),
+                                (attr.name == "" ? "" : attr.name ~ " violation. ") ~
                                 member ~ " failed its check with value " ~
                                 mixin("this." ~ member).to!string());
                         }
@@ -267,7 +268,6 @@ attribute selected as the Clustered Index.
  */
     struct ClusteredIndex
     {
-        import db_extensions.keyed.generickey;
         // creates the members of the clustered key with appropriate type.
         mixin(function string()
               {
@@ -361,6 +361,7 @@ unittest
         int _ranking;
         string _brand;
     public:
+        // name is the primary key
         @PrimaryKeyColumn
         string name() const @property nothrow pure @safe @nogc
         {
@@ -370,11 +371,14 @@ unittest
         {
             setter(_name, value);
         }
+        // ranking must be unique among all the other records
         @UniqueConstraintColumn!("uc_Candy_ranking")
         int ranking() const @property nothrow pure @safe @nogc
         {
             return _ranking;
         }
+        // making sure that ranking will always be above 0
+        @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
         void ranking(int value) @property
         {
             setter(_ranking, value);
@@ -387,14 +391,6 @@ unittest
         {
             setter(_brand, value);
         }
-        this()
-        {
-            this._name = string.init;
-            this._ranking = int.init;
-            this._brand = string.init;
-            initializeKeyedItem();
-        }
-
         this(string name, immutable(int) ranking, string brand)
         {
             this._name = name;
@@ -406,7 +402,7 @@ unittest
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
-        // The primary key is now the clustered index
+        // The primary key is now the clustered index as it is by default
         mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
     }
 
@@ -420,8 +416,8 @@ unittest
     assert(i.key == i.PrimaryKey_key);
     assert(i.key.name == pk.name);
 
-    auto j = new Candy("Opal Fruit", 0, "");
-    // since name is the clustered index i and j are equal because the names are equal
+    auto j = new Candy("Opal Fruit", 16, "");
+    // since name is the primary key i and j are equal because the names are equal
     assert(i == j);
 
     // in 1967 Opal Fruits came to America and changed its name
@@ -442,7 +438,6 @@ unittest
     struct uc_Candy_ranking
     {
         typeof(Candy.ranking) ranking;
-        import db_extensions.keyed.generickey;
         mixin generic_compare!(uc_Candy_ranking);
     }
     uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
@@ -453,4 +448,11 @@ unittest
     }
 `;
     assert(Candy.createType!(Candy.stringof) == candyStructs);
+
+    import std.exception : assertThrown;
+    import db_extensions.extra.db_exceptions : CheckConstraintException;
+    // we expect setting the ranking to 0 will result in an exception
+    // since we labeled that column with
+    // @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
+    assertThrown!CheckConstraintException(i.ranking = 0);
 }

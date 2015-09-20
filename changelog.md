@@ -1,6 +1,6 @@
 # Change log
 
-## 0.0.3-alpha (release date: 2015-09-??)
+## 0.0.3 (release date: 2015-09-19)
 
 ### Name changes
 
@@ -9,6 +9,7 @@
 
 ### New additions
 
+ * struct CheckConstraint(alias check_, string name_ = "")
  * template KeyedItem.setter!(string name_ = \__FUNCTION__)
  * void KeyedItem.initializeKeyedItem()
  * void KeyedItem.checkConstraints()
@@ -16,6 +17,7 @@
 
 ### Misc.
 
+ * enforces check constraints using a UDA with a lambda function!
  * marked functions as final for keyedcollection and keyeditem
  * to properly initialize the keyed item mixin you need to add initializeKeyedItem in your constructor
  * setClustedIndex is now called inside initializeKeyedItem

@@ -26,6 +26,7 @@ private:
     int _ranking;
     string _brand;
 public:
+    // name is the primary key
     @PrimaryKeyColumn
     string name() const @property nothrow pure @safe @nogc
     {
@@ -35,11 +36,14 @@ public:
     {
         setter(_name, value);
     }
+    // ranking must be unique among all the other records
     @UniqueConstraintColumn!("uc_Candy_ranking")
     int ranking() const @property nothrow pure @safe @nogc
     {
         return _ranking;
     }
+    // making sure that ranking will always be above 0
+    @CheckConstraint!(a =&gt; a &gt; 0, "chk_Candy_ranking")
     void ranking(int value) @property
     {
         setter(_ranking, value);
@@ -52,14 +56,6 @@ public:
     {
         setter(_brand, value);
     }
-    this()
-    {
-        this._name = string.init;
-        this._ranking = int.init;
-        this._brand = string.init;
-        initializeKeyedItem();
-    }
-
     this(string name, immutable(int) ranking, string brand)
     {
         this._name = name;
@@ -71,7 +67,7 @@ public:
     {
         return new Candy(this._name, this._ranking, this._brand);
     }
-    // The primary key is now the clustered index
+    // The primary key is now the clustered index as it is by default
     mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
 }
 
@@ -85,8 +81,8 @@ assert(i.key == pk);
 assert(i.key == i.PrimaryKey_key);
 assert(i.key.name == pk.name);
 
-auto j = new Candy("Opal Fruit", 0, "");
-// since name is the clustered index i and j are equal because the names are equal
+auto j = new Candy("Opal Fruit", 16, "");
+// since name is the primary key i and j are equal because the names are equal
 assert(i == j);
 
 // in 1967 Opal Fruits came to America and changed its name
@@ -107,7 +103,6 @@ alias PrimaryKey_key = key;
 struct uc_Candy_ranking
 {
     typeof(Candy.ranking) ranking;
-    import db_extensions.keyed.generickey;
     mixin generic_compare!(uc_Candy_ranking);
 }
 uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
@@ -118,6 +113,13 @@ uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
 }
 `;
 assert(Candy.createType!(Candy.stringof) == candyStructs);
+
+import std.exception : assertThrown;
+import db_extensions.extra.db_exceptions : CheckConstraintException;
+// we expect setting the ranking to 0 will result in an exception
+// since we labeled that column with
+// @CheckConstraint!(a =&gt; a &gt; 0, "chk_Candy_ranking")
+assertThrown!CheckConstraintException(i.ranking = 0);
 
 
 ``` 

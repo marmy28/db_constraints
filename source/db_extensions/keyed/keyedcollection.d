@@ -1,18 +1,19 @@
 module db_extensions.keyed.keyedcollection;
 
+import std.algorithm : canFind, endsWith;
+import std.conv : to;
+import std.exception : enforceEx;
 import std.signals;
 import std.traits;
-import std.exception : enforceEx;
 
-import db_extensions.keyed.keyeditem;
 import db_extensions.extra.db_exceptions;
-
+import db_extensions.keyed.keyeditem;
 
 /**
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
-T must have a dup property and a key property.
-The clustered index and key are created when you include the keyeditem in your class.
+The requirements (except for dup) are taken care of when
+you include the keyeditem in the *T* class.
 Params:
     T = the singular class.
  */
@@ -20,7 +21,8 @@ abstract class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
         hasMember!(T, "key") &&
         hasMember!(T, "emitChange") &&
-        hasMember!(T, "checkConstraints")
+        hasMember!(T, "checkConstraints") &&
+        hasMember!(T, "UniqueConstraintStructNames")
         )
 {
 public:
@@ -32,10 +34,9 @@ typeof(T.key) everywhere.
 private:
     bool _containsChanges;
     bool _enforceConstraints = true;
-    final void checkConstraints(key_type item_key)
-    {
-        checkConstraints(this[item_key]);
-    }
+/**
+Called when an item is being added or an item changed.
+ */
     final void checkConstraints(T item)
     {
         if (_enforceConstraints)
@@ -47,10 +48,18 @@ private:
                 "The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
         }
     }
-protected:
-    void itemChanged(string propertyName, key_type item_key)
+    /// ditto
+    final void checkConstraints(key_type item_key)
     {
-        import std.algorithm : endsWith;
+        checkConstraints(this[item_key]);
+    }
+protected:
+/**
+itemChanged is connected to the signal emitted by the item. This checks
+constraints and makes sure the changes are acceptable.
+ */
+    final void itemChanged(string propertyName, key_type item_key)
+    {
         if (propertyName == "key")
         {
             T item = this._items[item_key].dup();
@@ -85,9 +94,9 @@ Returns:
         return _containsChanges;
     }
 /**
-Getter and setter to enforce the unique constraints. By default
+Getter and setter to enforce the constraints. By default
 this is true but you may set it to false if you have a lot of
-initial data and already trust that is unique.
+initial data and already trust that is unique and accurate.
 
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
@@ -140,7 +149,6 @@ that the length of `this` has changed.
     void remove(A...)(A a)
     in
     {
-        import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
                       " has a clustered index with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
@@ -159,6 +167,9 @@ Params:
 Throws:
     UniqueConstraintException if `this` already contains `item` and
     enforceConstraints is true.
+
+    CheckConstraintException if the item is violating any of its
+    defined check constraints and enforceConstraints is true.
  */
     void add(T item)
     in
@@ -185,12 +196,7 @@ Throws:
         this.add(item);
     }
 /**
-Adds `items` to `this` and connects to the signals emitted by each item.
-Notifies that the length of `this` has changed.
-Params:
-    items = the items you want to add to `this`.
-Throws:
-    UniqueConstraintException if `this` already contains `item`.
+Does the same as `add(T item)` but for an array.
  */
     void add(T[] items)
     in
@@ -250,7 +256,7 @@ Returns:
             auto fields = "\nAn item with clustered index of:\n";
             foreach(i, j; clIdx.tupleof)
             {
-                fields ~= clIdx.tupleof[i].stringof ~ " = " ~ std.conv.to!string(j) ~ "\n";
+                fields ~= clIdx.tupleof[i].stringof ~ " = " ~ j.to!string() ~ "\n";
             }
             fields ~= "does not exist in " ~ typeof(this).stringof;
             throw new KeyedException(fields);
@@ -266,7 +272,6 @@ Returns:
     ref T opIndex(A...)(A a)
     in
     {
-        import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
                       " has a clustered index with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
@@ -370,7 +375,6 @@ Returns:
     bool contains(A...)(A a) nothrow pure @safe @nogc
     in
     {
-        import std.conv;
         static assert(A.length == key_type.tupleof.length, T.stringof ~
                       " has a clustered index with " ~ key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
@@ -405,8 +409,6 @@ is more extensive than `contains`.
     }
     body
     {
-        import std.algorithm : canFind, endsWith;
-
         bool result = false;
         constraintName = "";
         foreach(uniqueName; T.UniqueConstraintStructNames!(T))
@@ -448,7 +450,8 @@ unittest
         string _brand;
     public:
         // marking name as part of the primary key
-        string name() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+        @PrimaryKeyColumn
+        string name() const @property nothrow pure @safe @nogc
         {
             return _name;
         }
@@ -489,6 +492,7 @@ unittest
             this._ranking = ranking;
             this._annualSales = annualSales;
             this._brand = brand;
+            // need to initialize the keyed item
             initializeKeyedItem();
         }
         Candy dup() const
@@ -533,7 +537,7 @@ unittest
     assert(mars["Milkey Way"] == milkyWay);
 
     // milky way is in mars
-    assert(pk in mars);
+    assert(mars.contains(pk));
     // reesesPBCups is not in mars
     assert(!mars.contains(reesesPBCups));
 
@@ -545,7 +549,7 @@ unittest
     // and changed it, the primary key in mars has
     // updated so Milkey Way is no longer in it but
     // Milky Way is.
-    assert("Milkey Way" !in mars);
+    assert(!mars.contains("Milkey Way"));
     assert(mars.contains("Milky Way"));
 
     foreach(name_pk, candy; mars)
@@ -557,10 +561,14 @@ unittest
     // result in a unique constraint violation
     auto milkyWay2 = new Candy("Milky Way", 0, 0, "Mars");
     import std.exception : assertThrown;
-    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
-
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
+    // trying to change the brand name to something other than
+    // Mars or Hershey will result in a check constraint violation
+    // since we marked brand with a check constraint
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+
+    // violatesUniqueConstraints will tell you which constraint is violated if any
     auto violatedConstraint = "";
     assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
     assert(violatedConstraint == "PrimaryKey");

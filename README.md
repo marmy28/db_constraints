@@ -1,6 +1,6 @@
 # db_constraints
 
-[![Build Status](https://travis-ci.org/marmy28/db_extensions.svg)](https://travis-ci.org/marmy28/db_extensions)
+[![Build Status](https://travis-ci.org/marmy28/db_constraints.svg)](https://travis-ci.org/marmy28/db_constraints)
 
 ## Generating documentation
 

@@ -70,11 +70,11 @@ constraints and makes sure the changes are acceptable.
         {
             checkConstraints(item_key);
         }
-        notify(propertyName);
+        notify(propertyName, item_key);
     }
     T[key_type] _items;
 public:
-    mixin Signal!(string);
+    mixin Signal!(string, key_type);
 final:
 /**
 Changes `this` to not contain changes. Should only
@@ -117,10 +117,10 @@ This also emits a signal with the property name that changed.
 Params:
     propertyName = the property name that changed.
  */
-    void notify(string propertyName)
+    void notify(string propertyName, key_type item_key = key_type.init)
     {
         _containsChanges = true;
-        emit(propertyName);
+        emit(propertyName, item_key);
     }
 /**
 Removes an item from `this` and disconnects the signals. Notifies
@@ -231,7 +231,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(in T item)
+    ref inout(T) opIndex(in T item) inout
     in
     {
         assert(item !is null, "Trying to lookup with a null.");
@@ -249,7 +249,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(in key_type clIdx)
+    ref inout(T) opIndex(in key_type clIdx) inout
     {
         if (this.contains(clIdx))
         {
@@ -275,7 +275,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(A...)(in A a)
+    ref inout(T) opIndex(A...)(in A a) inout
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~

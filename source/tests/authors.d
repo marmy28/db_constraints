@@ -69,8 +69,4 @@ public:
                             new Author(4, "Charles Dickens")
                             ]);
     }
-    auto byValue() inout
-    {
-        return this._items.byValue();
-    }
 }

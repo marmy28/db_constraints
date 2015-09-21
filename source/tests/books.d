@@ -73,34 +73,24 @@ version(unittest)
 class Books : BaseKeyedCollection!(Book)
 {
 private:
-    // import std.algorithm : filter;
-    // import std.range : takeOne;
-    // import std.parallelism;
+    import std.algorithm : filter;
+    import std.range : takeOne;
+    import std.parallelism;
 
-    // immutable(Authors) *_authors;
-    // void assignForeign()
-    // {
-    //     if (this._authors !is null)
-    //     {
-    //         foreach(ref item; taskPool.parallel(this.byValue))
-    //         {
-    //             if (this._authors.contains(item.AuthorForeignKey))
-    //             {
-    //                 item.author = &(this._author[item.AuthorForeignKey]);
-    //             }
-    //             else
-    //             {
-    //                 std.stdio.writeln("No foreign key");
-    //             }
-    //             // auto author = this._authors.byValue.filter!(a => a.key == item.AuthorForeignKey).takeOne();
-    //             // if (!author.empty)
-    //             // {
-    //             //     item.author = &(author.front());
-    //             // }
-
-    //         }
-    //     }
-    // }
+    immutable(Authors) *_authors;
+    void checkForeignKeys()
+    {
+        if (this._authors !is null)
+        {
+            foreach(ref item; taskPool.parallel(this.byValue))
+            {
+                if (!this._authors.contains(item.AuthorForeignKey))
+                {
+                    throw new ForeignKeyException("No author foreign key");
+                }
+            }
+        }
+    }
 public:
     // void associateParent(immutable(Authors) authors_)
     // {

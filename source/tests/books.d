@@ -82,7 +82,8 @@ private:
     {
         if (this._authors !is null)
         {
-            foreach(ref item; taskPool.parallel(this.byValue))
+            //foreach(ref item; taskPool.parallel(this.byValue))
+            foreach(ref item; this.values)
             {
                 if (!this._authors.contains(item.AuthorForeignKey))
                 {
@@ -92,11 +93,19 @@ private:
         }
     }
 public:
-    // void associateParent(immutable(Authors) authors_)
-    // {
-    //     this._authors = &authors_;
-    //     assignForeign();
-    // }
+    void foreignKeyChanged(string propertyName, Authors.key_type item_key)
+    {
+        std.stdio.writeln(propertyName);
+    }
+    void associateParent(immutable(Authors) authors_)
+    {
+        if (this._authors is null)
+        {
+            this._authors = &authors_;
+            //this._authors.connect(&foreignKeyChanged);
+        }
+        checkForeignKeys();
+    }
     this(Book[] items)
     {
         super(items);
@@ -117,4 +126,11 @@ public:
                           new Book(6, "Anna Karenia", 2)
                           ]);
     }
+}
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    auto books = Books.GetFromDB();
+    import std.exception : assertNotThrown;
+    assertNotThrown!ForeignKeyException(books.associateParent(cast(immutable(Authors))authors));
 }

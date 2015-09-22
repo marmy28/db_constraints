@@ -5,6 +5,7 @@ import std.conv : to;
 import std.exception : enforceEx;
 import std.signals;
 import std.traits;
+import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
@@ -60,17 +61,19 @@ constraints and makes sure the changes are acceptable.
  */
     void itemChanged(string propertyName, key_type item_key)
     {
+        key_type emit_key = item_key;
         if (propertyName == "key")
         {
             T item = this._items[item_key].dup();
-            this.remove(item_key);
-            this.add(item);
+            this.remove(item_key, No.notifyChange);
+            this.add(item, No.notifyChange);
+            emit_key = item.key;
         }
         else if (propertyName.endsWith("_key"))
         {
             checkConstraints(item_key);
         }
-        notify(propertyName, item_key);
+        notify(propertyName, emit_key);
     }
     T[key_type] _items;
 public:
@@ -126,13 +129,16 @@ Params:
 Removes an item from `this` and disconnects the signals. Notifies
 that the length of `this` has changed.
  */
-    void remove(key_type item_key)
+    void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     {
         if (this.contains(item_key))
         {
             this._items[item_key].disconnect(&itemChanged);
             this._items.remove(item_key);
-            notify("length");
+            if (notifyChange)
+            {
+                notify("remove", item_key);
+            }
         }
     }
     /// ditto
@@ -164,14 +170,15 @@ Adds `item` to `this` and connects to the signals emitted by `item`.
 Notifies that the length of `this` has changed.
 Params:
     item = the item you want to add to `this`.
+    notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
 Throws:
     UniqueConstraintException if `this` already contains `item` and
     enforceConstraints is true.
-
+Throws:
     CheckConstraintException if the item is violating any of its
     defined check constraints and enforceConstraints is true.
  */
-    void add(T item)
+    void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
     {
         assert(item !is null, "Trying to add a null item.");
@@ -181,7 +188,10 @@ Throws:
         this.checkConstraints(item);
         item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
-        notify("length");
+        if (notifyChange)
+        {
+            notify("add", item.key);
+        }
     }
     /// ditto
     this(T item)
@@ -301,7 +311,7 @@ to the private associative array.
     {
         return this._items.byValue;
     }
-    auto byValue() inout pure @nogc nothrow
+    auto byValue() const pure @nogc nothrow
     {
         return this._items.byValue;
     }
@@ -311,7 +321,7 @@ Allows you to use `this` in a foreach loop.
     int opApply(int delegate(ref T) dg)
     {
         int result = 0;
-        foreach(T i; this.byValue)
+        foreach(T i; this.values)
         {
             result = dg(i);
             if (result)
@@ -323,7 +333,7 @@ Allows you to use `this` in a foreach loop.
     int opApply(int delegate(key_type, ref T) dg)
     {
         int result = 0;
-        foreach(T i; this.byValue)
+        foreach(T i; this.values)
         {
             result = dg(i.key, i);
             if (result)

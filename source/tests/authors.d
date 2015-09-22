@@ -22,6 +22,7 @@ public:
     {
         setter(_AuthorId, value);
     }
+    @UniqueConstraintColumn!"uc_Author"
     string Name() @property const
     {
         return _Name;
@@ -44,6 +45,11 @@ public:
     override string toString()
     {
         return "AuthorId: " ~ this._AuthorId.to!string() ~ " Name: " ~ this._Name;
+    }
+    override bool opEquals(Object o) const pure nothrow @nogc
+    {
+        auto rhs = cast(immutable Author)o;
+        return (rhs !is null && this.uc_Author_key == rhs.uc_Author_key);
     }
     mixin KeyedItem!(typeof(this));
 }
@@ -68,5 +74,18 @@ public:
                             new Author(3, "Joseph Heller"),
                             new Author(4, "Charles Dickens")
                             ]);
+    }
+}
+
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    // using integers since AuthorId is the clustered index
+    for(int i = 0; i < authors.length; ++i)
+    {
+        for(int j = i + 1; j < authors.length; ++j)
+        {
+            assert(authors[i + 1] != authors[j + 1]);
+        }
     }
 }

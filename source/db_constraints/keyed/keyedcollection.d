@@ -542,12 +542,12 @@ unittest
     assert(!mars.containsChanges);
 
     // use the class as an index
-    assert(mars[milkyWay] == milkyWay);
+    assert(mars[milkyWay] is milkyWay);
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
-    assert(mars[pk] == milkyWay);
+    assert(mars[pk] is milkyWay);
     // use the contents of the primary key as an index
-    assert(mars["Milkey Way"] == milkyWay);
+    assert(mars["Milkey Way"] is milkyWay);
 
     // milky way is in mars
     assert(mars.contains(pk));

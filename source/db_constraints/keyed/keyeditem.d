@@ -324,43 +324,6 @@ Sets the clustered index for `this`.
         this._key = new_key;
     }
 
-/**
-Compares `this` based on the clustered index.
-Returns:
-    true if the clustered index equal.
- */
-    override bool opEquals(Object o) const pure nothrow @nogc
-    {
-        auto rhs = cast(immutable T)o;
-        return (rhs !is null && this.key == rhs.key);
-    }
-
-/**
-Compares `this` based on the clustered index if comparison is with the same class.
-Returns:
-    The comparison from the clustered index.
- */
-    override int opCmp(Object o) const
-    {
-        // Taking advantage of the automatically-maintained order of the types.
-        if (typeid(this) != typeid(o))
-        {
-            return typeid(this).opCmp(typeid(o));
-        }
-        auto rhs = cast(immutable T)o;
-        return this.key.opCmp(rhs.key);
-    }
-
-
-/**
-Gets the hash of the clustered index.
-Returns:
-    The hash of the clustered index.
- */
-    override size_t toHash() const nothrow @safe
-    {
-        return this.key.toHash();
-    }
     mixin(createType!(T.stringof));
 }
 
@@ -415,6 +378,7 @@ unittest
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
+
         // The primary key is now the clustered index as it is by default
         mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
     }
@@ -431,7 +395,7 @@ unittest
 
     auto j = new Candy("Opal Fruit", 16, "");
     // since name is the primary key i and j are equal because the names are equal
-    assert(i == j);
+    assert(i.key == j.key);
 
     // in 1967 Opal Fruits came to America and changed its name
     i.name = "Starburst";
@@ -441,7 +405,7 @@ unittest
 
     // by changing the name it also changes the primary key
     assert(i.key != pk);
-    assert(i != j);
+    assert(i.key != j.key);
 
     // below is what is created when you include the mixin KeyedItem
     enum candyStructs =

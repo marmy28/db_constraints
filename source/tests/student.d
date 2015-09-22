@@ -60,6 +60,20 @@ public:
     {
         return this.cName;
     }
+    override int opCmp(Object o) const
+    {
+        if (typeid(this) != typeid(o))
+        {
+            return typeid(this).opCmp(typeid(o));
+        }
+        auto rhs = cast(immutable Student)o;
+        return this.key.opCmp(rhs.key);
+    }
+    override bool opEquals(Object o) const pure nothrow @nogc
+    {
+        auto rhs = cast(immutable Student)o;
+        return (rhs !is null && this.key == rhs.key);
+    }
     mixin KeyedItem!(typeof(this));
 }
 

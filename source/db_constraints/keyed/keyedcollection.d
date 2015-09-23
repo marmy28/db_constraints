@@ -354,10 +354,10 @@ Returns:
         return this.contains(item.key);
     }
     /// ditto
-    bool opBinaryRight(string op)(in T item) const nothrow pure @safe @nogc
+    inout(T)* opBinaryRight(string op)(in T item) inout nothrow pure @safe @nogc
         if (op == "in")
     {
-        return this.contains(item);
+        return (item.key in this);
     }
 /**
 Checks if `clIdx` is in the collection.
@@ -374,10 +374,10 @@ Returns:
         return (i !is null);
     }
     /// ditto
-    bool opBinaryRight(string op)(in key_type clIdx) const nothrow pure @safe @nogc
+    inout(T)* opBinaryRight(string op)(in key_type clIdx) inout nothrow pure @safe @nogc
         if (op == "in")
     {
-        return this.contains(clIdx);
+        return (clIdx in this._items);
     }
 /**
 Checks if `a` makes a clustered index that is in the collection.
@@ -402,10 +402,19 @@ Returns:
         return this.contains(clIdx);
     }
     /// ditto
-    bool opBinaryRight(string op, A...)(in A a) const nothrow pure @safe @nogc
+    inout(T)* opBinaryRight(string op, A...)(in A a) inout nothrow pure @safe @nogc
         if (op == "in")
+    in
     {
-        return this.contains(a);
+        static assert(A.length == key_type.tupleof.length, T.stringof ~
+                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " member(s). You included " ~ A.length.to!string ~
+                      " members when using 'in'.");
+    }
+    body
+    {
+        auto clIdx = key_type(a);
+        return (clIdx in this);
     }
 /**
 Checks if the item has any conflicting unique constraints. This

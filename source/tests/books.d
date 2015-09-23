@@ -35,11 +35,18 @@ public:
     {
         setter(_Title, value);
     }
-    auto AuthorForeignKey() @property
+    Author.PrimaryKey AuthorForeignKey() @property
     {
         auto i = Author.PrimaryKey();
         i.AuthorId = this.AuthorId;
         return i;
+    }
+    void AuthorForeignKey(Author.PrimaryKey value) @property
+    {
+        if (value != this.AuthorForeignKey)
+        {
+            this.AuthorId = value.AuthorId;
+        }
     }
     int AuthorId() @property
     {
@@ -73,11 +80,11 @@ version(unittest)
 class Books : BaseKeyedCollection!(Book)
 {
 private:
-    import std.algorithm : filter;
+    import std.algorithm : filter, each;
     import std.range : takeOne;
     import std.parallelism;
 
-    immutable(Authors) *_authors;
+    Authors *_authors;
     void checkForeignKeys()
     {
         if (this._authors !is null)
@@ -92,17 +99,29 @@ private:
             }
         }
     }
+    bool _changedKey = false;
+    Authors.key_type _changedAuthor;
 public:
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
-        std.stdio.writeln(propertyName);
+        if (propertyName == "AuthorId")
+        {
+            _changedAuthor = item_key;
+            _changedKey = true;
+        }
+        else if (propertyName == "key")
+        {
+            this.byValue.filter!(a => a.AuthorForeignKey == this._changedAuthor)
+                .each!(a => a.AuthorForeignKey = item_key);
+        }
+        std.stdio.writeln(propertyName ~ " AuthorId: " ~ item_key.AuthorId.to!string);
     }
-    void associateParent(immutable(Authors) authors_)
+    void associateParent(ref Authors authors_)
     {
         if (this._authors is null)
         {
-            this._authors = &authors_;
-            //this._authors.connect(&foreignKeyChanged);
+            _authors = &authors_;
+            this._authors.collectionChanged.connect(&foreignKeyChanged);
         }
         checkForeignKeys();
     }
@@ -131,6 +150,11 @@ unittest
 {
     auto authors = Authors.GetFromDB();
     auto books = Books.GetFromDB();
-    import std.exception : assertNotThrown;
-    assertNotThrown!ForeignKeyException(books.associateParent(cast(immutable(Authors))authors));
+    import std.exception : assertNotThrown, assertThrown;
+    assertNotThrown!ForeignKeyException(books.associateParent(authors));
+    assert(books._authors.contains(1) && !books._authors.contains(5));
+    authors[1].AuthorId = 5;
+    assert(!books._authors.contains(1) && books._authors.contains(5));
+    // this should actually not be a thrown but should update or do something
+    assertNotThrown!ForeignKeyException(books.checkForeignKeys());
 }

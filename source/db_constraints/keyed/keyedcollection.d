@@ -77,7 +77,7 @@ constraints and makes sure the changes are acceptable.
     }
     T[key_type] _items;
 public:
-    mixin Signal!(string, key_type);
+    mixin Signal!(string, key_type) collectionChanged;
 final:
 /**
 Changes `this` to not contain changes. Should only
@@ -123,7 +123,7 @@ Params:
     void notify(string propertyName, key_type item_key = key_type.init)
     {
         _containsChanges = true;
-        emit(propertyName, item_key);
+        collectionChanged.emit(propertyName, item_key);
     }
 /**
 Removes an item from `this` and disconnects the signals. Notifies
@@ -307,14 +307,6 @@ to the private associative array.
         debug(dispatch) pragma(msg, "opDispatch", name);
         return mixin("this._items." ~ name ~ "(a)");
     }
-    auto byValue() pure @nogc nothrow
-    {
-        return this._items.byValue;
-    }
-    auto byValue() const pure @nogc nothrow
-    {
-        return this._items.byValue;
-    }
 /**
 Allows you to use `this` in a foreach loop.
  */
@@ -437,7 +429,7 @@ is more extensive than `contains`.
         constraintName = "";
         foreach(uniqueName; T.UniqueConstraintStructNames!(T))
         {
-            if (this.byValue.canFind!("a !is b && " ~
+            if (this._items.byValue.canFind!("a !is b && " ~
                                       "a." ~ uniqueName ~ "_key == " ~
                                       "b." ~ uniqueName ~ "_key")(item))
             {

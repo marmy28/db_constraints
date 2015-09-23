@@ -40,6 +40,11 @@ public:
     {
         return new Human(this.name);
     }
+    override bool opEquals(Object o) const pure nothrow @nogc
+    {
+        auto rhs = cast(immutable Human)o;
+        return (rhs !is null && this.key == rhs.key);
+    }
 
     mixin KeyedItem!(typeof(this));
 }
@@ -150,6 +155,11 @@ public:
     Phone dup()
     {
         return new Phone(this.name_h, this.brand);
+    }
+    override bool opEquals(Object o) const pure nothrow @nogc
+    {
+        auto rhs = cast(immutable Phone)o;
+        return (rhs !is null && this.key == rhs.key);
     }
 
     mixin KeyedItem!(typeof(this), UniqueConstraintColumn!("human_phone_name"));

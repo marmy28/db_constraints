@@ -67,6 +67,7 @@ public:
     {
         return new Candy(this._name, this._ranking, this._brand);
     }
+
     // The primary key is now the clustered index as it is by default
     mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
 }
@@ -83,7 +84,7 @@ assert(i.key.name == pk.name);
 
 auto j = new Candy("Opal Fruit", 16, "");
 // since name is the primary key i and j are equal because the names are equal
-assert(i == j);
+assert(i.key == j.key);
 
 // in 1967 Opal Fruits came to America and changed its name
 i.name = "Starburst";
@@ -93,7 +94,7 @@ assert(!i.containsChanges);
 
 // by changing the name it also changes the primary key
 assert(i.key != pk);
-assert(i != j);
+assert(i.key != j.key);
 
 // below is what is created when you include the mixin KeyedItem
 enum candyStructs =
@@ -194,42 +195,6 @@ final pure nothrow @nogc @safe void setClusteredIndex();
 ```
 **Summary:**
 Sets the clustered index for this.
- 
-
-***
-```d
-const pure nothrow @nogc bool opEquals(Object o);
-
-```
-**Summary:**
-Compares this based on the clustered index.
-
-**Returns:**
-true if the clustered index equal.
- 
-
-***
-```d
-const int opCmp(Object o);
-
-```
-**Summary:**
-Compares this based on the clustered index if comparison is with the same class.
-
-**Returns:**
-The comparison from the clustered index.
- 
-
-***
-```d
-const nothrow @safe size_t toHash();
-
-```
-**Summary:**
-Gets the hash of the clustered index.
-
-**Returns:**
-The hash of the clustered index.
  
 
 

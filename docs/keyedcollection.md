@@ -109,12 +109,12 @@ assert(mars.length == 2);
 assert(!mars.containsChanges);
 
 // use the class as an index
-assert(mars[milkyWay] == milkyWay);
+assert(mars[milkyWay] is milkyWay);
 // use the primary key as an index
 auto pk = Candy.PrimaryKey("Milkey Way");
-assert(mars[pk] == milkyWay);
+assert(mars[pk] is milkyWay);
 // use the contents of the primary key as an index
-assert(mars["Milkey Way"] == milkyWay);
+assert(mars["Milkey Way"] is milkyWay);
 
 // milky way is in mars
 assert(mars.contains(pk));
@@ -221,7 +221,7 @@ is a duplicate clustered index, it will be overwritten.
 
 ***
 ```d
-void notify(string propertyName);
+void notify(string propertyName, key_type item_key = key_type.init);
 
 ```
 **Summary:**
@@ -237,7 +237,7 @@ Params |
 
 ***
 ```d
-void remove(key_type item_key);
+void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 void remove(T item);
 void remove(A...)(A a);
 
@@ -249,7 +249,7 @@ that the length of this has changed.
 
 ***
 ```d
-void add(T item);
+void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 this(T item);
 ref auto opOpAssign(string op)(T item) if (op == "~");
 
@@ -262,13 +262,15 @@ Params |
 ---|
 *T item*|
 &nbsp;&nbsp;&nbsp;&nbsp;the item you want to add to this.|
+*Flag!"notifyChange" notifyChange*|
+&nbsp;&nbsp;&nbsp;&nbsp;whether or not to emit this change. Should only be No if coming from itemChanged|
 
 :exclamation: **Throws:**
 UniqueConstraintException if this already contains item and
     enforceConstraints is true.
 
-
-    CheckConstraintException if the item is violating any of its
+:exclamation: **Throws:**
+CheckConstraintException if the item is violating any of its
     defined check constraints and enforceConstraints is true.
  
 
@@ -285,7 +287,7 @@ Does the same as add(T item) but for an array.
 
 ***
 ```d
-ref T opIndex(T item);
+inout ref inout(T) opIndex(in T item);
 
 ```
 **Summary:**
@@ -298,11 +300,14 @@ Params |
 
 **Returns:**
 The item in the collection that matches item.
+
+:exclamation: **Throws:**
+KeyedException if this does not contain a matching clustered index.
  
 
 ***
 ```d
-ref T opIndex(key_type clIdx);
+inout ref inout(T) opIndex(in key_type clIdx);
 
 ```
 **Summary:**
@@ -315,11 +320,14 @@ Params |
 
 **Returns:**
 The item in the collection that has clustered index clIdx.
+
+:exclamation: **Throws:**
+KeyedException if this does not contain a matching clustered index.
  
 
 ***
 ```d
-ref T opIndex(A...)(A a);
+inout ref inout(T) opIndex(A...)(in A a);
 
 ```
 **Summary:**
@@ -332,6 +340,9 @@ Params |
 
 **Returns:**
 The item in the collection that has the clustered index with fields a.
+
+:exclamation: **Throws:**
+KeyedException if this does not contain a matching clustered index.
  
 
 ***
@@ -356,7 +367,7 @@ Allows you to use this in a foreach loop.
 
 ***
 ```d
-pure nothrow @property @safe size_t length();
+const pure nothrow @property @safe size_t length();
 
 ```
 **Summary:**
@@ -368,8 +379,8 @@ The number of items in the collection.
 
 ***
 ```d
-pure nothrow @nogc @safe bool contains(T item);
-pure nothrow @nogc @safe bool opBinaryRight(string op)(T item) if (op == "in");
+const pure nothrow @nogc @safe bool contains(in T item);
+inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op)(in T item) if (op == "in");
 
 ```
 **Summary:**
@@ -386,8 +397,8 @@ true if item is in the collection.
 
 ***
 ```d
-pure nothrow @nogc @safe bool contains(key_type clIdx);
-pure nothrow @nogc @safe bool opBinaryRight(string op)(key_type clIdx) if (op == "in");
+const pure nothrow @nogc @safe bool contains(in key_type clIdx);
+inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op)(in key_type clIdx) if (op == "in");
 
 ```
 **Summary:**
@@ -406,8 +417,8 @@ true if there is a clustered index in the collection that
 
 ***
 ```d
-pure nothrow @nogc @safe bool contains(A...)(A a);
-pure nothrow @nogc @safe bool opBinaryRight(string op, A...)(A a) if (op == "in");
+const pure nothrow @nogc @safe bool contains(A...)(in A a);
+inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op, A...)(in A a) if (op == "in");
 
 ```
 **Summary:**
@@ -426,7 +437,7 @@ true if there is a clustered index in the collection that
 
 ***
 ```d
-bool violatesUniqueConstraints(T item, out string constraintName);
+const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
 
 ```
 **Summary:**

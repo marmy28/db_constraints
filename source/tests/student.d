@@ -126,18 +126,7 @@ unittest
 
 
 version(unittest)
-class Students : BaseKeyedCollection!(Student)
-{
-public:
-    this(Student[] items)
-    {
-        super(items);
-    }
-    this(Student item)
-    {
-        super(item);
-    }
-}
+alias Students = BaseKeyedCollection!(Student);
 
 unittest
 {

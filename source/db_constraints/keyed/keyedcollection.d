@@ -18,7 +18,7 @@ you include the keyeditem in the *T* class.
 Params:
     T = the singular class.
  */
-abstract class BaseKeyedCollection(T)
+class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
         hasMember!(T, "key") &&
         hasMember!(T, "emitChange") &&
@@ -531,18 +531,9 @@ unittest
     }
 
     // plural class
-    class Candies : BaseKeyedCollection!(Candy)
-    {
-    public:
-        this(Candy[] items)
-        {
-            super(items);
-        }
-        this(Candy item)
-        {
-            super(item);
-        }
-    }
+    // I am using an alias since BaseKeyedCollection
+    // takes care of everything I want to do for this example.
+    alias Candies = BaseKeyedCollection!(Candy);
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
     auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");

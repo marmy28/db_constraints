@@ -491,6 +491,7 @@ unittest
         {
             setter(_ranking, value);
         }
+        @NotNull
         int annualSales() const @property nothrow pure @safe @nogc
         {
             return _annualSales;
@@ -504,6 +505,7 @@ unittest
             return _brand;
         }
         // this can only be Mars or Hershey
+        @NotNull
         @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
@@ -591,6 +593,7 @@ unittest
     // Mars or Hershey will result in a check constraint violation
     // since we marked brand with a check constraint
     assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = null);
 
     // violatesUniqueConstraints will tell you which constraint is violated if any
     auto violatedConstraint = "";

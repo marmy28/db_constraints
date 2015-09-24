@@ -42,6 +42,28 @@ help narrow down which constraint failed.
     enum name = name_;
 }
 
+/**
+Alias for a special check constraint that makes sure the column is never null.
+This is checked the same time as all the other check constraints. The name of
+the constraint is NotNull in the error messages if this is ever violated.
+ */
+alias NotNull = CheckConstraint!(
+    function bool(auto a)
+    {
+        static if (__traits(hasMember, typeof(a), "isNull"))
+        {
+            return !a.isNull;
+        }
+        else static if (__traits(compiles, typeof(a).init == null))
+        {
+            return a !is null;
+        }
+        else
+        {
+            return true;
+        }
+    }, "NotNull");
+
 
 ///
 enum ForeignKeyActions

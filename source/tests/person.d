@@ -6,16 +6,17 @@ version(unittest)
     class Person
     {
     private:
-        int _id;
+        Nullable!int _id;
         string _firstName;
         string _lastName;
         string _email;
     public:
-        int id() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+        @NotNull
+        Nullable!int id() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
         {
             return _id;
         }
-        void id(immutable(int) value) @property
+        void id(Nullable!(int) value) @property
         {
             setter(_id, value);
         }

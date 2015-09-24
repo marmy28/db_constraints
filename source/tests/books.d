@@ -80,11 +80,17 @@ version(unittest)
 class Books : BaseKeyedCollection!(Book)
 {
 private:
-    import std.algorithm : filter, each;
-    import std.range : takeOne;
+    import std.algorithm : filter, each, canFind;
     import std.parallelism;
 
     Authors *_authors;
+    string[] _authorPropertyNames = ["AuthorId"];
+    Author.PrimaryKey makeAuthorKey(int AuthorId)
+    {
+        auto i = Author.PrimaryKey();
+        i.AuthorId = AuthorId;
+        return i;
+    }
     void checkForeignKeys()
     {
         if (this._authors !is null)
@@ -92,37 +98,49 @@ private:
             //foreach(ref item; taskPool.parallel(this.byValue))
             foreach(ref item; this.values)
             {
-                if (!this._authors.contains(item.AuthorForeignKey))
+                auto i = Authors.key_type.init;
+                i.AuthorId = item.AuthorId;
+                if (!this._authors.contains(i))
                 {
                     throw new ForeignKeyException("No author foreign key");
                 }
             }
         }
     }
-    bool _changedKey = false;
     Authors.key_type _changedAuthor;
 public:
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
-        if (propertyName == "AuthorId")
+        if (canFind(_authorPropertyNames, propertyName))
         {
             _changedAuthor = item_key;
-            _changedKey = true;
         }
         else if (propertyName == "key")
         {
-            this.byValue.filter!(a => a.AuthorForeignKey == this._changedAuthor)
-                .each!(a => a.AuthorForeignKey = item_key);
+            // onUpdate
+            this.byValue.filter!(
+                (Book a) =>
+                {
+                    auto i = Authors.key_type.init;
+                    i.AuthorId = a.AuthorId;
+                    return (i == this._changedAuthor);
+                }())
+                .each!(
+                    (Book a) =>
+                    {
+                        a.AuthorId = item_key.AuthorId;
+                    }());
+        }
+        else if (propertyName == "remove")
+        {
+            // onDelete
         }
         std.stdio.writeln(propertyName ~ " AuthorId: " ~ item_key.AuthorId.to!string);
     }
-    void associateParent(ref Authors authors_)
+    void authors(ref Authors authors_) @property
     {
-        if (this._authors is null)
-        {
-            _authors = &authors_;
-            this._authors.collectionChanged.connect(&foreignKeyChanged);
-        }
+        this._authors = &authors_;
+        this._authors.collectionChanged.connect(&foreignKeyChanged);
         checkForeignKeys();
     }
     this(Book[] items)
@@ -151,7 +169,7 @@ unittest
     auto authors = Authors.GetFromDB();
     auto books = Books.GetFromDB();
     import std.exception : assertNotThrown, assertThrown;
-    assertNotThrown!ForeignKeyException(books.associateParent(authors));
+    assertNotThrown!ForeignKeyException(books.authors = authors);
     assert(books._authors.contains(1) && !books._authors.contains(5));
     authors[1].AuthorId = 5;
     assert(!books._authors.contains(1) && books._authors.contains(5));

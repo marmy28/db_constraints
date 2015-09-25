@@ -126,6 +126,6 @@ DDOC_KEYWORD          = $0
 DDOC_PARAM            = $0
 DDOC_BACKQUOTED       = $0
 
-ESCAPES = /</&lt;/
-          />/&gt;/
+ESCAPES = /</</
+          />/>/
           /&/&/

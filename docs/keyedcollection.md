@@ -47,6 +47,7 @@ public:
     {
         setter(_ranking, value);
     }
+    @NotNull
     int annualSales() const @property nothrow pure @safe @nogc
     {
         return _annualSales;
@@ -60,7 +61,8 @@ public:
         return _brand;
     }
     // this can only be Mars or Hershey
-    @CheckConstraint!((a) =&gt; a == "Mars" || a == "Hershey")
+    @NotNull
+    @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
     void brand(string value) @property
     {
         setter(_brand, value);
@@ -85,18 +87,9 @@ public:
 }
 
 // plural class
-class Candies : BaseKeyedCollection!(Candy)
-{
-public:
-    this(Candy[] items)
-    {
-        super(items);
-    }
-    this(Candy item)
-    {
-        super(item);
-    }
-}
+// I am using an alias since BaseKeyedCollection
+// takes care of everything I want to do for this example.
+alias Candies = BaseKeyedCollection!(Candy);
 
 // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
 auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
@@ -147,6 +140,7 @@ assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 // Mars or Hershey will result in a check constraint violation
 // since we marked brand with a check constraint
 assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = null);
 
 // violatesUniqueConstraints will tell you which constraint is violated if any
 auto violatedConstraint = "";

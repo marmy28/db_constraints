@@ -43,7 +43,7 @@ public:
         return _ranking;
     }
     // making sure that ranking will always be above 0
-    @CheckConstraint!(a =&gt; a &gt; 0, "chk_Candy_ranking")
+    @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
     void ranking(int value) @property
     {
         setter(_ranking, value);
@@ -119,7 +119,7 @@ import std.exception : assertThrown;
 import db_constraints.db_exceptions : CheckConstraintException;
 // we expect setting the ranking to 0 will result in an exception
 // since we labeled that column with
-// @CheckConstraint!(a =&gt; a &gt; 0, "chk_Candy_ranking")
+// @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
 assertThrown!CheckConstraintException(i.ranking = 0);
 
 

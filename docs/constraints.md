@@ -45,6 +45,35 @@ The function that returns a boolean.
 
 ***
 ```d
+alias NotNull = CheckConstraint!(function bool(auto a)
+{
+static if (__traits(hasMember, typeof(a), "isNull"))
+{
+return !a.isNull;
+}
+else
+{
+static if (__traits(compiles, (typeof(a)).init == null))
+{
+return a !is null;
+}
+else
+{
+return true;
+}
+}
+}
+, "NotNull").CheckConstraint;
+
+```
+**Summary:**
+Alias for a special check constraint that makes sure the column is never null.
+This is checked the same time as all the other check constraints. The name of
+the constraint is NotNull in the error messages if this is ever violated.
+ 
+
+***
+```d
 enum ForeignKeyActions: int;
 
 ```
@@ -105,7 +134,7 @@ Updates or deletes the item based on what happened to the parent key.
 
 ***
 ```d
-struct ForeignKey(string name_, T) if (is(T == class));
+struct ForeignKeyConstraint(string[] childCols_, string parentTableName_, string[] parentCols_, string name_ = "", ForeignKeyActions onUpdate_ = ForeignKeyActions.noAction, ForeignKeyActions onDelete_ = ForeignKeyActions.noAction);
 
 ```
 **Summary:**

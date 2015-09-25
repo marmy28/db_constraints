@@ -188,7 +188,7 @@ class Phones : BaseKeyedCollection!Phone
             import std.parallelism;
             foreach(ref item; taskPool.parallel(this.byValue))
             {
-                auto human = humans_.byValue.filter!(a =&gt; a.name == item.name_h);
+                auto human = humans_.byValue.filter!(a => a.name == item.name_h);
                 if (!human.empty)
                 {
                     item.human = &(human.front());

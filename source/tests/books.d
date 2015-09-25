@@ -11,6 +11,13 @@ version(unittest)
 }
 
 version(unittest)
+@ForeignKeyConstraint!(
+    ["AuthorId"],
+    "Authors",
+    ["AuthorId"],
+    "fk_Books_Authors_AuthorId",
+    ForeignKeyActions.cascade,
+    ForeignKeyActions.cascade)
 class Book
 {
 private:
@@ -34,19 +41,6 @@ public:
     void Title(string value) @property
     {
         setter(_Title, value);
-    }
-    Author.PrimaryKey AuthorForeignKey() @property
-    {
-        auto i = Author.PrimaryKey();
-        i.AuthorId = this.AuthorId;
-        return i;
-    }
-    void AuthorForeignKey(Author.PrimaryKey value) @property
-    {
-        if (value != this.AuthorForeignKey)
-        {
-            this.AuthorId = value.AuthorId;
-        }
     }
     int AuthorId() @property
     {
@@ -81,37 +75,37 @@ class Books : BaseKeyedCollection!(Book)
 {
 private:
     import std.algorithm : filter, each, canFind;
-    import std.parallelism;
+
+    auto BookFK = ForeignKeyConstraint!(
+    ["AuthorId"],
+    "Authors",
+    ["AuthorId"],
+    "fk_Books_Authors_AuthorId",
+    ForeignKeyActions.cascade,
+    ForeignKeyActions.cascade)();
 
     Authors *_authors;
-    string[] _authorPropertyNames = ["AuthorId"];
-    Author.PrimaryKey makeAuthorKey(int AuthorId)
-    {
-        auto i = Author.PrimaryKey();
-        i.AuthorId = AuthorId;
-        return i;
-    }
+    //string[] _authorPropertyNames = ["AuthorId"]; // this is the same as parentCols
+
     void checkForeignKeys()
     {
         if (this._authors !is null)
         {
-            //foreach(ref item; taskPool.parallel(this.byValue))
-            foreach(ref item; this.values)
-            {
-                auto i = Authors.key_type.init;
-                i.AuthorId = item.AuthorId;
-                if (!this._authors.contains(i))
+            this.byValue.each!(
+                (Book a) =>
                 {
-                    throw new ForeignKeyException("No author foreign key");
-                }
-            }
+                    auto i = Authors.key_type.init;
+                    // I will need to see if there are any null values if setNull is an action
+                    i.AuthorId = a.AuthorId;
+                    enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
+                }());
         }
     }
     Authors.key_type _changedAuthor;
 public:
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
-        if (canFind(_authorPropertyNames, propertyName))
+        if (canFind(BookFK.parentCols, propertyName))
         {
             _changedAuthor = item_key;
         }
@@ -134,8 +128,19 @@ public:
         else if (propertyName == "remove")
         {
             // onDelete
+            this.byValue.filter!(
+                (Book a) =>
+                {
+                    auto i = Authors.key_type.init;
+                    i.AuthorId = a.AuthorId;
+                    return (i == item_key);
+                }())
+                .each!(
+                    (Book a) =>
+                    {
+                        this.remove(a.key);
+                    }());
         }
-        std.stdio.writeln(propertyName ~ " AuthorId: " ~ item_key.AuthorId.to!string);
     }
     void authors(ref Authors authors_) @property
     {
@@ -175,4 +180,9 @@ unittest
     assert(!books._authors.contains(1) && books._authors.contains(5));
     // this should actually not be a thrown but should update or do something
     assertNotThrown!ForeignKeyException(books.checkForeignKeys());
+    assert(authors.length == 4);
+    assert(books.length == 6);
+    authors.remove(3);
+    assert(authors.length == 3);
+    assert(books.length == 4);
 }

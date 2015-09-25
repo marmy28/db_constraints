@@ -102,13 +102,18 @@ Updates or deletes the item based on what happened to the parent key.
 /**
 The foreign key user-defined attribute. Currently under :construction:
  */
-struct ForeignKey(string name_, T)
-    if (is(T == class))
+struct ForeignKeyConstraint(string[] childCols_, string parentTableName_, string[] parentCols_,
+                            string name_ = "",
+                            ForeignKeyActions onUpdate_ = ForeignKeyActions.noAction,
+                            ForeignKeyActions onDelete_ = ForeignKeyActions.noAction
+                            )
 {
-    enum name = name_;
-    ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
-    ForeignKeyActions onDelete = ForeignKeyActions.noAction;
-    T parentType;
+    enum string[] childCols = childCols_;
+    enum string parentTableName = parentTableName_;
+    enum string[] parentCols = parentCols_;
+    enum string name = name_;
+    enum ForeignKeyActions onUpdate = onUpdate_;
+    enum ForeignKeyActions onDelete = onDelete_;
 }
 
 // mixin template ForeignKeyConstraint(ForeignClass, string ForeignClassConstraintName)

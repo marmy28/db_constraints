@@ -9,7 +9,7 @@ Params:
     T = the type of the class this is mixed into.
     ClusteredIndexAttribute = the attribute associated with the clustered index.
  */
-mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
+mixin template KeyedItem(T, ClusteredIndexAttribute = UniqueConstraintColumn!("PrimaryKey"))
     if (is(T == class))
 {
     import std.algorithm : canFind;
@@ -380,7 +380,7 @@ unittest
         }
 
         // The primary key is now the clustered index as it is by default
-        mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
+        mixin KeyedItem!(typeof(this));
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm

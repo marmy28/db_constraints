@@ -18,9 +18,15 @@ The name of the constraint which is the structs name.
     enum name = name_;
 }
 
+template helper(T...)
+{
+    alias T helper;
+}
+
 /**
 An alias for the primary key column.
  */
+//alias PrimaryKeyColumn = helper!(UniqueConstraintColumn!("PrimaryKey"), NotNull);
 alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 
 

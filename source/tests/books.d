@@ -85,7 +85,8 @@ private:
     ForeignKeyActions.cascade)();
 
     Authors *_authors;
-    //string[] _authorPropertyNames = ["AuthorId"]; // this is the same as parentCols
+    auto onUpdate = BookFK.onUpdate;
+    auto onDelete = BookFK.onDelete;
 
     void checkForeignKeys()
     {
@@ -111,35 +112,113 @@ public:
         }
         else if (propertyName == "key")
         {
-            // onUpdate
-            this.byValue.filter!(
+            auto changedAuthorFK = this.byValue.filter!(
                 (Book a) =>
                 {
                     auto i = Authors.key_type.init;
                     i.AuthorId = a.AuthorId;
                     return (i == this._changedAuthor);
-                }())
-                .each!(
+                }());
+            final switch (onUpdate) with (ForeignKeyActions)
+            {
+            case noAction:
+                version(noActionIsRestrict) goto case restrict;
+                else break;
+            case restrict:
+                if (!changedAuthorFK.empty)
+                {
+                    throw new ForeignKeyException("Author foreign key violation.");
+                }
+                break;
+            case setNull:
+                static if (__traits(compiles,
+                                    (Book a)
+                                    {
+                                        a.AuthorId = null;
+                                    }))
+                {
+                    changedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = null;
+                        }());
+                    break;
+                }
+                else
+                {
+                    throw new ForeignKeyException("Cannot use ForeignKeyActions.setNull " ~
+                                                  "when the member cannot be set to null.");
+                }
+            case setDefault:
+                changedAuthorFK.each!(
+                    (Book a) =>
+                    {
+                        a.AuthorId = typeof(a.AuthorId).init;
+                    }());
+                break;
+            case cascade:
+                changedAuthorFK.each!(
                     (Book a) =>
                     {
                         a.AuthorId = item_key.AuthorId;
                     }());
+                break;
+            }
         }
         else if (propertyName == "remove")
         {
-            // onDelete
-            this.byValue.filter!(
+            auto removedAuthorFK = this.byValue.filter!(
                 (Book a) =>
                 {
                     auto i = Authors.key_type.init;
                     i.AuthorId = a.AuthorId;
                     return (i == item_key);
-                }())
-                .each!(
+                }());
+            final switch (onDelete) with (ForeignKeyActions)
+            {
+            case noAction:
+                version(noActionIsRestrict) goto case restrict;
+                else break;
+            case restrict:
+                if (!removedAuthorFK.empty)
+                {
+                    throw new ForeignKeyException("Author foreign key violation.");
+                }
+                break;
+            case setNull:
+                static if (__traits(compiles,
+                                    (Book a)
+                                    {
+                                        a.AuthorId = null;
+                                    }))
+                {
+                    removedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = null;
+                        }());
+                    break;
+                }
+                else
+                {
+                    throw new ForeignKeyException("Cannot use ForeignKeyActions.setNull " ~
+                                                  "when the member cannot be set to null.");
+                }
+            case setDefault:
+                removedAuthorFK.each!(
+                    (Book a) =>
+                    {
+                        a.AuthorId = typeof(a.AuthorId).init;
+                    }());
+                break;
+            case cascade:
+                removedAuthorFK.each!(
                     (Book a) =>
                     {
                         this.remove(a.key);
                     }());
+                break;
+            }
         }
     }
     void authors(ref Authors authors_) @property
@@ -173,13 +252,15 @@ unittest
 {
     auto authors = Authors.GetFromDB();
     auto books = Books.GetFromDB();
+
     import std.exception : assertNotThrown, assertThrown;
     assertNotThrown!ForeignKeyException(books.authors = authors);
+
     assert(books._authors.contains(1) && !books._authors.contains(5));
     authors[1].AuthorId = 5;
     assert(!books._authors.contains(1) && books._authors.contains(5));
-    // this should actually not be a thrown but should update or do something
     assertNotThrown!ForeignKeyException(books.checkForeignKeys());
+
     assert(authors.length == 4);
     assert(books.length == 6);
     authors.remove(3);

@@ -9,7 +9,7 @@ private:
     string _cName;
     int _nNumClasses;
 public:
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     string cName() const @property nothrow pure @safe @nogc
     {
         return _cName;

@@ -13,7 +13,7 @@ private:
     int _AuthorId;
     string _Name;
 public:
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     int AuthorId() @property
     {
         return _AuthorId;

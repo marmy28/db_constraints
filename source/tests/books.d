@@ -25,7 +25,7 @@ private:
     string _Title;
     int _AuthorId;
 public:
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     int BookId() @property
     {
         return _BookId;

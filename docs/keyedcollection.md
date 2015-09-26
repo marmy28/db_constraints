@@ -30,7 +30,7 @@ private:
     string _brand;
 public:
     // marking name as part of the primary key
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     string name() const @property nothrow pure @safe @nogc
     {
         return _name;
@@ -43,11 +43,12 @@ public:
     {
         return _ranking;
     }
+    // making sure that ranking will always be above 0
+    @CheckConstraint!(a => a > 0, "chk_Candys_ranking")
     void ranking(int value) @property
     {
         setter(_ranking, value);
     }
-    @NotNull
     int annualSales() const @property nothrow pure @safe @nogc
     {
         return _annualSales;
@@ -60,9 +61,6 @@ public:
     {
         return _brand;
     }
-    // this can only be Mars or Hershey
-    @NotNull
-    @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
     void brand(string value) @property
     {
         setter(_brand, value);
@@ -132,26 +130,27 @@ foreach(name_pk, candy; mars)
 
 // trying to add another candy with the same name will
 // result in a unique constraint violation
-auto milkyWay2 = new Candy("Milky Way", 0, 0, "Mars");
+auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
 import std.exception : assertThrown;
 assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
-// trying to change the brand name to something other than
-// Mars or Hershey will result in a check constraint violation
-// since we marked brand with a check constraint
-assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
-assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = null);
+// ranking has a check constraint saying ranking always must be greater
+// than 0. setting it to -1 resolves in a CheckConstraintException.
+assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
+// Since name is part of the primary key we must mark it with NotNull
+// trying to set this to null will result in a CheckConstraintException.
+assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
 // violatesUniqueConstraints will tell you which constraint is violated if any
-auto violatedConstraint = "";
+string violatedConstraint;
 assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-assert(violatedConstraint == "PrimaryKey");
+assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
 
 // removing milky way from mars
 mars.remove("Milky Way");
 // this means milkyWay2 is no longer a duplicate
 assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-assert(violatedConstraint == "");
+assert(violatedConstraint is null);
 
 
 ``` 
@@ -226,6 +225,8 @@ Params |
 ---|
 *string propertyName*|
 &nbsp;&nbsp;&nbsp;&nbsp;the property name that changed.|
+*key_type item_key*|
+&nbsp;&nbsp;&nbsp;&nbsp;the items key that changed.|
 
  
 

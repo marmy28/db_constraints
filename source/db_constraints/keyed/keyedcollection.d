@@ -46,7 +46,8 @@ Called when an item is being added or an item changed.
             item.checkConstraints();
             enforceEx!UniqueConstraintException(
                 !violatesUniqueConstraints(item, constraintName),
-                "The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
+                "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
+                "  was violated by item " ~ item.toString ~ ".");
         }
     }
     /// ditto
@@ -119,6 +120,7 @@ Notifies `this` which property changed.
 This also emits a signal with the property name that changed.
 Params:
     propertyName = the property name that changed.
+    item_key = the items key that changed.
  */
     void notify(string propertyName, key_type item_key = key_type.init)
     {
@@ -430,12 +432,11 @@ is more extensive than `contains`.
         if (result)
             assert(constraintName !is null && constraintName != "");
         else
-            assert(constraintName == "");
+            assert(constraintName is null);
     }
     body
     {
         bool result = false;
-        constraintName = "";
         foreach(uniqueName; T.UniqueConstraintStructNames!(T))
         {
             if (this._items.byValue.canFind!("a !is b && " ~
@@ -443,11 +444,14 @@ is more extensive than `contains`.
                                       "b." ~ uniqueName ~ "_key")(item))
             {
                 result = true;
-                if (constraintName != "")
+                if (constraintName is null)
                 {
-                    constraintName ~= ", ";
+                    constraintName = uniqueName;
                 }
-                constraintName ~= uniqueName;
+                else
+                {
+                    constraintName ~= ", " ~ uniqueName;
+                }
             }
         }
         return result;
@@ -455,9 +459,8 @@ is more extensive than `contains`.
     // ditto
     bool violatesUniqueConstraints(in T item) const nothrow pure
     {
-        auto constraintName = "";
-        auto result = this.violatesUniqueConstraints(item, constraintName);
-        return result;
+        string constraintName;
+        return this.violatesUniqueConstraints(item, constraintName);
     }
 }
 
@@ -474,7 +477,7 @@ unittest
         string _brand;
     public:
         // marking name as part of the primary key
-        @PrimaryKeyColumn
+        @PrimaryKeyColumn @NotNull
         string name() const @property nothrow pure @safe @nogc
         {
             return _name;
@@ -487,11 +490,12 @@ unittest
         {
             return _ranking;
         }
+        // making sure that ranking will always be above 0
+        @CheckConstraint!(a => a > 0, "chk_Candys_ranking")
         void ranking(int value) @property
         {
             setter(_ranking, value);
         }
-        @NotNull
         int annualSales() const @property nothrow pure @safe @nogc
         {
             return _annualSales;
@@ -504,9 +508,6 @@ unittest
         {
             return _brand;
         }
-        // this can only be Mars or Hershey
-        @NotNull
-        @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
         void brand(string value) @property
         {
             setter(_brand, value);
@@ -576,26 +577,25 @@ unittest
 
     // trying to add another candy with the same name will
     // result in a unique constraint violation
-    auto milkyWay2 = new Candy("Milky Way", 0, 0, "Mars");
+    auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
     import std.exception : assertThrown;
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
-    // trying to change the brand name to something other than
-    // Mars or Hershey will result in a check constraint violation
-    // since we marked brand with a check constraint
-    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
-    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = null);
+    // ranking has a check constraint saying ranking always must be greater
+    // than 0. setting it to -1 resolves in a CheckConstraintException.
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
+    // Since name is part of the primary key we must mark it with NotNull
+    // trying to set this to null will result in a CheckConstraintException.
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
     // violatesUniqueConstraints will tell you which constraint is violated if any
-    auto violatedConstraint = "";
+    string violatedConstraint;
     assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-    assert(violatedConstraint == "PrimaryKey");
+    assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
 
     // removing milky way from mars
     mars.remove("Milky Way");
     // this means milkyWay2 is no longer a duplicate
     assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-    assert(violatedConstraint == "");
-
-
+    assert(violatedConstraint is null);
 }

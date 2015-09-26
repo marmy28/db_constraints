@@ -22,7 +22,7 @@ class Human
 private:
     string _name;
 public:
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     string name() const @property nothrow pure @safe @nogc
     {
         return _name;

@@ -12,6 +12,12 @@ struct UniqueConstraintColumn(string name_);
 KeyedItem will create a struct with *name* defined in the compile-time argument.
 For example a property marked with @UniqueColumn!("uc_Person") will
 be part of the struct uc_Person.
+
+Params |
+---|
+*name_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The name of the constraint which is the structs name.|
+
  
 
 ***
@@ -20,7 +26,8 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!"PrimaryKey".UniqueConstraintCol
 
 ```
 **Summary:**
-An alias for the primary key column.
+An alias for the primary key column. A member with this attribute
+must also have the NotNull attribute.
  
 
 ***
@@ -31,17 +38,15 @@ struct CheckConstraint(alias check_, string name_ = "") if (is(typeof(unaryFun!c
 **Summary:**
 KeyedItem.checkConstraints will check all of the members marked
 with this attribute and use the check given.
+
+Params |
+---|
+*check_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The function that returns a boolean.|
+*name_*|
+&nbsp;&nbsp;&nbsp;&nbsp;Name used in the error message if the function returns false.|
+
  
-***
-```d
-alias check = unaryFun!check_;
-
-```
-**Summary:**
-The function that returns a boolean.
- 
-
-
 
 ***
 ```d
@@ -139,6 +144,22 @@ struct ForeignKeyConstraint(string[] childCols_, string parentTableName_, string
 ```
 **Summary:**
 The foreign key user-defined attribute. Currently under :construction:
+
+Params |
+---|
+*childCols_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The members in the child class that are used in the foreign key|
+*parentTableName_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The plural class name.|
+*parentCols_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The members in the parent class that are references in the foreign key|
+*name_*|
+&nbsp;&nbsp;&nbsp;&nbsp;The name of the foreign key constraint. Will be used in error message when violated|
+*onUpdate_*|
+&nbsp;&nbsp;&nbsp;&nbsp;What should happen when a foreign key is updated that is being referenced.|
+*onDelete_*|
+&nbsp;&nbsp;&nbsp;&nbsp;What should happen when a foreign key is deleted that is being referenced.|
+
  
 
 

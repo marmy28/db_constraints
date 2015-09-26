@@ -27,7 +27,7 @@ private:
     string _brand;
 public:
     // name is the primary key
-    @PrimaryKeyColumn
+    @PrimaryKeyColumn @NotNull
     string name() const @property nothrow pure @safe @nogc
     {
         return _name;

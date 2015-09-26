@@ -9,7 +9,7 @@ Params:
     T = the type of the class this is mixed into.
     ClusteredIndexAttribute = the attribute associated with the clustered index.
  */
-mixin template KeyedItem(T, ClusteredIndexAttribute = UniqueConstraintColumn!("PrimaryKey"))
+mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
     if (is(T == class))
 {
     import std.algorithm : canFind;
@@ -85,6 +85,13 @@ Gets the properties of the class marked with @Attr.
                 {
                     static if (hasUDA!(ov, Attr))
                     {
+                        static if (__traits(isSame, Attr, PrimaryKeyColumn))
+                        {
+                            static assert(hasUDA!(ov, NotNull),
+                                          "Primary key columns must have the NotNull" ~
+                                          " attribute which is missing from " ~
+                                          T.stringof ~ "." ~ member);
+                        }
                         pragma(msg, T.stringof, ".", member, " is ", Attr.stringof);
                         result ~= member;
                     }
@@ -338,7 +345,7 @@ unittest
         string _brand;
     public:
         // name is the primary key
-        @PrimaryKeyColumn
+        @PrimaryKeyColumn @NotNull
         string name() const @property nothrow pure @safe @nogc
         {
             return _name;
@@ -380,7 +387,7 @@ unittest
         }
 
         // The primary key is now the clustered index as it is by default
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm

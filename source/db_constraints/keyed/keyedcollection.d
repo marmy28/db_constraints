@@ -9,6 +9,7 @@ import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
+import db_constraints.utils.generickey : UniqueConstraintStructNames;
 
 /**
 Turns the inheriting class into a base keyed collection.
@@ -22,8 +23,7 @@ class BaseKeyedCollection(T)
     if (hasMember!(T, "dup") &&
         hasMember!(T, "key") &&
         hasMember!(T, "emitChange") &&
-        hasMember!(T, "checkConstraints") &&
-        hasMember!(T, "UniqueConstraintStructNames")
+        hasMember!(T, "checkConstraints")
         )
 {
 public:
@@ -437,7 +437,7 @@ is more extensive than `contains`.
     body
     {
         bool result = false;
-        foreach(uniqueName; T.UniqueConstraintStructNames!(T))
+        foreach(uniqueName; UniqueConstraintStructNames!(T))
         {
             if (this._items.byValue.canFind!("a !is b && " ~
                                       "a." ~ uniqueName ~ "_key == " ~

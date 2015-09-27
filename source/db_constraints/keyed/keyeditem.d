@@ -1,5 +1,7 @@
 module db_constraints.keyed.keyeditem;
 
+import std.traits : isInstanceOf;
+
 public import db_constraints.constraints;
 
 /**
@@ -7,24 +9,23 @@ Use this in the singular class which would describe a row in your
 database.
 Params:
     T = the type of the class this is mixed into.
-    ClusteredIndexAttribute = the attribute associated with the clustered index.
+    ClusteredIndexAttribute = the unique constraint associated with the clustered index.
  */
 mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
-    if (is(T == class))
+    if (is(T == class) && isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
 {
     import std.algorithm : canFind;
     import std.array;
     import std.conv : to;
     import std.exception : collectException, enforceEx;
     import std.functional : unaryFun;
-    import std.meta : Erase, NoDuplicates;
+    import std.meta : Erase;
     import std.signals;
     import std.string : lastIndexOf;
     import std.traits : isInstanceOf, hasUDA;
-    import std.typetuple : TypeTuple;
 
     import db_constraints.db_exceptions : CheckConstraintException;
-    import db_constraints.utils.generickey : generic_compare;
+    import db_constraints.utils.generickey : generic_compare, UniqueConstraintStructNames;
 private:
     bool _containsChanges;
     ClusteredIndex _key;
@@ -100,77 +101,7 @@ Gets the properties of the class marked with @Attr.
         }
         return result;
     }
-/**
-Gets the names given to the different UniqueConstraints
- */
-    template UniqueConstraintStructNames(ClassName)
-    {
-/**
-Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
- */
-        template Impl(T...)
-        {
-            static if (T.length == 0)
-            {
-                alias Impl = TypeTuple!();
-            }
-            else
-            {
-                static if (T[0] != "this")
-                {
-                    alias Impl = TypeTuple!(Overloads!(__traits(getOverloads, ClassName, T[0])), Impl!(T[1 .. $]));
-                }
-                else
-                {
-                    alias Impl = TypeTuple!(Impl!(T[1 .. $]));
-                }
-            }
-        }
-/**
-Looks at the overloads for the functions.
- */
-        template Overloads(S...)
-        {
-            static if (S.length == 0)
-            {
-                alias Overloads = TypeTuple!();
-            }
-            else
-            {
-                enum attributes = Get!(__traits(getAttributes, S[0]));
-                static if (attributes == "")
-                {
-                    alias Overloads = TypeTuple!(Overloads!(S[1 .. $]));
-                }
-                else
-                {
-                    alias Overloads = TypeTuple!(attributes, Overloads!(S[1 .. $]));
-                }
-            }
-        }
-/**
-Takes a members attributes and finds if it has one that starts with UniqueConstraint
- */
-        template Get(P...)
-        {
-            static if (P.length == 0)
-            {
-                enum Get = "";
-            }
-            else
-            {
-                static if (isInstanceOf!(UniqueConstraintColumn, P[0]))
-                {
-                    alias Get = P[0].name;
-                }
-                else
-                {
-                    alias Get = Get!(P[1 .. $]);
-                }
-            }
-        }
-        alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
-    }
+
 
 /**
 Returns a string full of the structs.

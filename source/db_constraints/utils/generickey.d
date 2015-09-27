@@ -245,3 +245,43 @@ template HasMembersWithUDA(ClassName, attribute)
 
     alias HasMembersWithUDA = Impl!(__traits(derivedMembers, ClassName));
 }
+
+/**
+Returns a string full of the structs for ClassName.
+ */
+template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)
+{
+    string ConstraintStructs()
+    {
+        string result = "public:\n";
+        foreach(name; UniqueConstraintStructNames!(ClassName))
+        {
+            static if (name == ClusteredIndexAttributeName)
+            {
+                result ~= "    final alias " ~ name ~ " = ClusteredIndex;\n";
+                result ~= "    final alias " ~ name ~ "_key = key;\n";
+            }
+            else
+            {
+                result ~= "    final struct " ~ name ~ "\n";
+                result ~= "    {\n";
+                foreach(columnName; GetMembersWithUDA!(ClassName, UniqueConstraintColumn!name))
+                {
+                    result ~= "        typeof(" ~ ClassName.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+                }
+                result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
+                result ~= "    }\n";
+                result ~= "    final @property " ~ name ~ " " ~ name ~ "_key() const nothrow pure @safe @nogc\n";
+                result ~= "    {\n";
+                result ~= "        auto _" ~ name ~ "_key = " ~ name ~ "();\n";
+                foreach(columnName; GetMembersWithUDA!(ClassName, UniqueConstraintColumn!name))
+                {
+                    result ~= "        _" ~ name ~ "_key." ~ columnName ~ " = this._" ~ columnName ~ ";\n";
+                }
+                result ~= "        return _" ~ name ~ "_key;\n";
+                result ~= "    }\n";
+            }
+        }
+        return result;
+    }
+}

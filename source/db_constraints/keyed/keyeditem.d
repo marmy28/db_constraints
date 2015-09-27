@@ -23,7 +23,7 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     import std.traits : isInstanceOf;
 
     import db_constraints.db_exceptions : CheckConstraintException;
-    import db_constraints.utils.generickey : generic_compare, UniqueConstraintStructNames, GetMembersWithUDA, HasMembersWithUDA;
+    import db_constraints.utils.generickey;
 private:
     alias T = typeof(this);
     bool _containsChanges;
@@ -34,10 +34,10 @@ The setter should be in your setter member. This checks your check constraint.
 Throws:
     CheckConstraintException if your value makes checkConstraints fail.
  */
-    template setter(string name_ = __FUNCTION__)
+    final template setter(string name_ = __FUNCTION__)
         if (name_ !is null)
     {
-        void setter(P)(ref P member, P value)
+        final void setter(P)(ref P member, P value)
         {
             enum name = name_[lastIndexOf(name_, '.') + 1 .. $];
             if (value != member)
@@ -61,7 +61,7 @@ Throws:
 Initializes the keyed item by running *setClusteredIndex* and *checkConstraints*.
 This should be in your constructor.
  */
-    void initializeKeyedItem()
+    final void initializeKeyedItem()
     {
         setClusteredIndex();
         checkConstraints();
@@ -70,44 +70,6 @@ This should be in your constructor.
     static assert(HasMembersWithUDA!(T, ClusteredIndexAttribute),
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
-
-
-/**
-Returns a string full of the structs.
- */
-    static string createType()() @safe pure nothrow
-    {
-        string result = "public:\n";
-        foreach(name; UniqueConstraintStructNames!(T))
-        {
-            static if (name == ClusteredIndexAttribute.name)
-            {
-                result ~= "    alias " ~ name ~ " = ClusteredIndex;\n";
-                result ~= "    alias " ~ name ~ "_key = key;\n";
-            }
-            else
-            {
-                result ~= "    struct " ~ name ~ "\n";
-                result ~= "    {\n";
-                foreach(columnName; GetMembersWithUDA!(T, UniqueConstraintColumn!name))
-                {
-                    result ~= "        typeof(" ~ T.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-                }
-                result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
-                result ~= "    }\n";
-                result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
-                result ~= "    {\n";
-                result ~= "        auto _" ~ name ~ "_key = " ~ name ~ "();\n";
-                foreach(columnName; GetMembersWithUDA!(T, UniqueConstraintColumn!name))
-                {
-                    result ~= "        _" ~ name ~ "_key." ~ columnName ~ " = this._" ~ columnName ~ ";\n";
-                }
-                result ~= "        return _" ~ name ~ "_key;\n";
-                result ~= "    }\n";
-            }
-        }
-        return result;
-    }
 public:
 /**
 Read-only property telling if `this` contains changes.
@@ -186,7 +148,7 @@ This is used to compare classes. The members
 are the members of the class marked with the
 attribute selected as the Clustered Index.
  */
-    struct ClusteredIndex
+    final struct ClusteredIndex
     {
         // creates the members of the clustered key with appropriate type.
         mixin(function string()
@@ -231,7 +193,7 @@ Sets the clustered index for `this`.
         this._key = new_key;
     }
 
-    mixin(createType!());
+    mixin(ConstraintStructs!(T, ClusteredIndexAttribute.name));
 }
 
 ///
@@ -317,21 +279,22 @@ unittest
     // below is what is created when you include the mixin KeyedItem
     enum candyStructs =
 `public:
-    alias PrimaryKey = ClusteredIndex;
-    alias PrimaryKey_key = key;
-    struct uc_Candy_ranking
+    final alias PrimaryKey = ClusteredIndex;
+    final alias PrimaryKey_key = key;
+    final struct uc_Candy_ranking
     {
         typeof(Candy.ranking) ranking;
         mixin generic_compare!(uc_Candy_ranking);
     }
-    uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
+    final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe @nogc
     {
         auto _uc_Candy_ranking_key = uc_Candy_ranking();
         _uc_Candy_ranking_key.ranking = this._ranking;
         return _uc_Candy_ranking_key;
     }
 `;
-    assert(Candy.createType!() == candyStructs);
+    import db_constraints.utils.generickey : ConstraintStructs;
+    static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
     import std.exception : assertThrown;
     import db_constraints.db_exceptions : CheckConstraintException;

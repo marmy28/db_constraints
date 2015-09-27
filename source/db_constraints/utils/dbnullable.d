@@ -1,14 +1,14 @@
-module db_constraints.utils.nullable;
+module db_constraints.utils.dbnullable;
 
 /**
 Defines a value paired with a distinctive "null" state that denotes
 the absence of a value. If default constructed, a $(D
-Nullable!T) object starts in the null state. Assigning it renders it
+DBNullable!T) object starts in the null state. Assigning it renders it
 non-null. Assigning null can nullify it again.
-Practically $(D Nullable!T) stores a $(D T) and a $(D bool).
+Practically $(D DBNullable!T) stores a $(D T) and a $(D bool).
 `T` cannot have an initial value of null for example strings or classes.
  */
-struct Nullable(T)
+struct DBNullable(T)
     if (!__traits(compiles, T.init == null))
 {
 private:
@@ -18,7 +18,7 @@ public:
 /**
 Constructor initializing $(D this) with $(D value).
 Params:
-    value = The value to initialize this `Nullable` with.
+    value = The value to initialize this `DBNullable` with.
  */
     this(inout T value) inout
     {
@@ -45,7 +45,7 @@ Constructor initializing $(D this) to be null.
             }
             else
             {
-                sink.formatValue("Nullable.null", fmt);
+                sink.formatValue("DBNullable.null", fmt);
             }
         }
     }
@@ -62,7 +62,7 @@ Returns:
 ///
 unittest
 {
-    Nullable!int ni;
+    DBNullable!int ni;
     assert(!ni.hasValue);
 
     ni = 0;
@@ -80,7 +80,7 @@ Returns:
 ///
 unittest
 {
-    Nullable!int ni;
+    DBNullable!int ni;
     assert(ni.isNull);
 
     ni = 0;
@@ -93,7 +93,7 @@ unittest
 Assigns $(D rhs) to the internally-held state. If the assignment
 succeeds, $(D this) becomes non-null.
 Params:
-    rhs = A value of type `T` to assign to this `Nullable`.
+    rhs = A value of type `T` to assign to this `DBNullable`.
  */
         void opAssign(T rhs) //nothrow pure @safe @nogc
         {
@@ -112,7 +112,7 @@ Forces $(D this) to the null state.
 ///
 unittest
 {
-    Nullable!int ni = 0;
+    DBNullable!int ni = 0;
     assert(ni.hasValue);
     ni = null;
     assert(!ni.hasValue);
@@ -131,7 +131,7 @@ Deprecated:
 ///
 unittest
 {
-    Nullable!int ni = 0;
+    DBNullable!int ni = 0;
     assert(!ni.isNull);
 
     ni.nullify();
@@ -143,7 +143,7 @@ unittest
     {
         return (this.hasValue ? false : true);
     }
-    bool opEquals(Nullable!T rhs) const
+    bool opEquals(DBNullable!T rhs) const
     {
         bool result = false;
         if (rhs.hasValue)
@@ -180,7 +180,7 @@ and has defined opCmp
         {
             return (this.hasValue ? 1 : 0);
         }
-        int opCmp(Nullable!T rhs) const nothrow pure
+        int opCmp(DBNullable!T rhs) const nothrow pure
         {
             int result = 0;
             if (rhs.hasValue)
@@ -225,7 +225,7 @@ and has defined opCmp
 Gets the value.
 This function is also called for the implicit conversion to $(D T).
 Returns:
-    The value held internally by this `Nullable` or null.
+    The value held internally by this `DBNullable` or null.
  */
     deprecated("Use get instead")
     ref inout(T) value() inout @property nothrow pure @safe @nogc
@@ -235,7 +235,7 @@ Returns:
 /**
 Gets the value or the extra value passed in.
 Returns:
-    The value held internally by this `Nullable` or the extra value passed in.
+    The value held internally by this `DBNullable` or the extra value passed in.
  */
     auto ref getValueOr(lazy inout T extra_value) pure @safe
     {
@@ -250,13 +250,13 @@ Returns:
 /**
 Gets the value. $(D this) must not be in the null state.
 Returns:
-    The value held internally by this `Nullable`.
+    The value held internally by this `DBNullable`.
 Deprecated:
     Use value instead.
  */
     ref inout(T) get() inout @property nothrow pure @safe @nogc
     {
-        enum message = "Called `get' on null Nullable!" ~ T.stringof ~ ".";
+        enum message = "Called `get' on null DBNullable!" ~ T.stringof ~ ".";
         assert(this.hasValue, message);
         return _value;
     }
@@ -270,7 +270,7 @@ Implicitly converts to $(D T).
 
 unittest
 {
-    Nullable!int i;
+    DBNullable!int i;
     assert(i.isNull && !i.hasValue);
     i = 3;
     assert(i.hasValue && !i.isNull);
@@ -280,7 +280,7 @@ unittest
 
 unittest
 {
-    Nullable!int i = 3;
+    DBNullable!int i = 3;
     assert(i.get == 3);
     assert(i.getValueOr(4) == 3);
     i = null;
@@ -289,11 +289,11 @@ unittest
 
 unittest
 {
-    Nullable!int i = null;
+    DBNullable!int i = null;
     assert(i == null);
     i = 3;
     assert(i == 3);
-    Nullable!int j;
+    DBNullable!int j;
     assert(i != j);
     assert(i == j.getValueOr(3));
     int returns3(ref int count)
@@ -312,8 +312,8 @@ unittest
 
 unittest
 {
-    Nullable!int i;
-    Nullable!int j;
+    DBNullable!int i;
+    DBNullable!int j;
     assert(i == j);
     i = 5;
     j = 6;
@@ -322,8 +322,8 @@ unittest
 
 unittest
 {
-    Nullable!int i;
-    Nullable!int j = 3;
+    DBNullable!int i;
+    DBNullable!int j = 3;
     assert(i < j);
     i = 5;
     j = 6;
@@ -342,7 +342,7 @@ unittest
             return (this.name == ex.name && this.number == ex.number);
         }
     }
-    Nullable!Example i;
+    DBNullable!Example i;
     assert(!i.hasValue);
     assert(i == null);
     i = Example("Tom", 9);
@@ -365,11 +365,11 @@ unittest
         int customerNum;
     }
 
-    Nullable!CustomerRecord getByName(string name)
+    DBNullable!CustomerRecord getByName(string name)
     {
         //A bunch of hairy stuff
 
-        return Nullable!CustomerRecord.init;
+        return DBNullable!CustomerRecord.init;
     }
 
     auto queryResult = getByName("Doe, John");
@@ -391,7 +391,7 @@ unittest
 {
     import std.exception : assertThrown;
 
-    Nullable!int a;
+    DBNullable!int a;
     assert(a.isNull);
     a = 5;
     assert(!a.isNull);
@@ -411,17 +411,17 @@ unittest
 }
 unittest
 {
-    auto k = Nullable!int(74);
+    auto k = DBNullable!int(74);
     assert(k == 74);
     k.nullify();
     assert(k.isNull);
 }
 unittest
 {
-    static int f(in Nullable!int x) {
+    static int f(in DBNullable!int x) {
         return x.isNull ? 42 : x.get;
     }
-    Nullable!int a;
+    DBNullable!int a;
     assert(f(a) == 42);
     a = 8;
     assert(f(a) == 8);
@@ -433,7 +433,7 @@ unittest
     import std.exception : assertThrown;
 
     static struct S { int x; }
-    Nullable!S s;
+    DBNullable!S s;
     assert(s.isNull);
     s = S(6);
     assert(s == S(6));
@@ -446,10 +446,10 @@ unittest
 }
 unittest
 {
-    // Ensure Nullable can be used in pure/nothrow/@safe environment.
+    // Ensure DBNullable can be used in pure/nothrow/@safe environment.
     function() @safe pure nothrow
     {
-        Nullable!int n;
+        DBNullable!int n;
         assert(n.isNull);
         n = 4;
         assert(!n.isNull);
@@ -460,14 +460,14 @@ unittest
 }
 unittest
 {
-    // Ensure Nullable can be used when the value is not pure/nothrow/@safe
+    // Ensure DBNullable can be used when the value is not pure/nothrow/@safe
     static struct S
     {
         int x;
         this(this) @system {}
     }
 
-    Nullable!S s;
+    DBNullable!S s;
     assert(s.isNull);
     s = S(5);
     assert(!s.isNull);
@@ -478,7 +478,7 @@ unittest
 unittest
 {
     // Bugzilla 9404
-    alias N = Nullable!int;
+    alias N = DBNullable!int;
 
     void foo(N a)
     {
@@ -492,29 +492,29 @@ unittest
 {
     //Check nullable immutable is constructable
     {
-        auto a1 = Nullable!(immutable int)();
-        auto a2 = Nullable!(immutable int)(1);
+        auto a1 = DBNullable!(immutable int)();
+        auto a2 = DBNullable!(immutable int)(1);
         auto i = a2.get;
     }
     //Check immutable nullable is constructable
     {
-        auto a1 = immutable (Nullable!int)();
-        auto a2 = immutable (Nullable!int)(1);
+        auto a1 = immutable (DBNullable!int)();
+        auto a2 = immutable (DBNullable!int)(1);
         auto i = a2.get;
     }
 }
 unittest
 {
-    alias NInt   = Nullable!int;
+    alias NInt   = DBNullable!int;
 
     //Construct tests
     {
-        //from other Nullable null
+        //from other DBNullable null
         NInt a1;
         NInt b1 = a1;
         assert(b1.isNull);
 
-        //from other Nullable non-null
+        //from other DBNullable non-null
         NInt a2 = NInt(1);
         NInt b2 = a2;
         assert(b2 == 1);
@@ -527,13 +527,13 @@ unittest
 
     //Assign tests
     {
-        //from other Nullable null
+        //from other DBNullable null
         NInt a1;
         NInt b1;
         b1 = a1;
         assert(b1.isNull);
 
-        //from other Nullable non-null
+        //from other DBNullable non-null
         NInt a2 = NInt(1);
         NInt b2;
         b2 = a2;
@@ -552,11 +552,11 @@ unittest
     //Check nullable is nicelly embedable in a struct
     static struct S1
     {
-        Nullable!int ni;
+        DBNullable!int ni;
     }
     static struct S2 //inspired from 9404
     {
-        Nullable!int ni;
+        DBNullable!int ni;
         this(S2 other)
         {
             ni = other.ni;
@@ -579,7 +579,7 @@ unittest
     // Bugzilla 10268
     import std.json;
     JSONValue value = null;
-    auto na = Nullable!JSONValue(value);
+    auto na = DBNullable!JSONValue(value);
 
     struct S1 { int val; }
     struct S2 { int* val; }
@@ -588,10 +588,10 @@ unittest
     {
         auto sm = S1(1);
         immutable si = immutable S1(1);
-        static assert( __traits(compiles, { auto x1 =           Nullable!S1(sm); }));
-        static assert( __traits(compiles, { auto x2 = immutable Nullable!S1(sm); }));
-        static assert( __traits(compiles, { auto x3 =           Nullable!S1(si); }));
-        static assert( __traits(compiles, { auto x4 = immutable Nullable!S1(si); }));
+        static assert( __traits(compiles, { auto x1 =           DBNullable!S1(sm); }));
+        static assert( __traits(compiles, { auto x2 = immutable DBNullable!S1(sm); }));
+        static assert( __traits(compiles, { auto x3 =           DBNullable!S1(si); }));
+        static assert( __traits(compiles, { auto x4 = immutable DBNullable!S1(si); }));
     }
 
     auto nm = 10;
@@ -600,26 +600,26 @@ unittest
     {
         auto sm = S2(&nm);
         immutable si = immutable S2(&ni);
-        static assert( __traits(compiles, { auto x =           Nullable!S2(sm); }));
-        static assert(!__traits(compiles, { auto x = immutable Nullable!S2(sm); }));
-        static assert(!__traits(compiles, { auto x =           Nullable!S2(si); }));
-        static assert( __traits(compiles, { auto x = immutable Nullable!S2(si); }));
+        static assert( __traits(compiles, { auto x =           DBNullable!S2(sm); }));
+        static assert(!__traits(compiles, { auto x = immutable DBNullable!S2(sm); }));
+        static assert(!__traits(compiles, { auto x =           DBNullable!S2(si); }));
+        static assert( __traits(compiles, { auto x = immutable DBNullable!S2(si); }));
     }
 
     // {
     //     auto sm = S3(&ni);
     //     immutable si = immutable S3(&ni);
-    //     static assert( __traits(compiles, { auto x =           Nullable!S3(sm); }));
-    //     static assert( __traits(compiles, { auto x = immutable Nullable!S3(sm); }));
-    //     static assert( __traits(compiles, { auto x =           Nullable!S3(si); }));
-    //     static assert( __traits(compiles, { auto x = immutable Nullable!S3(si); }));
+    //     static assert( __traits(compiles, { auto x =           DBNullable!S3(sm); }));
+    //     static assert( __traits(compiles, { auto x = immutable DBNullable!S3(sm); }));
+    //     static assert( __traits(compiles, { auto x =           DBNullable!S3(si); }));
+    //     static assert( __traits(compiles, { auto x = immutable DBNullable!S3(si); }));
     // }
 }
 unittest
 {
     // Bugzila 10357
     import std.datetime;
-    Nullable!SysTime time = SysTime(0);
+    DBNullable!SysTime time = SysTime(0);
 }
 unittest
 {
@@ -629,11 +629,11 @@ unittest
     // Bugzilla 10915
     Appender!string buffer;
 
-    Nullable!int ni;
-    assert(ni.to!string() == "Nullable.null");
+    DBNullable!int ni;
+    assert(ni.to!string() == "DBNullable.null");
 
     struct Test { string s; }
-    alias NullableTest = Nullable!Test;
+    alias NullableTest = DBNullable!Test;
 
     NullableTest nt = Test("test");
     assert(nt.to!string() == `Test("test")`);
@@ -655,16 +655,16 @@ unittest
             return d.to!string();
         }
     }
-    Nullable!TestToString ntts = TestToString(2.5);
+    DBNullable!TestToString ntts = TestToString(2.5);
     assert(ntts.to!string() == "2.5");
 }
 
 unittest
 {
-    bool inputNullable(Nullable!int a)
+    bool inputNullable(DBNullable!int a)
     {
         return a.isNull;
     }
-    assert(inputNullable(cast(Nullable!int)null));
-    assert(!inputNullable(cast(Nullable!int)3));
+    assert(inputNullable(cast(DBNullable!int)null));
+    assert(!inputNullable(cast(DBNullable!int)3));
 }

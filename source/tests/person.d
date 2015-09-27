@@ -6,21 +6,22 @@ version(unittest)
     class Person
     {
     private:
-        Nullable!int _id;
+        DBNullable!int _id;
         string _firstName;
         string _lastName;
         string _email;
     public:
-        @NotNull
-        Nullable!int id() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+        @PrimaryKeyColumn @NotNull
+        DBNullable!int id() const @property nothrow pure @safe @nogc
         {
             return _id;
         }
-        void id(Nullable!(int) value) @property
+        void id(DBNullable!(int) value) @property
         {
             setter(_id, value);
         }
-        string firstName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        @UniqueConstraintColumn!("uc_Person")
+        string firstName() const @property nothrow pure @safe @nogc
         {
             return _firstName;
         }
@@ -28,7 +29,8 @@ version(unittest)
         {
             setter(_firstName, value);
         }
-        string email() const @property nothrow pure @UniqueConstraintColumn!("uc_PersonEmail") @safe @nogc
+        @UniqueConstraintColumn!("uc_PersonEmail")
+        string email() const @property nothrow pure @safe @nogc
         {
             return _email;
         }
@@ -36,7 +38,8 @@ version(unittest)
         {
             setter(_email, value);
         }
-        string lastName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        @UniqueConstraintColumn!("uc_Person")
+        string lastName() const @property nothrow pure @safe @nogc
         {
             return _lastName;
         }

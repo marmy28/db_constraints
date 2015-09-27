@@ -61,11 +61,11 @@ alias NotNull = CheckConstraint!(
     }, "NotNull");
 
 ///
-enum ForeignKeyActions
+enum Rule
 {
 /**
 When a parent key is modified or deleted from the collection, no special action is taken.
-If you are using MySQL or MSSQL use `ForeignKeyActions.restrict` instead for the desired
+If you are using MySQL or MSSQL use `Rule.restrict` instead for the desired
 effect.
  */
     noAction,
@@ -97,71 +97,52 @@ Updates or deletes the item based on what happened to the parent key.
 /**
 The foreign key user-defined attribute. Currently under :construction:
 Params:
-    childCols_ = The members in the child class that are used in the foreign key
-    parentTableName_ = The plural class name.
-    parentCols_ = The members in the parent class that are references in the foreign key
     name_ = The name of the foreign key constraint. Will be used in error message when violated
+    columnNames_ = The members in the child class that are used in the foreign key
+    referencedTableName_ = The referenced table's name (collection class).
+    referencedColumnNames_ = The members in the parent class that are references in the foreign key
     onUpdate_ = What should happen when a foreign key is updated that is being referenced.
     onDelete_ = What should happen when a foreign key is deleted that is being referenced.
  */
-struct ForeignKeyConstraint(string[] childCols_, string parentTableName_, string[] parentCols_,
-                            string name_ = "",
-                            ForeignKeyActions onUpdate_ = ForeignKeyActions.noAction,
-                            ForeignKeyActions onDelete_ = ForeignKeyActions.noAction
-                            )
+struct ForeignKey(string name_,
+                  string[] columnNames_,
+                  string referencedTableName_,
+                  string[] referencedColumnNames_,
+                  Rule updateRule_,
+                  Rule deleteRule_)
 {
-    enum string[] childCols = childCols_;
-    enum string parentTableName = parentTableName_;
-    enum string[] parentCols = parentCols_;
     enum string name = name_;
-    enum ForeignKeyActions onUpdate = onUpdate_;
-    enum ForeignKeyActions onDelete = onDelete_;
+    enum string[] columnNames = columnNames_;
+    enum string referencedTableName = referencedTableName_;
+    enum string[] referencedColumnNames = referencedColumnNames_;
+    enum Rule updateRule = updateRule_;
+    enum Rule deleteRule = deleteRule_;
 }
 
-// mixin template ForeignKeyConstraint(ForeignClass, string ForeignClassConstraintName)
-// {
-//     void foreignKeyChanged(string propertyName, typeof(ForeignClass.key) item_key)
-//     {
-//         if (propertyName == ForeignClassConstraintName ~ "_key")
-//         {
-//             final switch (onUpdate)
-//                 with (ForeignKeyActions)
-//                 {
-//                 case noAction:
-//                     version(noActionIsRestrict)
-//                     {
-//                         goto case restrict;
-//                     }
-//                     else
-//                     {
-//                         // not doing anything
-//                         break;
-//                     }
-//                 case restrict:
-//                     if (_human.name != this._name_h)
-//                     {
-//                         throw new ForeignKeyException("ForeignKeyActions.restrict violation.");
-//                     }
-//                     break;
-//                 case setNull:
-//                     static if (__traits(compiles, this.name_h = null))
-//                     {
-//                         this.name_h = null;
-//                         break;
-//                     }
-//                     else
-//                     {
-//                         throw new ForeignKeyException("Cannot use ForeignKeyActions.setNull " ~
-//                                                       "when the member cannot be set to null.");
-//                     }
-//                 case setDefault:
-//                     // somehow get the default if one is set...
-//                     this.name_h = typeof(this.name_h).init;
-//                     break;
-//                 case cascade:
-//                     this.name_h = _human.name;
-//                     break;
-//                 }
-//         }
-//     }
-// }
+template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
+                              string[] referencedColumnNames_)
+{
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
+                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
+}
+
+template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
+                              string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
+{
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
+                                             referencedColumnNames_, updateRule_, deleteRule_);
+}
+
+template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
+                              string[] referencedColumnNames_)
+{
+    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
+                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
+}
+
+template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
+                              string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
+{
+    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
+                                             referencedColumnNames_, updateRule_, deleteRule_);
+}

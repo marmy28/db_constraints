@@ -103,13 +103,13 @@ unittest
                 notify!("human");
             }
         }
-        ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
-        ForeignKeyActions onDelete = ForeignKeyActions.cascade;
+        Rule onUpdate = Rule.noAction;
+        Rule onDelete = Rule.cascade;
         void foreignKeyChanged(string propertyName, typeof(Human.key) item_key)
         {
             if (propertyName == "name")
             {
-                final switch (onUpdate) with (ForeignKeyActions)
+                final switch (onUpdate) with (Rule)
                 {
                 case noAction:
                     version(noActionIsRestrict)
@@ -180,8 +180,8 @@ unittest
             super(items);
         }
 
-        ForeignKeyActions onUpdate = ForeignKeyActions.noAction;
-        ForeignKeyActions onDelete = ForeignKeyActions.noAction;
+        Rule onUpdate = Rule.noAction;
+        Rule onDelete = Rule.noAction;
         void associateParent(Humans humans_)
         {
             this._humans = &humans_;
@@ -215,17 +215,17 @@ unittest
     assert(i.name == "Dave");
     assert(i == *j.human);
     assert(j.name_h == i.name);
-    j.onUpdate = ForeignKeyActions.cascade;
+    j.onUpdate = Rule.cascade;
     i.name = "David";
     assert(i == *j.human);
     assert(i.name == j.human.name);
     assert(j.name_h == i.name);
-    j.onUpdate = ForeignKeyActions.noAction;
+    j.onUpdate = Rule.noAction;
     i.name = "Tom";
     assert(i.name != j.name_h);
     j.name_h = "Tom";
 
-    j.onUpdate = ForeignKeyActions.restrict;
+    j.onUpdate = Rule.restrict;
     import std.exception : assertThrown;
     assertThrown!ForeignKeyException(i.name = "Dave");
 
@@ -240,8 +240,8 @@ unittest
     foreach(phone; phones)
     {
         assert(phone.human is null);
-        phone.onUpdate = ForeignKeyActions.cascade;
-        phone.onDelete = ForeignKeyActions.cascade;
+        phone.onUpdate = Rule.cascade;
+        phone.onDelete = Rule.cascade;
     }
 
     phones.associateParent(humans);

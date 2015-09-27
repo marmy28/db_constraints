@@ -12,12 +12,12 @@ version(unittest)
 
 version(unittest)
 @ForeignKeyConstraint!(
+    "fk_Books_Authors_AuthorId",
     ["AuthorId"],
     "Authors",
     ["AuthorId"],
-    "fk_Books_Authors_AuthorId",
-    ForeignKeyActions.cascade,
-    ForeignKeyActions.cascade)
+    Rule.cascade,
+    Rule.cascade)
 class Book
 {
 private:
@@ -77,16 +77,14 @@ private:
     import std.algorithm : filter, each, canFind;
 
     auto BookFK = ForeignKeyConstraint!(
+    "fk_Books_Authors_AuthorId",
     ["AuthorId"],
     "Authors",
     ["AuthorId"],
-    "fk_Books_Authors_AuthorId",
-    ForeignKeyActions.cascade,
-    ForeignKeyActions.cascade)();
+    Rule.cascade,
+    Rule.cascade)();
 
     Authors *_authors;
-    auto onUpdate = BookFK.onUpdate;
-    auto onDelete = BookFK.onDelete;
 
     void checkForeignKeys()
     {
@@ -106,7 +104,7 @@ private:
 public:
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
-        if (canFind(BookFK.parentCols, propertyName))
+        if (canFind(BookFK.referencedColumnNames, propertyName))
         {
             _changedAuthor = item_key;
         }
@@ -119,7 +117,7 @@ public:
                     i.AuthorId = a.AuthorId;
                     return (i == this._changedAuthor);
                 }());
-            final switch (onUpdate) with (ForeignKeyActions)
+            final switch (BookFK.updateRule) with (Rule)
             {
             case noAction:
                 version(noActionIsRestrict) goto case restrict;
@@ -174,7 +172,7 @@ public:
                     i.AuthorId = a.AuthorId;
                     return (i == item_key);
                 }());
-            final switch (onDelete) with (ForeignKeyActions)
+            final switch (BookFK.deleteRule) with (Rule)
             {
             case noAction:
                 version(noActionIsRestrict) goto case restrict;

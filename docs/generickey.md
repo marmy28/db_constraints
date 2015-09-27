@@ -9,7 +9,7 @@ template generic_compare(T) if (is(T == struct))
 Used in KeyedItem for the generated structs.
 This allows the struct to be used as a key
 in an associative array.
- 
+
 ***
 ```d
 final const nothrow @safe size_t toHash();
@@ -17,7 +17,7 @@ final const nothrow @safe size_t toHash();
 ```
 **Summary:**
 Gets the hash code of the struct by looping over the members.
- 
+
 
 ***
 ```d
@@ -26,7 +26,7 @@ final const pure nothrow @nogc @safe bool opEquals(inout(T) pk);
 ```
 **Summary:**
 Checks each member to determine if the structs are equal.
- 
+
 
 ***
 ```d
@@ -35,8 +35,49 @@ final const pure nothrow @nogc @safe int opCmp(inout(T) pk);
 ```
 **Summary:**
 Compares each member and returns the result.
- 
 
+
+
+
+***
+```d
+template UniqueConstraintStructNames(ClassName)
+```
+**Summary:**
+Gets the names given to the different UniqueConstraints
+
+***
+```d
+template Impl(T...)
+```
+**Summary:**
+Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
+
+
+***
+```d
+template Overloads(S...)
+```
+**Summary:**
+Looks at the overloads for the functions.
+
+
+***
+```d
+template Get(P...)
+```
+**Summary:**
+Takes a members attributes and finds if it has one that starts with UniqueConstraint
+
+
+
+
+***
+```d
+template GetMembersWithUDA(ClassName, attribute)
+```
+**Summary:**
+Gets the properties of ClassName marked with @attribute.
 
 
 

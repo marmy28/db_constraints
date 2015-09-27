@@ -52,54 +52,72 @@ $0
 ```
 _=
 DDOC_DECL_DD          = $(BR)$0
-DDOC_DITTO            = $(BR)$0
-DDOC_SECTIONS         = $0 $(BR)
+DDOC_DITTO            =
+$0
+_=
+DDOC_SECTIONS         = $0
+
+_=
 DDOC_SUMMARY          = $(B Summary:)
 $0
+
 _=
 DDOC_DESCRIPTION      = $(B Description:)
 $0
+
 _=
 DDOC_AUTHORS          = $(B Authors:)
 $0
+
 _=
 DDOC_BUGS             = :bug: $(RED BUGS:)
 $0
+
 _=
 DDOC_COPYRIGHT        = :copyright: $(B Copyright:)
 $0
+
 _=
 DDOC_DATE             = :date: $(B Date:)
 $0
+
 _=
 DDOC_DEPRECATED       = :no_entry: $(RED Deprecated:)
 $0
+
 _=
 DDOC_EXAMPLES         = $(B Examples:)
 ```d
 $0
-```$(BR)
+```
+
 _=
 DDOC_HISTORY          = $(B History:)
 $0
+
 _=
 DDOC_LICENSE          = $(B License:)
 $0
+
 _=
 DDOC_RETURNS          = $(B Returns:)
 $0
 _=
 DDOC_SEE_ALSO         = $(B See Also:)
 $0
+
 _=
 DDOC_STANDARDS        = $(B Standards:)
 $0
+
 _=
 DDOC_THROWS           = :exclamation: $(B Throws:)
 $0
+
 _=
 DDOC_VERSION          = $(B Version:)
 $0
+
 _=
 DDOC_SECTION_H        = $0 
 DDOC_SECTION          = $0
@@ -110,7 +128,7 @@ DDOC_STRUCT_MEMBERS   = $(DDOC_MEMBERS $0)
 DDOC_ENUM_MEMBERS     = $(DDOC_MEMBERS $0)
 DDOC_TEMPLATE_MEMBERS = $(DDOC_MEMBERS $0)
 DDOC_ENUM_BASETYPE    = $0
-DDOC_PARAMS           = Params |
+DDOC_PARAMS           = Parameters |
 ---|
 $0
 _=

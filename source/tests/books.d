@@ -1,5 +1,5 @@
 /**
-Source:
+DB Idea Source:
     http://zetcode.com/db/sqlite/constraints/
  */
 module test.books;

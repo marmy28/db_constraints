@@ -62,7 +62,7 @@ Check if `this` is in the null state.
 Returns:
     true $(B iff) `this` is in the null state, otherwise false.
  */
-    @property bool isNull() const @safe pure nothrow
+    @property bool isNull() const @safe pure nothrow @nogc
     {
         return _isNull;
     }
@@ -110,13 +110,13 @@ Params:
 /**
 Forces $(D this) to the null state.
  */
-        void nullify()()
+        void nullify()() @safe nothrow pure @nogc
         {
             .destroy(_value);
             _isNull = true;
         }
         /// ditto
-        void opAssign(N : typeof(null))(N n)
+        void opAssign(N : typeof(null))(N n) @safe nothrow pure @nogc
             if (!__traits(compiles, T.init == null))
         {
             this.nullify();

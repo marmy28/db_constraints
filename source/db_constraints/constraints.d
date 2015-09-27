@@ -94,16 +94,7 @@ Updates or deletes the item based on what happened to the parent key.
     cascade
 }
 
-/**
-The foreign key user-defined attribute. Currently under :construction:
-Params:
-    name_ = The name of the foreign key constraint. Will be used in error message when violated
-    columnNames_ = The members in the child class that are used in the foreign key
-    referencedTableName_ = The referenced table's name (collection class).
-    referencedColumnNames_ = The members in the parent class that are references in the foreign key
-    onUpdate_ = What should happen when a foreign key is updated that is being referenced.
-    onDelete_ = What should happen when a foreign key is deleted that is being referenced.
- */
+
 struct ForeignKey(string name_,
                   string[] columnNames_,
                   string referencedTableName_,
@@ -119,20 +110,24 @@ struct ForeignKey(string name_,
     enum Rule deleteRule = deleteRule_;
 }
 
-template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
-                              string[] referencedColumnNames_)
-{
-    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
-                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
-}
-
-template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
+/**
+The foreign key user-defined attribute. Currently under :construction:
+Params:
+    name_ = The name of the foreign key constraint. Will be used in error message when violated
+    columnNames_ = The members in the child class that are used in the foreign key
+    referencedTableName_ = The referenced table's name (collection class).
+    referencedColumnNames_ = The members in the parent class that are references in the foreign key
+    updateRule_ = What should happen when a foreign key is updated that is being referenced.
+    deleteRule_ = What should happen when a foreign key is deleted that is being referenced.
+ */
+template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
                               string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
 {
-    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
+    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
                                              referencedColumnNames_, updateRule_, deleteRule_);
 }
 
+/// ditto
 template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
                               string[] referencedColumnNames_)
 {
@@ -140,9 +135,19 @@ template ForeignKeyConstraint(string name_, string[] columnNames_, string refere
                                              referencedColumnNames_, Rule.noAction, Rule.noAction);
 }
 
-template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
+/// ditto
+template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
                               string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
 {
-    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
                                              referencedColumnNames_, updateRule_, deleteRule_);
 }
+
+/// ditto
+template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
+                              string[] referencedColumnNames_)
+{
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
+                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
+}
+

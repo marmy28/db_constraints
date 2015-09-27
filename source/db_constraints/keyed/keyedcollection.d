@@ -11,6 +11,30 @@ import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
 import db_constraints.utils.generickey : UniqueConstraintStructNames;
 
+template usableForKeyedCollection(alias T)
+{
+    enum usableForKeyedCollection = ( is(T == class) &&
+        __traits(compiles,
+                 (T t)
+                 {
+                     T i = t.dup();
+                     if (i.key == t.key) { }
+                     class Example
+                     {
+                         void itemChanged(string propertyName, typeof(T.key) item_key) { }
+                         void add(T item)
+                         {
+                             item.emitChange.connect(&itemChanged);
+                         }
+                     }
+                     t.checkConstraints();
+                     t.markAsSaved();
+                     auto j = new Example();
+                     j.add(t);
+                     string k = t.toString;
+                 }));
+}
+
 /**
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
@@ -20,11 +44,7 @@ Params:
     T = the singular class.
  */
 class BaseKeyedCollection(T)
-    if (hasMember!(T, "dup") &&
-        hasMember!(T, "key") &&
-        hasMember!(T, "emitChange") &&
-        hasMember!(T, "checkConstraints")
-        )
+    if (usableForKeyedCollection!(T))
 {
 public:
 /**
@@ -122,7 +142,13 @@ Params:
     propertyName = the property name that changed.
     item_key = the items key that changed.
  */
-    void notify(string propertyName, key_type item_key = key_type.init)
+    void notify()(string propertyName, key_type item_key)
+    {
+        _containsChanges = true;
+        collectionChanged.emit(propertyName, item_key);
+    }
+    /// ditto
+    void notify(string propertyName)(key_type item_key)
     {
         _containsChanges = true;
         collectionChanged.emit(propertyName, item_key);
@@ -139,7 +165,7 @@ that the length of `this` has changed.
             this._items.remove(item_key);
             if (notifyChange)
             {
-                notify("remove", item_key);
+                notify!("remove")(item_key);
             }
         }
     }
@@ -192,7 +218,7 @@ Throws:
         this._items[item.key] = item;
         if (notifyChange)
         {
-            notify("add", item.key);
+            notify!("add")(item.key);
         }
     }
     /// ditto

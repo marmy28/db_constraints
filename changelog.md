@@ -22,6 +22,7 @@
  * A member marked with PrimaryKeyColumn must also be marked with NotNull.
  * BaseKeyedCollection.opBinaryRight!("in") returns a pointer to the object (or null) instead of a boolean.
  * Unique constraint violations message now includes the class name that had the violation.
+ * KeyedItem only takes ClusteredIndexAttribute now
 
 ## 0.0.3 (release date: 2015-09-19)
 

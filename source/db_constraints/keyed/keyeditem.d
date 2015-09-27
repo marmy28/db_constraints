@@ -15,17 +15,16 @@ mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
     if (is(T == class) && isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
 {
     import std.algorithm : canFind;
-    import std.array;
     import std.conv : to;
     import std.exception : collectException, enforceEx;
     import std.functional : unaryFun;
     import std.meta : Erase;
     import std.signals;
     import std.string : lastIndexOf;
-    import std.traits : isInstanceOf, hasUDA;
+    import std.traits : isInstanceOf;
 
     import db_constraints.db_exceptions : CheckConstraintException;
-    import db_constraints.utils.generickey : generic_compare, UniqueConstraintStructNames;
+    import db_constraints.utils.generickey : generic_compare, UniqueConstraintStructNames, GetMembersWithUDA, HasMembersWithUDA;
 private:
     bool _containsChanges;
     ClusteredIndex _key;
@@ -68,39 +67,9 @@ This should be in your constructor.
         checkConstraints();
     }
 
-    static assert(!getColumns!(ClusteredIndexAttribute).empty,
+    static assert(HasMembersWithUDA!(T, ClusteredIndexAttribute),
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
-
-/**
-Gets the properties of the class marked with @Attr.
- */
-    static string[] getColumns(Attr)() @safe pure nothrow
-    {
-        string[] result;
-        foreach(member; __traits(derivedMembers, T))
-        {
-            static if (member != "this")
-            {
-                foreach(ov; __traits(getOverloads, T, member))
-                {
-                    static if (hasUDA!(ov, Attr))
-                    {
-                        static if (__traits(isSame, Attr, PrimaryKeyColumn))
-                        {
-                            static assert(hasUDA!(ov, NotNull),
-                                          "Primary key columns must have the NotNull" ~
-                                          " attribute which is missing from " ~
-                                          T.stringof ~ "." ~ member);
-                        }
-                        pragma(msg, T.stringof, ".", member, " is ", Attr.stringof);
-                        result ~= member;
-                    }
-                }
-            }
-        }
-        return result;
-    }
 
 
 /**
@@ -120,7 +89,7 @@ Returns a string full of the structs.
             {
                 result ~= "    struct " ~ name ~ "\n";
                 result ~= "    {\n";
-                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
+                foreach(columnName; GetMembersWithUDA!(T, UniqueConstraintColumn!name))
                 {
                     result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                 }
@@ -129,7 +98,7 @@ Returns a string full of the structs.
                 result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
                 result ~= "    {\n";
                 result ~= "        auto _" ~ name ~ "_key = " ~ name ~ "();\n";
-                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
+                foreach(columnName; GetMembersWithUDA!(T, UniqueConstraintColumn!name))
                 {
                     result ~= "        _" ~ name ~ "_key." ~ columnName ~ " = this._" ~ columnName ~ ";\n";
                 }
@@ -174,14 +143,14 @@ Params:
     {
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        static if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
+        static if (GetMembersWithUDA!(T, ClusteredIndexAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
         foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
         {
-            static if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
+            static if (GetMembersWithUDA!(T, UniqueConstraintColumn!name).canFind(propertyName))
             {
                 emitChange.emit(name ~ "_key", _key);
             }
@@ -223,7 +192,7 @@ attribute selected as the Clustered Index.
         mixin(function string()
               {
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
+                  foreach(pkcolumn; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
                       result ~= "typeof(" ~ T.stringof ~ "." ~ pkcolumn ~ ") " ~ pkcolumn ~ ";\n";
                   }
@@ -253,7 +222,7 @@ Sets the clustered index for `this`.
         mixin(function string()
               {
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
+                  foreach(pkcolumn; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
                       result ~= "new_key." ~ pkcolumn ~ " = this._" ~ pkcolumn ~ ";\n";
                   }

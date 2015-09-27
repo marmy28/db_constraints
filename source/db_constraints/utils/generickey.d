@@ -2,9 +2,9 @@ module db_constraints.utils.generickey;
 
 import std.meta : NoDuplicates;
 import std.typetuple : TypeTuple;
-import std.traits : isInstanceOf;
+import std.traits : isInstanceOf, hasUDA;
 
-import db_constraints.constraints : UniqueConstraintColumn;
+import db_constraints.constraints;
 /**
 Used in KeyedItem for the generated structs.
 This allows the struct to be used as a key
@@ -99,7 +99,6 @@ Takes a type tuple of class members and alias' as a typetuple with all unique co
         }
         else
         {
-            //static if (T[0] != "this")
             static if (__traits(compiles, __traits(getMember, ClassName, T[0])))
             {
                 alias Impl = TypeTuple!(Overloads!(__traits(getOverloads, ClassName, T[0])), Impl!(T[1 .. $]));
@@ -154,4 +153,95 @@ Takes a members attributes and finds if it has one that starts with UniqueConstr
         }
     }
     alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
+}
+
+/**
+Gets the properties of ClassName marked with @attribute.
+ */
+template GetMembersWithUDA(ClassName, attribute)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            alias Impl = TypeTuple!();
+        }
+        else
+        {
+            static if (__traits(compiles, __traits(getMember, ClassName, T[0])) &&
+                       Overloads!(__traits(getOverloads, ClassName, T[0])))
+            {
+                alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+            }
+            else
+            {
+                alias Impl = TypeTuple!(Impl!(T[1 .. $]));
+            }
+        }
+    }
+    template Overloads(P...)
+    {
+        static if (P.length == 0)
+        {
+            enum Overloads = false;
+        }
+        else static if (hasUDA!(P[0], attribute))
+        {
+            static if (__traits(isSame, attribute, PrimaryKeyColumn))
+            {
+                static assert(hasUDA!(P[0], NotNull),
+                              "Primary key columns must have the NotNull" ~
+                              " attribute which is missing from the class " ~
+                              ClassName.stringof);
+            }
+            enum Overloads = true;
+        }
+        else
+        {
+            alias Overloads = Overloads!(P[1 .. $]);
+        }
+    }
+
+    alias GetMembersWithUDA = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
+}
+
+
+template HasMembersWithUDA(ClassName, attribute)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            enum Impl = false;
+        }
+        else
+        {
+            static if (__traits(compiles, __traits(getMember, ClassName, T[0])) &&
+                       Overloads!(__traits(getOverloads, ClassName, T[0])))
+            {
+                enum Impl = true;
+            }
+            else
+            {
+                alias Impl = Impl!(T[1 .. $]);
+            }
+        }
+    }
+    template Overloads(P...)
+    {
+        static if (P.length == 0)
+        {
+            enum Overloads = false;
+        }
+        else static if (hasUDA!(P[0], attribute))
+        {
+            enum Overloads = true;
+        }
+        else
+        {
+            alias Overloads = Overloads!(P[1 .. $]);
+        }
+    }
+
+    alias HasMembersWithUDA = Impl!(__traits(derivedMembers, ClassName));
 }

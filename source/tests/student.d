@@ -74,7 +74,7 @@ public:
         auto rhs = cast(immutable Student)o;
         return (rhs !is null && this.key == rhs.key);
     }
-    mixin KeyedItem!(typeof(this));
+    mixin KeyedItem!();
 }
 
 unittest

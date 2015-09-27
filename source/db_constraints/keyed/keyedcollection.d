@@ -528,7 +528,7 @@ unittest
         }
         // the default is to make the primary key into the clustered index
         // which allows you to search based on the primary key
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!();
     }
 
     // plural class

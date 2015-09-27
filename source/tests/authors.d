@@ -51,7 +51,7 @@ public:
         auto rhs = cast(immutable Author)o;
         return (rhs !is null && this.uc_Author_key == rhs.uc_Author_key);
     }
-    mixin KeyedItem!(typeof(this));
+    mixin KeyedItem!();
 }
 
 version(unittest)

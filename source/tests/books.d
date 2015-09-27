@@ -66,7 +66,7 @@ public:
     {
         return "BookId: " ~ this._BookId.to!string() ~ " Title: " ~ this._Title ~ "AuthorId: " ~ this._AuthorId.to!string();
     }
-    mixin KeyedItem!(typeof(this));
+    mixin KeyedItem!();
 
 }
 

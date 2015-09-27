@@ -49,7 +49,7 @@ unittest
             return (rhs !is null && this.key == rhs.key);
         }
 
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!();
     }
     class Humans : BaseKeyedCollection!Human
     {
@@ -165,7 +165,7 @@ unittest
             return (rhs !is null && this.key == rhs.key);
         }
 
-        mixin KeyedItem!(typeof(this), UniqueConstraintColumn!("human_phone_name"));
+        mixin KeyedItem!(UniqueConstraintColumn!("human_phone_name"));
     }
 
     // move foreignkeychanged into the plural class

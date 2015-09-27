@@ -8,11 +8,10 @@ public import db_constraints.constraints;
 Use this in the singular class which would describe a row in your
 database.
 Params:
-    T = the type of the class this is mixed into.
     ClusteredIndexAttribute = the unique constraint associated with the clustered index.
  */
-mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
-    if (is(T == class) && isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
+mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
+    if (isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
 {
     import std.algorithm : canFind;
     import std.conv : to;
@@ -26,6 +25,7 @@ mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
     import db_constraints.db_exceptions : CheckConstraintException;
     import db_constraints.utils.generickey : generic_compare, UniqueConstraintStructNames, GetMembersWithUDA, HasMembersWithUDA;
 private:
+    alias T = typeof(this);
     bool _containsChanges;
     ClusteredIndex _key;
 
@@ -75,7 +75,7 @@ This should be in your constructor.
 /**
 Returns a string full of the structs.
  */
-    static string createType(string class_name)() @safe pure nothrow
+    static string createType()() @safe pure nothrow
     {
         string result = "public:\n";
         foreach(name; UniqueConstraintStructNames!(T))
@@ -91,7 +91,7 @@ Returns a string full of the structs.
                 result ~= "    {\n";
                 foreach(columnName; GetMembersWithUDA!(T, UniqueConstraintColumn!name))
                 {
-                    result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+                    result ~= "        typeof(" ~ T.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                 }
                 result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
                 result ~= "    }\n";
@@ -231,7 +231,7 @@ Sets the clustered index for `this`.
         this._key = new_key;
     }
 
-    mixin(createType!(T.stringof));
+    mixin(createType!());
 }
 
 ///
@@ -287,7 +287,7 @@ unittest
         }
 
         // The primary key is now the clustered index as it is by default
-        mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
+        mixin KeyedItem!(PrimaryKeyColumn);
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
@@ -331,7 +331,7 @@ unittest
         return _uc_Candy_ranking_key;
     }
 `;
-    assert(Candy.createType!(Candy.stringof) == candyStructs);
+    assert(Candy.createType!() == candyStructs);
 
     import std.exception : assertThrown;
     import db_constraints.db_exceptions : CheckConstraintException;

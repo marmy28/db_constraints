@@ -48,6 +48,6 @@ version(unittest)
             setter(_lastName, value);
         }
 
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!();
     }
 }

@@ -24,20 +24,20 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
 
     import db_constraints.db_exceptions : CheckConstraintException;
     import db_constraints.utils.generickey;
-private:
-    alias T = typeof(this);
-    bool _containsChanges;
-    ClusteredIndex _key;
+
+    final private alias T = typeof(this);
+    private bool _containsChanges;
+    private ClusteredIndex _key;
 
 /**
 The setter should be in your setter member. This checks your check constraint.
 Throws:
     CheckConstraintException if your value makes checkConstraints fail.
  */
-    final template setter(string name_ = __FUNCTION__)
+    final private template setter(string name_ = __FUNCTION__)
         if (name_ !is null)
     {
-        final void setter(P)(ref P member, P value)
+        final private void setter(P)(ref P member, P value)
         {
             enum name = name_[lastIndexOf(name_, '.') + 1 .. $];
             if (value != member)
@@ -61,7 +61,7 @@ Throws:
 Initializes the keyed item by running *setClusteredIndex* and *checkConstraints*.
 This should be in your constructor.
  */
-    final void initializeKeyedItem()
+    final private void initializeKeyedItem()
     {
         setClusteredIndex();
         checkConstraints();
@@ -70,13 +70,12 @@ This should be in your constructor.
     static assert(HasMembersWithUDA!(T, ClusteredIndexAttribute),
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
-public:
 /**
 Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    final bool containsChanges() const @property nothrow pure @safe @nogc
+    final @property bool containsChanges() const nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -170,7 +169,7 @@ The clustered index property for the class.
 Returns:
     The clustered index for the class.
  */
-    final ClusteredIndex key() const @property nothrow pure @safe @nogc
+    final @property ClusteredIndex key() const nothrow pure @safe @nogc
     {
         return _key;
     }

@@ -176,7 +176,7 @@ constraints and makes sure the changes are acceptable.
 
 ***
 ```d
-pure nothrow @nogc @safe void markAsSaved();
+final pure nothrow @nogc void markAsSaved();
 
 ```
 **Summary:**
@@ -186,7 +186,7 @@ be used after a save.
 
 ***
 ```d
-const pure nothrow @nogc @property @safe bool containsChanges();
+final const pure nothrow @nogc @property @safe bool containsChanges();
 
 ```
 **Summary:**
@@ -198,9 +198,9 @@ true if this contains changes.
 
 ***
 ```d
-const pure nothrow @nogc @property @safe bool enforceConstraints();
+final const pure nothrow @nogc @property @safe bool enforceConstraints();
 
-pure nothrow @nogc @property @safe void enforceConstraints(bool value);
+final pure nothrow @nogc @property @safe void enforceConstraints(bool value);
 
 ```
 **Summary:**
@@ -215,9 +215,9 @@ is a duplicate clustered index, it will be overwritten.
 
 ***
 ```d
-void notify()(string propertyName, key_type item_key);
+final void notify()(string propertyName, key_type item_key);
 
-void notify(string propertyName)(key_type item_key);
+final void notify(string propertyName)(key_type item_key);
 
 ```
 **Summary:**
@@ -235,11 +235,11 @@ Parameters |
 
 ***
 ```d
-void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange);
+final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
-void remove(T item);
+final void remove(T item);
 
-void remove(A...)(A a);
+final void remove(A...)(A a);
 
 ```
 **Summary:**
@@ -249,11 +249,11 @@ that the length of this has changed.
 
 ***
 ```d
-void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange);
+final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
-this(T item);
+final this(T item);
 
-ref auto opOpAssign(string op)(T item) if (op == "~");
+final ref auto opOpAssign(string op)(T item) if (op == "~");
 
 ```
 **Summary:**
@@ -278,11 +278,11 @@ CheckConstraintException if the item is violating any of its
 
 ***
 ```d
-void add(T[] items);
+final void add(T[] items);
 
-this(T[] items);
+final this(T[] items);
 
-ref auto opOpAssign(string op)(T[] items) if (op == "~");
+final ref auto opOpAssign(string op)(T[] items) if (op == "~");
 
 ```
 **Summary:**
@@ -291,7 +291,7 @@ Does the same as add(T item) but for an array.
 
 ***
 ```d
-inout ref inout(T) opIndex(in T item);
+final inout ref inout(T) opIndex(in T item);
 
 ```
 **Summary:**
@@ -311,7 +311,7 @@ KeyedException if this does not contain a matching clustered index.
 
 ***
 ```d
-inout ref inout(T) opIndex(in key_type clIdx);
+final inout ref inout(T) opIndex(in key_type clIdx);
 
 ```
 **Summary:**
@@ -331,7 +331,7 @@ KeyedException if this does not contain a matching clustered index.
 
 ***
 ```d
-inout ref inout(T) opIndex(A...)(in A a);
+final inout ref inout(T) opIndex(A...)(in A a);
 
 ```
 **Summary:**
@@ -361,9 +361,9 @@ to the private associative array.
 
 ***
 ```d
-int opApply(int delegate(ref T) dg);
+final int opApply(int delegate(ref T) dg);
 
-int opApply(int delegate(key_type, ref T) dg);
+final int opApply(int delegate(key_type, ref T) dg);
 
 ```
 **Summary:**
@@ -372,7 +372,7 @@ Allows you to use this in a foreach loop.
 
 ***
 ```d
-const pure nothrow @property @safe size_t length();
+final const pure nothrow @property @safe size_t length();
 
 ```
 **Summary:**
@@ -384,7 +384,7 @@ The number of items in the collection.
 
 ***
 ```d
-const pure nothrow @nogc @safe bool contains(in T item);
+final const pure nothrow @nogc @safe bool contains(in T item);
 
 inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op)(in T item) if (op == "in");
 
@@ -403,9 +403,9 @@ true if item is in the collection.
 
 ***
 ```d
-const pure nothrow @nogc @safe bool contains(in key_type clIdx);
+final const pure nothrow @nogc @safe bool contains(in key_type clIdx);
 
-inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op)(in key_type clIdx) if (op == "in");
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op)(in key_type clIdx) if (op == "in");
 
 ```
 **Summary:**
@@ -424,9 +424,9 @@ true if there is a clustered index in the collection that
 
 ***
 ```d
-const pure nothrow @nogc @safe bool contains(A...)(in A a);
+final const pure nothrow @nogc @safe bool contains(A...)(in A a);
 
-inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op, A...)(in A a) if (op == "in");
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op, A...)(in A a) if (op == "in");
 
 ```
 **Summary:**
@@ -445,7 +445,7 @@ true if there is a clustered index in the collection that
 
 ***
 ```d
-const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
+final const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
 
 ```
 **Summary:**

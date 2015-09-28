@@ -1,6 +1,6 @@
 module db_constraints.keyed.keyedcollection;
 
-import std.algorithm : canFind, endsWith;
+import std.algorithm : canFind, endsWith, each;
 import std.conv : to;
 import std.exception : enforceEx;
 import std.signals;
@@ -51,14 +51,14 @@ public:
 The key type is alias'd at the type since it looked better than having
 typeof(T.key) everywhere.
  */
-    alias key_type = typeof(T.key);
-private:
-    bool _containsChanges;
-    bool _enforceConstraints = true;
+    final alias key_type = typeof(T.key);
+
+    private bool _containsChanges;
+    private bool _enforceConstraints = true;
 /**
 Called when an item is being added or an item changed.
  */
-    final void checkConstraints(T item)
+    final private void checkConstraints(T item)
     {
         if (_enforceConstraints)
         {
@@ -71,16 +71,15 @@ Called when an item is being added or an item changed.
         }
     }
     /// ditto
-    final void checkConstraints(key_type item_key)
+    final private void checkConstraints(key_type item_key)
     {
         checkConstraints(this[item_key]);
     }
-protected:
 /**
 itemChanged is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
  */
-    void itemChanged(string propertyName, key_type item_key)
+    protected void itemChanged(string propertyName, key_type item_key)
     {
         key_type emit_key = item_key;
         if (propertyName == "key")
@@ -97,23 +96,23 @@ constraints and makes sure the changes are acceptable.
         notify(propertyName, emit_key);
     }
     T[key_type] _items;
-public:
+
     mixin Signal!(string, key_type) collectionChanged;
-final:
 /**
 Changes `this` to not contain changes. Should only
 be used after a save.
  */
-    void markAsSaved() nothrow pure @safe @nogc
+    final void markAsSaved() nothrow pure @nogc
     {
         _containsChanges = false;
+        this.byValue.each!(a => a.markAsSaved());
     }
 /**
 Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    bool containsChanges() const @property nothrow pure @safe @nogc
+    final @property bool containsChanges() const nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -125,12 +124,12 @@ initial data and already trust that is unique and accurate.
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    bool enforceConstraints() const @property nothrow pure @safe @nogc
+    final @property bool enforceConstraints() const nothrow pure @safe @nogc
     {
         return _enforceConstraints;
     }
     /// ditto
-    void enforceConstraints(bool value) @property nothrow pure @safe @nogc
+    final @property void enforceConstraints(bool value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
     }
@@ -142,13 +141,13 @@ Params:
     propertyName = the property name that changed.
     item_key = the items key that changed.
  */
-    void notify()(string propertyName, key_type item_key)
+    final void notify()(string propertyName, key_type item_key)
     {
         _containsChanges = true;
         collectionChanged.emit(propertyName, item_key);
     }
     /// ditto
-    void notify(string propertyName)(key_type item_key)
+    final void notify(string propertyName)(key_type item_key)
     {
         _containsChanges = true;
         collectionChanged.emit(propertyName, item_key);
@@ -157,7 +156,7 @@ Params:
 Removes an item from `this` and disconnects the signals. Notifies
 that the length of `this` has changed.
  */
-    void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
+    final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     {
         if (this.contains(item_key))
         {
@@ -170,7 +169,7 @@ that the length of `this` has changed.
         }
     }
     /// ditto
-    void remove(T item)
+    final void remove(T item)
     in
     {
         assert(item !is null, "Trying to remove a null item.");
@@ -180,7 +179,7 @@ that the length of `this` has changed.
         this.remove(item.key);
     }
     /// ditto
-    void remove(A...)(A a)
+    final void remove(A...)(A a)
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -206,7 +205,7 @@ Throws:
     CheckConstraintException if the item is violating any of its
     defined check constraints and enforceConstraints is true.
  */
-    void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
+    final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
     {
         assert(item !is null, "Trying to add a null item.");
@@ -222,13 +221,13 @@ Throws:
         }
     }
     /// ditto
-    this(T item)
+    final this(T item)
     {
         this.add(item);
         this._containsChanges = false;
     }
     /// ditto
-    ref auto opOpAssign(string op)(T item)
+    final ref auto opOpAssign(string op)(T item)
         if (op == "~")
     {
         this.add(item);
@@ -236,7 +235,7 @@ Throws:
 /**
 Does the same as `add(T item)` but for an array.
  */
-    void add(T[] items)
+    final void add(T[] items)
     in
     {
         assert(items !is null, "Trying to add a null array");
@@ -249,13 +248,13 @@ Does the same as `add(T item)` but for an array.
         }
     }
     /// ditto
-    this(T[] items)
+    final this(T[] items)
     {
         this.add(items);
         this._containsChanges = false;
     }
     /// ditto
-    ref auto opOpAssign(string op)(T[] items)
+    final ref auto opOpAssign(string op)(T[] items)
         if (op == "~")
     {
         this.add(items);
@@ -269,7 +268,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref inout(T) opIndex(in T item) inout
+    final ref inout(T) opIndex(in T item) inout
     in
     {
         assert(item !is null, "Trying to lookup with a null.");
@@ -287,7 +286,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref inout(T) opIndex(in key_type clIdx) inout
+    final ref inout(T) opIndex(in key_type clIdx) inout
     {
         if (this.contains(clIdx))
         {
@@ -313,7 +312,7 @@ Returns:
 Throws:
     KeyedException if `this` does not contain a matching clustered index.
  */
-    ref inout(T) opIndex(A...)(in A a) inout
+    final ref inout(T) opIndex(A...)(in A a) inout
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -338,7 +337,7 @@ to the private associative array.
 /**
 Allows you to use `this` in a foreach loop.
  */
-    int opApply(int delegate(ref T) dg)
+    final int opApply(int delegate(ref T) dg)
     {
         int result = 0;
         foreach(T i; this.values)
@@ -350,7 +349,7 @@ Allows you to use `this` in a foreach loop.
         return result;
     }
     /// ditto
-    int opApply(int delegate(key_type, ref T) dg)
+    final int opApply(int delegate(key_type, ref T) dg)
     {
         int result = 0;
         foreach(T i; this.values)
@@ -366,7 +365,7 @@ Gets the length of the collection.
 Returns:
     The number of items in the collection.
  */
-    size_t length() const @property @safe nothrow pure
+    final size_t length() const @property @safe nothrow pure
     {
         return this._items.length;
     }
@@ -377,7 +376,7 @@ Params:
 Returns:
     true if `item` is in the collection.
  */
-    bool contains(in T item) const nothrow pure @safe @nogc
+    final bool contains(in T item) const nothrow pure @safe @nogc
     {
         return this.contains(item.key);
     }
@@ -396,13 +395,13 @@ Returns:
     true if there is a clustered index in the collection that
     matches `clIdx`.
  */
-    bool contains(in key_type clIdx) const nothrow pure @safe @nogc
+    final bool contains(in key_type clIdx) const nothrow pure @safe @nogc
     {
         auto i = (clIdx in this._items);
         return (i !is null);
     }
     /// ditto
-    inout(T)* opBinaryRight(string op)(in key_type clIdx) inout nothrow pure @safe @nogc
+    final inout(T)* opBinaryRight(string op)(in key_type clIdx) inout nothrow pure @safe @nogc
         if (op == "in")
     {
         return (clIdx in this._items);
@@ -416,7 +415,7 @@ Returns:
     true if there is a clustered index in the collection that
     matches `a`.
  */
-    bool contains(A...)(in A a) const nothrow pure @safe @nogc
+    final bool contains(A...)(in A a) const nothrow pure @safe @nogc
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -430,7 +429,7 @@ Returns:
         return this.contains(clIdx);
     }
     /// ditto
-    inout(T)* opBinaryRight(string op, A...)(in A a) inout nothrow pure @safe @nogc
+    final inout(T)* opBinaryRight(string op, A...)(in A a) inout nothrow pure @safe @nogc
         if (op == "in")
     in
     {
@@ -448,7 +447,7 @@ Returns:
 Checks if the item has any conflicting unique constraints. This
 is more extensive than `contains`.
  */
-    bool violatesUniqueConstraints(in T item, out string constraintName) const nothrow pure
+    final bool violatesUniqueConstraints(in T item, out string constraintName) const nothrow pure
     in
     {
         assert(item !is null, "Cannot check if a null item is duplicated.");
@@ -483,7 +482,7 @@ is more extensive than `contains`.
         return result;
     }
     // ditto
-    bool violatesUniqueConstraints(in T item) const nothrow pure
+    final bool violatesUniqueConstraints(in T item) const nothrow pure
     {
         string constraintName;
         return this.violatesUniqueConstraints(item, constraintName);

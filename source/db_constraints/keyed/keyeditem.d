@@ -23,7 +23,7 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     import std.traits : isInstanceOf;
 
     import db_constraints.db_exceptions : CheckConstraintException;
-    import db_constraints.utils.generickey;
+    import db_constraints.utils.meta;
 
     final private alias T = typeof(this);
     private bool _containsChanges;
@@ -292,7 +292,7 @@ unittest
         return _uc_Candy_ranking_key;
     }
 `;
-    import db_constraints.utils.generickey : ConstraintStructs;
+    import db_constraints.utils.meta : ConstraintStructs;
     static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
     import std.exception : assertThrown;

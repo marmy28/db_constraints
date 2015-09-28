@@ -111,7 +111,7 @@ final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe
     return _uc_Candy_ranking_key;
 }
 `;
-import db_constraints.utils.generickey : ConstraintStructs;
+import db_constraints.utils.meta : ConstraintStructs;
 static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
 import std.exception : assertThrown;

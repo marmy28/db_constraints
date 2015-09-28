@@ -8,6 +8,7 @@
    + the repo name was changed and all followed.
  * db_constraints.keyed.keyeditem.UniqueConstraintStructNames -> db_constraints.utils.generickey.UniqueConstraintStructNames
  * db_constraints.keyed.keyeditem.getColumns -> db_constraints.utils.generickey.GetMembersWithUDA
+ * db_constraints.utils.generickey -> db_constraints.utils.meta
 
 ### New additions
 

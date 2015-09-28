@@ -9,7 +9,7 @@ import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
-import db_constraints.utils.generickey : UniqueConstraintStructNames;
+import db_constraints.utils.meta : UniqueConstraintStructNames;
 
 template usableForKeyedCollection(alias T)
 {

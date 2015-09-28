@@ -1,4 +1,4 @@
-module db_constraints.utils.generickey;
+module db_constraints.utils.meta;
 
 import std.meta : NoDuplicates;
 import std.typetuple : TypeTuple;

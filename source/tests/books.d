@@ -265,3 +265,10 @@ unittest
     assert(authors.length == 3);
     assert(books.length == 4);
 }
+
+unittest
+{
+    pragma(msg, GetForeignKeys!(Book));
+    pragma(msg, GetForeignKeyRefTable!(Book));
+    static assert(HasForeignKeys!(Book));
+}

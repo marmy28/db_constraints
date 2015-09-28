@@ -9,7 +9,7 @@ import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
-import db_constraints.utils.meta : UniqueConstraintStructNames;
+import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys;
 
 template usableForKeyedCollection(alias T)
 {
@@ -46,7 +46,6 @@ Params:
 class BaseKeyedCollection(T)
     if (usableForKeyedCollection!(T))
 {
-public:
 /**
 The key type is alias'd at the type since it looked better than having
 typeof(T.key) everywhere.
@@ -223,8 +222,7 @@ Throws:
     /// ditto
     final this(T item)
     {
-        this.add(item);
-        this._containsChanges = false;
+        this.add(item, No.notifyChange);
     }
     /// ditto
     final ref auto opOpAssign(string op)(T item)
@@ -250,8 +248,10 @@ Does the same as `add(T item)` but for an array.
     /// ditto
     final this(T[] items)
     {
-        this.add(items);
-        this._containsChanges = false;
+        foreach(item; items)
+        {
+            this.add(item, No.notifyChange);
+        }
     }
     /// ditto
     final ref auto opOpAssign(string op)(T[] items)

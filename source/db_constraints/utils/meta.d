@@ -285,3 +285,64 @@ template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)
         return result;
     }
 }
+
+template GetForeignKeys(ClassName)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            alias Impl = TypeTuple!();
+        }
+        else static if (isInstanceOf!(ForeignKey, T[0]))
+        {
+            alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+        }
+        else
+        {
+            alias Impl = Impl!(T[1 .. $]);
+        }
+    }
+    alias GetForeignKeys = Impl!(__traits(getAttributes, ClassName));
+}
+
+template HasForeignKeys(ClassName)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            enum Impl = false;
+        }
+        else static if (isInstanceOf!(ForeignKey, T[0]))
+        {
+            enum Impl = true;
+        }
+        else
+        {
+            alias Impl = Impl!(T[1 .. $]);
+        }
+    }
+    alias HasForeignKeys = Impl!(__traits(getAttributes, ClassName));
+}
+
+template GetForeignKeyRefTable(ClassName)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            alias Impl = TypeTuple!();
+        }
+        else static if (isInstanceOf!(ForeignKey, T[0]))
+        {
+            enum attributes = T[0].referencedTableName;
+            alias Impl = TypeTuple!(attributes, Impl!(T[1 .. $]));
+        }
+        else
+        {
+            alias Impl = Impl!(T[1 .. $]);
+        }
+    }
+    alias GetForeignKeyRefTable = NoDuplicates!(Impl!(__traits(getAttributes, ClassName)));
+}

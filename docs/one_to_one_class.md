@@ -23,11 +23,11 @@ private:
     string _name;
 public:
     @PrimaryKeyColumn @NotNull
-    string name() const @property nothrow pure @safe @nogc
+    @property string name() const nothrow pure @safe @nogc
     {
         return _name;
     }
-    void name(string value) @property
+    @property void name(string value)
     {
         setter(_name, value);
     }
@@ -67,11 +67,11 @@ private:
     Human *_human;
 public:
     @UniqueConstraintColumn!("human_phone_name")
-    string name_h() const @property nothrow pure @safe @nogc
+    @property string name_h() const nothrow pure @safe @nogc
     {
         return _name_h;
     }
-    void name_h(string value) @property
+    @property void name_h(string value)
     {
         setter(_name_h, value);
     }
@@ -79,11 +79,11 @@ public:
     string brand;
 
     // foreign key struct
-    Human *human() @property nothrow pure @safe @nogc
+    @property Human *human() nothrow pure @safe @nogc
     {
         return _human;
     }
-    void human(Human *value) @property
+    @property void human(Human *value)
     {
         if (value !is _human)
         {

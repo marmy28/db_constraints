@@ -26,27 +26,27 @@ private:
     int _AuthorId;
 public:
     @PrimaryKeyColumn @NotNull
-    int BookId() @property
+    @property int BookId()
     {
         return _BookId;
     }
-    void BookId(int value) @property
+    @property void BookId(int value)
     {
         setter(_BookId, value);
     }
-    string Title() @property
+    @property string Title()
     {
         return _Title;
     }
-    void Title(string value) @property
+    @property void Title(string value)
     {
         setter(_Title, value);
     }
-    int AuthorId() @property
+    @property int AuthorId()
     {
         return _AuthorId;
     }
-    void AuthorId(int value) @property
+    @property void AuthorId(int value)
     {
         setter(_AuthorId, value);
     }

@@ -14,20 +14,20 @@ private:
     string _Name;
 public:
     @PrimaryKeyColumn @NotNull
-    int AuthorId() @property
+    @property int AuthorId()
     {
         return _AuthorId;
     }
-    void AuthorId(int value) @property
+    @property void AuthorId(int value)
     {
         setter(_AuthorId, value);
     }
     @UniqueConstraintColumn!"uc_Author"
-    string Name() @property const
+    @property string Name()
     {
         return _Name;
     }
-    void Name(string value) @property
+    @property void Name(string value)
     {
         setter(_Name, value);
     }

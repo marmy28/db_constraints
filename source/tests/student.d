@@ -10,21 +10,21 @@ private:
     int _nNumClasses;
 public:
     @PrimaryKeyColumn @NotNull
-    string cName() const @property nothrow pure @safe @nogc
+    @property string cName() const nothrow pure @safe @nogc
     {
         return _cName;
     }
     @CheckConstraint!("a.length < 13")
-    void cName(immutable(char)[] value) @property
+    @property void cName(immutable(char)[] value)
     {
         setter(_cName, value);
     }
-    int nNumClasses() const @property nothrow pure @safe @nogc
+    @property int nNumClasses() const nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }
     @UniqueConstraintColumn!("uc_Student")
-    void nNumClasses(immutable(int) value) @property
+    @property void nNumClasses(immutable(int) value)
     {
         setter(_nNumClasses, value);
     }

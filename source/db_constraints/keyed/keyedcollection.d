@@ -504,37 +504,37 @@ unittest
     public:
         // marking name as part of the primary key
         @PrimaryKeyColumn @NotNull
-        string name() const @property nothrow pure @safe @nogc
+        @property string name() const nothrow pure @safe @nogc
         {
             return _name;
         }
-        void name(string value) @property
+        @property void name(string value)
         {
             setter(_name, value);
         }
-        int ranking() const @property nothrow pure @safe @nogc
+        @property int ranking() const nothrow pure @safe @nogc
         {
             return _ranking;
         }
         // making sure that ranking will always be above 0
         @CheckConstraint!(a => a > 0, "chk_Candys_ranking")
-        void ranking(int value) @property
+        @property void ranking(int value)
         {
             setter(_ranking, value);
         }
-        int annualSales() const @property nothrow pure @safe @nogc
+        @property int annualSales() const nothrow pure @safe @nogc
         {
             return _annualSales;
         }
-        void annualSales(int value) @property
+        @property void annualSales(int value)
         {
             setter(_annualSales, value);
         }
-        string brand() const @property nothrow pure @safe @nogc
+        @property string brand() const nothrow pure @safe @nogc
         {
             return _brand;
         }
-        void brand(string value) @property
+        @property void brand(string value)
         {
             setter(_brand, value);
         }

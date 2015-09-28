@@ -26,31 +26,31 @@ private:
 public:
     // name is the primary key
     @PrimaryKeyColumn @NotNull
-    string name() const @property nothrow pure @safe @nogc
+    @property string name() const nothrow pure @safe @nogc
     {
         return _name;
     }
-    void name(string value) @property
+    @property void name(string value)
     {
         setter(_name, value);
     }
     // ranking must be unique among all the other records
     @UniqueConstraintColumn!("uc_Candy_ranking")
-    int ranking() const @property nothrow pure @safe @nogc
+    @property int ranking() const nothrow pure @safe @nogc
     {
         return _ranking;
     }
     // making sure that ranking will always be above 0
     @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
-    void ranking(int value) @property
+    @property void ranking(int value)
     {
         setter(_ranking, value);
     }
-    string brand() const @property nothrow pure @safe @nogc
+    @property string brand() const nothrow pure @safe @nogc
     {
         return _brand;
     }
-    void brand(string value) @property
+    @property void brand(string value)
     {
         setter(_brand, value);
     }
@@ -97,21 +97,22 @@ assert(i.key != j.key);
 // below is what is created when you include the mixin KeyedItem
 enum candyStructs =
 `public:
-alias PrimaryKey = ClusteredIndex;
-alias PrimaryKey_key = key;
-struct uc_Candy_ranking
+final alias PrimaryKey = ClusteredIndex;
+final alias PrimaryKey_key = key;
+final struct uc_Candy_ranking
 {
     typeof(Candy.ranking) ranking;
     mixin generic_compare!(uc_Candy_ranking);
 }
-uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
+final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe @nogc
 {
     auto _uc_Candy_ranking_key = uc_Candy_ranking();
     _uc_Candy_ranking_key.ranking = this._ranking;
     return _uc_Candy_ranking_key;
 }
 `;
-assert(Candy.createType!() == candyStructs);
+import db_constraints.utils.generickey : ConstraintStructs;
+static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
 import std.exception : assertThrown;
 import db_constraints.db_exceptions : CheckConstraintException;

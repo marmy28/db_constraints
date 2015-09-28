@@ -12,38 +12,38 @@ version(unittest)
         string _email;
     public:
         @PrimaryKeyColumn @NotNull
-        Nullable!int id() const @property nothrow pure @safe @nogc
+        @property Nullable!int id() const nothrow pure @safe @nogc
         {
             return _id;
         }
-        void id(Nullable!(int) value) @property
+        @property void id(Nullable!(int) value)
         {
             setter(_id, value);
         }
         @UniqueConstraintColumn!("uc_Person")
-        string firstName() const @property nothrow pure @safe @nogc
+        @property string firstName() const nothrow pure @safe @nogc
         {
             return _firstName;
         }
-        void firstName(string value) @property
+        @property void firstName(string value)
         {
             setter(_firstName, value);
         }
         @UniqueConstraintColumn!("uc_PersonEmail")
-        string email() const @property nothrow pure @safe @nogc
+        @property string email() const nothrow pure @safe @nogc
         {
             return _email;
         }
-        void email(string value) @property
+        @property void email(string value)
         {
             setter(_email, value);
         }
         @UniqueConstraintColumn!("uc_Person")
-        string lastName() const @property nothrow pure @safe @nogc
+        @property string lastName() const nothrow pure @safe @nogc
         {
             return _lastName;
         }
-        void lastName(string value) @property
+        @property void lastName(string value)
         {
             setter(_lastName, value);
         }

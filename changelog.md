@@ -14,6 +14,7 @@
 
  * NotNull attribute
  * db_constraints.utils.generickey.HasMembersWithUDA
+ * mixin template KeyedCollection
 
 ### Misc.
 

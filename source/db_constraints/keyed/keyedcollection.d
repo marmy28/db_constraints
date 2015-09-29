@@ -3,13 +3,12 @@ module db_constraints.keyed.keyedcollection;
 import std.algorithm : canFind, endsWith, each;
 import std.conv : to;
 import std.exception : enforceEx;
-import std.signals;
 import std.traits;
 import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
-import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys;
+import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys, GetForeignKeyRefTable;
 
 template usableForKeyedCollection(alias T)
 {
@@ -46,6 +45,14 @@ Params:
 class BaseKeyedCollection(T)
     if (usableForKeyedCollection!(T))
 {
+    mixin KeyedCollection!(T);
+}
+
+mixin template KeyedCollection(T)
+    if (usableForKeyedCollection!(T))
+{
+    import std.signals;
+
 /**
 The key type is alias'd at the type since it looked better than having
 typeof(T.key) everywhere.
@@ -54,6 +61,29 @@ typeof(T.key) everywhere.
 
     private bool _containsChanges;
     private bool _enforceConstraints = true;
+
+    static if (HasForeignKeys!(T))
+    {
+        mixin(function string()
+              {
+                  import std.uni : toLower;
+                  string result = "";
+                  foreach(member; GetForeignKeyRefTable!(T))
+                  {
+                      static assert(member != member.toLower, "The class " ~ member ~ " should start with a capital letter to use Foreign Keys or else there will be name collisions.");
+                      result ~= "private " ~ member ~ " *_" ~ member.toLower ~ ";\n";
+                      result ~= "private " ~ member ~ ".key_type _changed" ~ member ~ "Row;\n";
+
+                      result ~= "final @property void " ~ member.toLower ~ "(ref " ~ member ~ " " ~ member.toLower ~ "_)\n";
+                      result ~= "{\n";
+                      result ~= "    this._" ~ member.toLower ~ " = &" ~ member.toLower ~ "_;\n";
+                      result ~= "    this._" ~ member.toLower ~ ".collectionChanged.connect(&foreignKeyChanged);\n";
+                      result ~= "    checkForeignKeys();\n";
+                      result ~= "}\n";
+                  }
+                  return result;
+              }());
+    }
 /**
 Called when an item is being added or an item changed.
  */

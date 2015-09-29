@@ -71,7 +71,7 @@ public:
 }
 
 version(unittest)
-class Books : BaseKeyedCollection!(Book)
+class Books
 {
 private:
     import std.algorithm : filter, each, canFind;
@@ -84,29 +84,27 @@ private:
     Rule.cascade,
     Rule.cascade)();
 
-    Authors *_authors;
 
     void checkForeignKeys()
     {
-        if (this._authors !is null)
-        {
-            this.byValue.each!(
-                (Book a) =>
+        this.byValue.each!(
+            (Book a) =>
+            {
+                if (this._authors !is null)
                 {
                     auto i = Authors.key_type.init;
-                    // I will need to see if there are any null values if setNull is an action
                     i.AuthorId = a.AuthorId;
                     enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
-                }());
-        }
+                }
+            }());
     }
-    Authors.key_type _changedAuthor;
 public:
+    mixin KeyedCollection!(Book);
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
         if (canFind(BookFK.referencedColumnNames, propertyName))
         {
-            _changedAuthor = item_key;
+            _changedAuthorsRow = item_key;
         }
         else if (propertyName == "key")
         {
@@ -115,7 +113,7 @@ public:
                 {
                     auto i = Authors.key_type.init;
                     i.AuthorId = a.AuthorId;
-                    return (i == this._changedAuthor);
+                    return (i == this._changedAuthorsRow);
                 }());
             final switch (BookFK.updateRule) with (Rule)
             {
@@ -218,20 +216,6 @@ public:
                 break;
             }
         }
-    }
-    void authors(ref Authors authors_) @property
-    {
-        this._authors = &authors_;
-        this._authors.collectionChanged.connect(&foreignKeyChanged);
-        checkForeignKeys();
-    }
-    this(Book[] items)
-    {
-        super(items);
-    }
-    this(Book item)
-    {
-        super(item);
     }
 
     static Books GetFromDB()

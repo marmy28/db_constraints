@@ -100,7 +100,7 @@ unittest
                     this._human.emitChange.connect(&foreignKeyChanged);
                     this.name_h = _human.name;
                 }
-                notify!("human");
+                notify("human");
             }
         }
         Rule onUpdate = Rule.noAction;

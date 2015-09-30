@@ -6,6 +6,7 @@
 
 # Bugs
 - [X] Overloads for unique constraints is a problem
+- [ ] Dealing with nulls for creating keyed item clustered key
 
 # Next
 - [ ] Add in struct functionality

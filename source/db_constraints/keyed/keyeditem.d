@@ -34,26 +34,22 @@ The setter should be in your setter member. This checks your check constraint.
 Throws:
     CheckConstraintException if your value makes checkConstraints fail.
  */
-    final private template setter(string name_ = __FUNCTION__)
-        if (name_ !is null)
+    final private void setter(P)(ref P member, P value, string name_ = __FUNCTION__)
     {
-        final private void setter(P)(ref P member, P value)
+        if (value != member)
         {
-            enum name = name_[lastIndexOf(name_, '.') + 1 .. $];
-            if (value != member)
+            P memberValue = member;
+            member = value;
+            auto ex = collectException!CheckConstraintException(checkConstraints());
+            if (ex is null)
             {
-                P memberValue = member;
-                member = value;
-                auto ex = collectException!CheckConstraintException(checkConstraints());
-                if (ex is null)
-                {
-                    notify!(name);
-                }
-                else
-                {
-                    member = memberValue;
-                    throw ex;
-                }
+                string name = name_[lastIndexOf(name_, '.') + 1 .. $];
+                notify(name);
+            }
+            else
+            {
+                member = memberValue;
+                throw ex;
             }
         }
     }
@@ -100,18 +96,18 @@ along with the clustered index.
 Params:
     propertyName = the property name that changed.
  */
-    final void notify(string propertyName)()
+    final void notify(string propertyName)
     {
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        static if (GetMembersWithUDA!(T, ClusteredIndexAttribute).canFind(propertyName))
+        if (GetMembersWithUDA!(T, ClusteredIndexAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
         foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
         {
-            static if (GetMembersWithUDA!(T, UniqueConstraintColumn!name).canFind(propertyName))
+            if (GetMembersWithUDA!(T, UniqueConstraintColumn!name).canFind(propertyName))
             {
                 emitChange.emit(name ~ "_key", _key);
             }
@@ -153,9 +149,9 @@ attribute selected as the Clustered Index.
         mixin(function string()
               {
                   string result = "";
-                  foreach(pkcolumn; GetMembersWithUDA!(T, ClusteredIndexAttribute))
+                  foreach(columnName; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
-                      result ~= "typeof(" ~ T.stringof ~ "." ~ pkcolumn ~ ") " ~ pkcolumn ~ ";\n";
+                      result ~= "typeof(" ~ T.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                   }
                   return result;
               }());

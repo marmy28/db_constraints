@@ -1,6 +1,16 @@
 module db_constraints.utils.nullable;
 
 import std.traits : isBuiltinType;
+
+template isNullable(T, I)
+{
+    enum isNullable = __traits(compiles,
+                               (I i)
+                               {
+                                   Nullable!T test = i;
+                               });
+}
+
 /**
 Defines a value paired with a distinctive "null" state that denotes
 the absence of a value. If default constructed, a $(D

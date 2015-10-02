@@ -75,19 +75,11 @@ unittest
     import db_constraints;
     alias People = BaseKeyedCollection!(Person);
     auto people = new People([new Person("Valid", "Person", "vp@test.com"), new Person("Second", "Sup", "s@e.org")]);
-    foreach(person; people)
-    {
-        std.stdio.writeln(person.toString ~ " with key " ~ (person.key.email is null ? "null" : person.key.email));
-    }
     assert(people.contains("s@e.org"));
     //assert(!people.contains(null));
     people["s@e.org"].email = "hello@all";
     assert(people.contains("hello@all"));
     people["hello@all"].email = null;
-    foreach(person; people)
-    {
-        std.stdio.writeln(person.toString ~ " with key " ~ (person.key.email is null ? "null" : person.key.email));
-    }
     assert(!people.contains("s@e.org"));
     assert(!people.contains("hello@all"));
     auto i = Person.uc_PersonEmail();

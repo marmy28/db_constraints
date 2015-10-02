@@ -23,7 +23,7 @@ class Book
 private:
     int _BookId;
     string _Title;
-    int _AuthorId;
+    Nullable!int _AuthorId;
 public:
     @PrimaryKeyColumn @NotNull
     @property int BookId()
@@ -42,15 +42,17 @@ public:
     {
         setter(_Title, value);
     }
-    @property int AuthorId()
+    @property Nullable!int AuthorId()
     {
         return _AuthorId;
     }
-    @property void AuthorId(int value)
+    @property void AuthorId(N)(N value)
+        if (isNullable!(int , N))
     {
-        setter(_AuthorId, value);
+        setter(_AuthorId, value.to!(Nullable!int));
     }
-    this(int BookId_, string Title_, int AuthorId_)
+    this(N)(int BookId_, string Title_, N AuthorId_)
+        if (isNullable!(int, N))
     {
         this._BookId = BookId_;
         this._Title = Title_;
@@ -84,7 +86,6 @@ private:
     Rule.cascade,
     Rule.cascade)();
 
-
     void checkForeignKeys()
     {
         this.byValue.each!(
@@ -93,12 +94,33 @@ private:
                 if (this._authors !is null)
                 {
                     auto i = Authors.key_type.init;
-                    i.AuthorId = a.AuthorId;
-                    enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
+                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
+                    {
+                        i.AuthorId = a.AuthorId;
+                        enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
+                    }
+                    else static if (__traits(compiles,
+                                             (Book b)
+                                             {
+                                                 bool j = b.AuthorId.isNull;
+                                             }))
+                    {
+                        if (!a.AuthorId.isNull)
+                        {
+                            i.AuthorId = a.AuthorId;
+                            enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
+                        }
+                    }
+                    else
+                    {
+                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
+                    }
                 }
             }());
     }
 public:
+    Rule onUpdate = BookFK.updateRule;
+    Rule onDelete = BookFK.deleteRule;
     mixin KeyedCollection!(Book);
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
@@ -112,10 +134,33 @@ public:
                 (Book a) =>
                 {
                     auto i = Authors.key_type.init;
-                    i.AuthorId = a.AuthorId;
-                    return (i == this._changedAuthorsRow);
+                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
+                    {
+                        i.AuthorId = a.AuthorId;
+                        return (i == this._changedAuthorsRow);
+                    }
+                    else static if (__traits(compiles,
+                                             (Book b)
+                                             {
+                                                 bool j = b.AuthorId.isNull;
+                                             }))
+                    {
+                        if(!a.AuthorId.isNull)
+                        {
+                            i.AuthorId = a.AuthorId;
+                            return (i == this._changedAuthorsRow);
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
+                    }
                 }());
-            final switch (BookFK.updateRule) with (Rule)
+            final switch (onUpdate) with (Rule)
             {
             case noAction:
                 version(noActionIsRestrict) goto case restrict;
@@ -167,10 +212,33 @@ public:
                 (Book a) =>
                 {
                     auto i = Authors.key_type.init;
-                    i.AuthorId = a.AuthorId;
-                    return (i == item_key);
+                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
+                    {
+                        i.AuthorId = a.AuthorId;
+                        return (i == item_key);
+                    }
+                    else static if (__traits(compiles,
+                                             (Book b)
+                                             {
+                                                 bool j = b.AuthorId.isNull;
+                                             }))
+                    {
+                        if(!a.AuthorId.isNull)
+                        {
+                            i.AuthorId = a.AuthorId;
+                            return (i == item_key);
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
+                    }
                 }());
-            final switch (BookFK.deleteRule) with (Rule)
+            final switch (onDelete) with (Rule)
             {
             case noAction:
                 version(noActionIsRestrict) goto case restrict;
@@ -255,4 +323,43 @@ unittest
     pragma(msg, GetForeignKeys!(Book));
     pragma(msg, GetForeignKeyRefTable!(Book));
     static assert(HasForeignKeys!(Book));
+}
+
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    auto books = Books.GetFromDB();
+
+    books.authors = authors;
+    books.onDelete = Rule.setNull;
+    assert(authors.length == 4);
+    assert(books.length == 6);
+    authors.remove(3);
+    assert(authors.length == 3);
+    assert(books.length == 6);
+    import std.exception : assertNotThrown;
+    assertNotThrown!ForeignKeyException(books.checkForeignKeys());
+    authors[1].AuthorId = 5;
+    assert(authors.length == 3);
+    assert(books.length == 6);
+    int i = 0;
+    foreach(book; books)
+    {
+        if (book.AuthorId.isNull)
+        {
+            ++i;
+        }
+    }
+    assert(i == 2);
+    books.onUpdate = Rule.setNull;
+    authors[5].AuthorId = 1;
+    i = 0;
+    foreach(book; books)
+    {
+        if (book.AuthorId.isNull)
+        {
+            ++i;
+        }
+    }
+    assert(i == 3, i.to!string);
 }

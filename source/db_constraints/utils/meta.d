@@ -296,7 +296,16 @@ template GetForeignKeys(ClassName)
         }
         else static if (isInstanceOf!(ForeignKey, T[0]))
         {
-            alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+            static if (T[0].name == "")
+            {
+                enum name = "FK_" ~ ClassName.stringof ~ "_" ~ T[0].referencedTableName;
+                alias R = ForeignKey!(name, T[0].columnNames, T[0].referencedTableName, T[0].referencedColumnNames, T[0].updateRule, T[0].deleteRule);
+                alias Impl = TypeTuple!(R, Impl!(T[1 .. $]));
+            }
+            else
+            {
+                alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+            }
         }
         else
         {

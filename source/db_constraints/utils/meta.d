@@ -355,3 +355,104 @@ template GetForeignKeyRefTable(ClassName)
     }
     alias GetForeignKeyRefTable = NoDuplicates!(Impl!(__traits(getAttributes, ClassName)));
 }
+
+template GetDefault(ClassName, string memberName)
+{
+    static if (__traits(compiles, __traits(getMember, ClassName, memberName)))
+    {
+        alias GetDefault = Overloads!(__traits(getOverloads, ClassName, memberName));
+    }
+    else
+    {
+        alias GetDefault = TypeTuple!();
+    }
+
+/**
+Looks at the overloads for the functions.
+*/
+    template Overloads(S...)
+    {
+        import std.conv : to;
+        static if (S.length == 0)
+        {
+            alias Overloads = TypeTuple!();
+        }
+        else
+        {
+            enum attributes = Get!(__traits(getAttributes, S[0]));
+            static if (attributes.to!string == "")
+            {
+                alias Overloads = Overloads!(S[1 .. $]);
+            }
+            else
+            {
+                alias Overloads = attributes;
+            }
+        }
+    }
+    template Get(P...)
+    {
+        static if (P.length == 0)
+        {
+            enum string Get = "";
+        }
+        else static if (isInstanceOf!(Default, P[0]))
+        {
+            enum Get = P[0].value;
+        }
+        else
+        {
+            alias Get = Get!(P[1 .. $]);
+        }
+    }
+}
+
+template HasDefault(ClassName, string memberName)
+{
+    static if (__traits(compiles, __traits(getMember, ClassName, memberName)))
+    {
+        alias HasDefault = Overloads!(__traits(getOverloads, ClassName, memberName));
+    }
+    else
+    {
+        enum HasDefault = false;
+    }
+
+/**
+Looks at the overloads for the functions.
+*/
+    template Overloads(S...)
+    {
+        static if (S.length == 0)
+        {
+            enum Overloads = false;
+        }
+        else
+        {
+            enum attributes = Get!(__traits(getAttributes, S[0]));
+            static if (attributes)
+            {
+                enum Overloads = true;
+            }
+            else
+            {
+                alias Overloads = Overloads!(S[1 .. $]);
+            }
+        }
+    }
+    template Get(P...)
+    {
+        static if (P.length == 0)
+        {
+            enum Get = false;
+        }
+        else static if (isInstanceOf!(Default, P[0]))
+        {
+            enum Get = true;
+        }
+        else
+        {
+            alias Get = Get!(P[1 .. $]);
+        }
+    }
+}

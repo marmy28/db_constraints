@@ -151,3 +151,7 @@ template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_
                                              referencedColumnNames_, Rule.noAction, Rule.noAction);
 }
 
+struct Default(alias value_)
+{
+    enum value = value_;
+}

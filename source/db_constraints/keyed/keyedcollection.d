@@ -97,6 +97,10 @@ Called when an item is being added or an item changed.
                 !violatesUniqueConstraints(item, constraintName),
                 "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
                 "  was violated by item " ~ item.toString ~ ".");
+            static if (HasForeignKeys!(T))
+            {
+                checkForeignKeys();
+            }
         }
     }
     /// ditto

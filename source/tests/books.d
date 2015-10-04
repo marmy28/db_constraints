@@ -46,6 +46,7 @@ public:
     {
         return _AuthorId;
     }
+    @Default!(2)
     @property void AuthorId(N)(N value)
         if (isNullable!(int , N))
     {
@@ -86,6 +87,41 @@ private:
     Rule.cascade,
     Rule.cascade)();
 
+    auto getChangedItems(Authors.key_type aKey)
+    {
+        auto result = this.byValue.filter!(
+                (Book a) =>
+                {
+                    auto i = Authors.key_type.init;
+                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
+                    {
+                        i.AuthorId = a.AuthorId;
+                        return (i == aKey);
+                    }
+                    else static if (__traits(compiles,
+                                             (Book b)
+                                             {
+                                                 bool j = b.AuthorId.isNull;
+                                             }))
+                    {
+                        if(!a.AuthorId.isNull)
+                        {
+                            i.AuthorId = a.AuthorId;
+                            return (i == aKey);
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
+                    }
+                }());
+        return result;
+    }
+
     void checkForeignKeys()
     {
         this.byValue.each!(
@@ -119,8 +155,8 @@ private:
             }());
     }
 public:
-    Rule onUpdate = BookFK.updateRule;
-    Rule onDelete = BookFK.deleteRule;
+    Rule onUpdate = Rule.cascade;
+    Rule onDelete = Rule.cascade;
     mixin KeyedCollection!(Book);
     void foreignKeyChanged(string propertyName, Authors.key_type item_key)
     {
@@ -130,36 +166,7 @@ public:
         }
         else if (propertyName == "key")
         {
-            auto changedAuthorFK = this.byValue.filter!(
-                (Book a) =>
-                {
-                    auto i = Authors.key_type.init;
-                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
-                    {
-                        i.AuthorId = a.AuthorId;
-                        return (i == this._changedAuthorsRow);
-                    }
-                    else static if (__traits(compiles,
-                                             (Book b)
-                                             {
-                                                 bool j = b.AuthorId.isNull;
-                                             }))
-                    {
-                        if(!a.AuthorId.isNull)
-                        {
-                            i.AuthorId = a.AuthorId;
-                            return (i == this._changedAuthorsRow);
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
-                    }
-                }());
+            auto changedAuthorFK = getChangedItems(this._changedAuthorsRow);
             final switch (onUpdate) with (Rule)
             {
             case noAction:
@@ -191,11 +198,22 @@ public:
                                                   "when the member cannot be set to null.");
                 }
             case setDefault:
-                changedAuthorFK.each!(
-                    (Book a) =>
-                    {
-                        a.AuthorId = typeof(a.AuthorId).init;
-                    }());
+                static if (HasDefault!(Book, "AuthorId"))
+                {
+                    changedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = GetDefault!(Book, "AuthorId");
+                        }());
+                }
+                else
+                {
+                    changedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = typeof(a.AuthorId).init;
+                        }());
+                }
                 break;
             case cascade:
                 changedAuthorFK.each!(
@@ -208,36 +226,7 @@ public:
         }
         else if (propertyName == "remove")
         {
-            auto removedAuthorFK = this.byValue.filter!(
-                (Book a) =>
-                {
-                    auto i = Authors.key_type.init;
-                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
-                    {
-                        i.AuthorId = a.AuthorId;
-                        return (i == item_key);
-                    }
-                    else static if (__traits(compiles,
-                                             (Book b)
-                                             {
-                                                 bool j = b.AuthorId.isNull;
-                                             }))
-                    {
-                        if(!a.AuthorId.isNull)
-                        {
-                            i.AuthorId = a.AuthorId;
-                            return (i == item_key);
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
-                    }
-                }());
+            auto removedAuthorFK = getChangedItems(item_key);
             final switch (onDelete) with (Rule)
             {
             case noAction:
@@ -269,11 +258,22 @@ public:
                                                   "when the member cannot be set to null.");
                 }
             case setDefault:
-                removedAuthorFK.each!(
-                    (Book a) =>
-                    {
-                        a.AuthorId = typeof(a.AuthorId).init;
-                    }());
+                static if (HasDefault!(Book, "AuthorId"))
+                {
+                    removedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = GetDefault!(Book, "AuthorId");
+                        }());
+                }
+                else
+                {
+                    removedAuthorFK.each!(
+                        (Book a) =>
+                        {
+                            a.AuthorId = typeof(a.AuthorId).init;
+                        }());
+                }
                 break;
             case cascade:
                 removedAuthorFK.each!(
@@ -361,5 +361,5 @@ unittest
             ++i;
         }
     }
-    assert(i == 3, i.to!string);
+    assert(i == 3);
 }

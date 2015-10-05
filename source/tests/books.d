@@ -42,11 +42,11 @@ public:
     {
         setter(_Title, value);
     }
+    @Default!(2)
     @property Nullable!int AuthorId()
     {
         return _AuthorId;
     }
-    @Default!(2)
     @property void AuthorId(N)(N value)
         if (isNullable!(int , N))
     {
@@ -67,7 +67,7 @@ public:
 
     override string toString()
     {
-        return "BookId: " ~ this._BookId.to!string() ~ " Title: " ~ this._Title ~ "AuthorId: " ~ this._AuthorId.to!string();
+        return "BookId: " ~ this._BookId.to!string() ~ " Title: " ~ this._Title ~ " AuthorId: " ~ this._AuthorId.to!string();
     }
     mixin KeyedItem!();
 
@@ -76,215 +76,126 @@ public:
 version(unittest)
 class Books
 {
-private:
-    import std.algorithm : filter, each, canFind;
-
-    auto BookFK = ForeignKeyConstraint!(
-    "fk_Books_Authors_AuthorId",
-    ["AuthorId"],
-    "Authors",
-    ["AuthorId"],
-    Rule.cascade,
-    Rule.cascade)();
-
-    auto getChangedItems(Authors.key_type aKey)
-    {
-        auto result = this.byValue.filter!(
-                (Book a) =>
-                {
-                    auto i = Authors.key_type.init;
-                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
-                    {
-                        i.AuthorId = a.AuthorId;
-                        return (i == aKey);
-                    }
-                    else static if (__traits(compiles,
-                                             (Book b)
-                                             {
-                                                 bool j = b.AuthorId.isNull;
-                                             }))
-                    {
-                        if(!a.AuthorId.isNull)
-                        {
-                            i.AuthorId = a.AuthorId;
-                            return (i == aKey);
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
-                    }
-                }());
-        return result;
-    }
-
-    void checkForeignKeys()
-    {
-        this.byValue.each!(
-            (Book a) =>
-            {
-                if (this._authors !is null)
-                {
-                    auto i = Authors.key_type.init;
-                    static if (is(typeof(i.AuthorId) == typeof(a.AuthorId)))
-                    {
-                        i.AuthorId = a.AuthorId;
-                        enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
-                    }
-                    else static if (__traits(compiles,
-                                             (Book b)
-                                             {
-                                                 bool j = b.AuthorId.isNull;
-                                             }))
-                    {
-                        if (!a.AuthorId.isNull)
-                        {
-                            i.AuthorId = a.AuthorId;
-                            enforceEx!ForeignKeyException(this._authors.contains(i), "No author foreign key");
-                        }
-                    }
-                    else
-                    {
-                        static assert(0, "Foreign key types are not the same and the child column is not a nullable.");
-                    }
-                }
-            }());
-    }
-public:
-    Rule onUpdate = Rule.cascade;
-    Rule onDelete = Rule.cascade;
     mixin KeyedCollection!(Book);
-    void foreignKeyChanged(string propertyName, Authors.key_type item_key)
-    {
-        if (canFind(BookFK.referencedColumnNames, propertyName))
-        {
-            _changedAuthorsRow = item_key;
-        }
-        else if (propertyName == "key")
-        {
-            auto changedAuthorFK = getChangedItems(this._changedAuthorsRow);
-            final switch (onUpdate) with (Rule)
-            {
-            case noAction:
-                version(noActionIsRestrict) goto case restrict;
-                else break;
-            case restrict:
-                if (!changedAuthorFK.empty)
-                {
-                    throw new ForeignKeyException("Author foreign key violation.");
-                }
-                break;
-            case setNull:
-                static if (__traits(compiles,
-                                    (Book a)
-                                    {
-                                        a.AuthorId = null;
-                                    }))
-                {
-                    changedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = null;
-                        }());
-                    break;
-                }
-                else
-                {
-                    throw new ForeignKeyException("Cannot use ForeignKeyActions.setNull " ~
-                                                  "when the member cannot be set to null.");
-                }
-            case setDefault:
-                static if (HasDefault!(Book, "AuthorId"))
-                {
-                    changedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = GetDefault!(Book, "AuthorId");
-                        }());
-                }
-                else
-                {
-                    changedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = typeof(a.AuthorId).init;
-                        }());
-                }
-                break;
-            case cascade:
-                changedAuthorFK.each!(
-                    (Book a) =>
-                    {
-                        a.AuthorId = item_key.AuthorId;
-                    }());
-                break;
-            }
-        }
-        else if (propertyName == "remove")
-        {
-            auto removedAuthorFK = getChangedItems(item_key);
-            final switch (onDelete) with (Rule)
-            {
-            case noAction:
-                version(noActionIsRestrict) goto case restrict;
-                else break;
-            case restrict:
-                if (!removedAuthorFK.empty)
-                {
-                    throw new ForeignKeyException("Author foreign key violation.");
-                }
-                break;
-            case setNull:
-                static if (__traits(compiles,
-                                    (Book a)
-                                    {
-                                        a.AuthorId = null;
-                                    }))
-                {
-                    removedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = null;
-                        }());
-                    break;
-                }
-                else
-                {
-                    throw new ForeignKeyException("Cannot use ForeignKeyActions.setNull " ~
-                                                  "when the member cannot be set to null.");
-                }
-            case setDefault:
-                static if (HasDefault!(Book, "AuthorId"))
-                {
-                    removedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = GetDefault!(Book, "AuthorId");
-                        }());
-                }
-                else
-                {
-                    removedAuthorFK.each!(
-                        (Book a) =>
-                        {
-                            a.AuthorId = typeof(a.AuthorId).init;
-                        }());
-                }
-                break;
-            case cascade:
-                removedAuthorFK.each!(
-                    (Book a) =>
-                    {
-                        this.remove(a.key);
-                    }());
-                break;
-            }
-        }
-    }
+    // void fk_Books_Authors_AuthorIdChanged(string propertyName, Authors.key_type item_key)
+    // {
+    //     if (canFind(GetForeignKeys!(Book)[0].referencedColumnNames, propertyName))
+    //     {
+    //         _changedAuthorsRow = item_key;
+    //     }
+    //     else if (propertyName == "key")
+    //     {
+    //         auto changedAuthors = getChangedItems(this._changedAuthorsRow);
+    //         final switch (fk_Books_Authors_AuthorId_UpdateRule) with (Rule)
+    //         {
+    //         case noAction:
+    //             version(noActionIsRestrict) goto case restrict;
+    //             else break;
+    //         case restrict:
+    //             if (!changedAuthors.empty)
+    //             {
+    //                 throw new ForeignKeyException("Author foreign key violation.");
+    //             }
+    //             break;
+    //         case setNull:
+    //             static if (__traits(compiles,
+    //                                 (Book a)
+    //                                 {
+    //                                     a.AuthorId = null;
+    //                                 }))
+    //             {
+    //                 changedAuthors.each!(
+    //                     (Book a) =>
+    //                     {
+    //                         a.AuthorId = null;
+    //                     }());
+    //                 break;
+    //             }
+    //             else
+    //             {
+    //                 throw new ForeignKeyException("Cannot use Rule.setNull " ~
+    //                                               "when the member cannot be set to null.");
+    //             }
+    //         case setDefault:
+    //             changedAuthors.each!(
+    //                 (Book a) =>
+    //                 {
+    //                     static if (HasDefault!(Book, "AuthorId"))
+    //                         a.AuthorId = GetDefault!(Book, "AuthorId");
+    //                     else
+    //                         a.AuthorId = typeof(a.AuthorId).init;
+    //                 }());
+    //             break;
+    //         case cascade:
+    //             changedAuthors.each!(
+    //                 (Book a) =>
+    //                 {
+    //                     a.AuthorId = item_key.AuthorId;
+    //                 }());
+    //             break;
+    //         }
+    //     }
+    //     else if (propertyName == "remove")
+    //     {
+    //         auto removedAuthors = getChangedItems(item_key);
+    //         final switch (fk_Books_Authors_AuthorId_DeleteRule) with (Rule)
+    //         {
+    //         case noAction:
+    //             version(noActionIsRestrict) goto case restrict;
+    //             else break;
+    //         case restrict:
+    //             if (!removedAuthors.empty)
+    //             {
+    //                 throw new ForeignKeyException("Author foreign key violation.");
+    //             }
+    //             break;
+    //         case setNull:
+    //             static if (__traits(compiles,
+    //                                 (Book a)
+    //                                 {
+    //                                     a.AuthorId = null;
+    //                                 }))
+    //             {
+    //                 removedAuthors.each!(
+    //                     (Book a) =>
+    //                     {
+    //                         a.AuthorId = null;
+    //                     }());
+    //                 break;
+    //             }
+    //             else
+    //             {
+    //                 throw new ForeignKeyException("Cannot use Rule.setNull " ~
+    //                                               "when the member cannot be set to null.");
+    //             }
+    //         case setDefault:
+    //             static if (HasDefault!(Book, "AuthorId"))
+    //             {
+    //                 removedAuthors.each!(
+    //                     (Book a) =>
+    //                     {
+    //                         a.AuthorId = GetDefault!(Book, "AuthorId");
+    //                     }());
+    //             }
+    //             else
+    //             {
+    //                 removedAuthors.each!(
+    //                     (Book a) =>
+    //                     {
+    //                         a.AuthorId = typeof(a.AuthorId).init;
+    //                     }());
+    //             }
+    //             break;
+    //         case cascade:
+    //             removedAuthors.each!(
+    //                 (Book a) =>
+    //                 {
+    //                     this.remove(a.key);
+    //                 }());
+    //             break;
+    //         }
+    //     }
+    // }
 
     static Books GetFromDB()
     {
@@ -317,6 +228,56 @@ unittest
     assert(authors.length == 3);
     assert(books.length == 4);
 }
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    auto books = Books.GetFromDB();
+    books.authors = authors;
+    assert(authors.length == 4);
+    assert(books._authors.length == 4);
+    books.authors = null;
+    assert(authors.length == 4);
+    assert(books._authors is null);
+}
+
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    auto books = Books.GetFromDB();
+
+    import std.algorithm : filter;
+    import std.exception : assertNotThrown, assertThrown;
+    assertNotThrown!ForeignKeyException(books.authors = authors);
+
+    books.fk_Books_Authors_AuthorId_UpdateRule = Rule.setDefault;
+    assert(authors.length == 4);
+    assert(books.length == 6);
+    int i = 0;
+    foreach(book; books.byValue.filter!(a => a.AuthorId == 2))
+        ++i;
+    assert(i == 2);
+
+    i = 0;
+    foreach(book; books.byValue.filter!(a => a.AuthorId == 1))
+        ++i;
+    assert(i == 1);
+    authors[1].AuthorId = 5;
+    assert(authors.length == 4);
+    assert(books.length == 6);
+    i = 0;
+    foreach(book; books.byValue.filter!(a => a.AuthorId == 2))
+        ++i;
+    assert(i == 3);
+
+    books.fk_Books_Authors_AuthorId_DeleteRule = Rule.setDefault;
+    authors.remove(3);
+    assert(authors.length == 3);
+    assert(books.length == 6);
+    i = 0;
+    foreach(book; books.byValue.filter!(a => a.AuthorId == 2))
+        ++i;
+    assert(i == 5);
+}
 
 unittest
 {
@@ -331,7 +292,7 @@ unittest
     auto books = Books.GetFromDB();
 
     books.authors = authors;
-    books.onDelete = Rule.setNull;
+    books.fk_Books_Authors_AuthorId_DeleteRule = Rule.setNull;
     assert(authors.length == 4);
     assert(books.length == 6);
     authors.remove(3);
@@ -351,7 +312,7 @@ unittest
         }
     }
     assert(i == 2);
-    books.onUpdate = Rule.setNull;
+    books.fk_Books_Authors_AuthorId_UpdateRule = Rule.setNull;
     authors[5].AuthorId = 1;
     i = 0;
     foreach(book; books)
@@ -362,4 +323,46 @@ unittest
         }
     }
     assert(i == 3);
+}
+
+unittest
+{
+    enum fkproperties =
+`final bool fk_Books_Authors_AuthorId_key(out Authors.key_type aKey)
+{
+    bool result;
+    static if (
+        is(typeof(aKey.AuthorId) == typeof(this.AuthorId))
+        )
+    {
+        aKey.AuthorId = this.AuthorId;
+        result = true;
+    }
+    else static if (__traits(compiles,
+                             (Book b)
+                             {
+                                 if (b.AuthorId.isNull == true) { }
+                             }))
+    {
+        if (
+            !this.AuthorId.isNull
+           )
+        {
+            aKey.AuthorId = this.AuthorId;
+            result = true;
+        }
+        else
+        {
+            result = false;
+        }
+    }
+    else
+    {
+        static assert(false, "Column type mismatch for fk_Books_Authors_AuthorId.");
+    }
+    return result;
+}
+`;
+
+    static assert(ForeignKeyProperties!(Book) == fkproperties, ForeignKeyProperties!(Book));
 }

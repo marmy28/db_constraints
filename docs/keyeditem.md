@@ -147,7 +147,7 @@ be used after a save.
 
 ***
 ```d
-final void notify(string propertyName)();
+final void notify(string propertyName);
 
 ```
 **Summary:**
@@ -158,7 +158,7 @@ along with the clustered index.
 
 Parameters |
 ---|
-*propertyName*|
+*string propertyName*|
 &nbsp;&nbsp;&nbsp;&nbsp;the property name that changed.|
 
 

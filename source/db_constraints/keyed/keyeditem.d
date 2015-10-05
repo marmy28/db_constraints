@@ -188,6 +188,11 @@ Sets the clustered index for `this`.
         this._key = new_key;
     }
 
+    static if (HasForeignKeys!(T))
+    {
+        mixin(ForeignKeyProperties!(T));
+    }
+
     mixin(ConstraintStructs!(T, ClusteredIndexAttribute.name));
 }
 

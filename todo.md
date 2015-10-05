@@ -1,5 +1,5 @@
 # To do
-- [ ] Add in foreign keys
+- [X] Add in foreign keys
 - [ ] Add in description for repo.
 - [ ] Add in a contribute.md
 - [ ] Release package on dub
@@ -10,3 +10,4 @@
 
 # Next
 - [ ] Add in struct functionality
+- [ ] Auto increment (possibly)

@@ -456,3 +456,319 @@ Looks at the overloads for the functions.
         }
     }
 }
+
+template ForeignKeyProperties(ClassName)
+{
+    string ForeignKeyProperties()
+    {
+        string result = "";
+        foreach(foreignKey; GetForeignKeys!(ClassName))
+        {
+            result ~= "final bool " ~ foreignKey.name ~ "_key(out " ~ foreignKey.referencedTableName ~ ".key_type aKey)\n";
+            result ~= "{\n";
+            result ~= "    bool result;\n";
+            result ~= "    static if (\n";
+            for (int i = 0; i < foreignKey.columnNames.length; ++i)
+            {
+                result ~= "        is(typeof(aKey." ~ foreignKey.referencedColumnNames[i] ~ ") == typeof(this." ~ foreignKey.columnNames[i] ~ "))";
+                if (i > 0)
+                {
+                    result ~= " &&";
+                }
+                result ~= "\n";
+            }
+            result ~= "        )\n";
+            result ~= "    {\n";
+            for (int i = 0; i < foreignKey.columnNames.length; ++i)
+            {
+                result ~= "        aKey." ~ foreignKey.referencedColumnNames[i] ~ " = this." ~ foreignKey.columnNames[i] ~ ";\n";
+            }
+            result ~= "        result = true;\n";
+            result ~= "    }\n";
+            result ~= "    else static if (__traits(compiles,\n";
+            result ~= "                             (" ~ ClassName.stringof ~ " b)\n";
+            result ~= "                             {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                                 if (b." ~ columnName ~ ".isNull == true) { }\n";
+            }
+            result ~= "                             }))\n";
+            result ~= "    {\n";
+            result ~= "        if (\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "            !this." ~ columnName ~ ".isNull";
+                if (columnName != foreignKey.columnNames[0])
+                {
+                    result ~= " &&";
+                }
+                result ~= "\n";
+            }
+            result ~= "           )\n";
+            result ~= "        {\n";
+            for (int i = 0; i < foreignKey.columnNames.length; ++i)
+            {
+                result ~= "            aKey." ~ foreignKey.referencedColumnNames[i] ~ " = this." ~ foreignKey.columnNames[i] ~ ";\n";
+            }
+            result ~= "            result = true;\n";
+            result ~= "        }\n";
+            result ~= "        else\n";
+            result ~= "        {\n";
+            result ~= "            result = false;\n";
+            result ~= "        }\n";
+            result ~= "    }\n";
+            result ~= "    else\n";
+            result ~= "    {\n";
+            result ~= "        static assert(false, \"Column type mismatch for "~ foreignKey.name ~ ".\");\n";
+            result ~= "    }\n";
+            result ~= "    return result;\n";
+            result ~= "}\n";
+        }
+        return result;
+    }
+}
+
+
+template foreignKeyTableProperties(ClassName)
+{
+    string foreignKeyTableProperties()
+    {
+        import std.uni : toLower;
+        string result = "";
+        foreach(member; GetForeignKeyRefTable!(ClassName))
+        {
+            static assert(member != member.toLower, "The class " ~ member ~ " should start with a capital letter to use Foreign Keys or else there will be name collisions.");
+            result ~= "private " ~ member ~ " *_" ~ member.toLower ~ ";\n";
+            result ~= "private " ~ member ~ ".key_type _changed" ~ member ~ "Row;\n";
+
+            result ~= "final @property void " ~ member.toLower ~ "(ref " ~ member ~ " " ~ member.toLower ~ "_)\n";
+            result ~= "{\n";
+            result ~= "    this." ~ member.toLower ~ " = null;\n";
+            result ~= "    this._" ~ member.toLower ~ " = &" ~ member.toLower ~ "_;\n";
+            foreach(foreignKey; GetForeignKeys!(ClassName))
+            {
+                static if (foreignKey.referencedTableName == member)
+                {
+                    result ~= "    this._" ~ member.toLower ~ ".collectionChanged.connect(&" ~ foreignKey.name ~ "_Changed);\n";
+                }
+            }
+            result ~= "    checkForeignKeys();\n";
+            result ~= "}\n";
+
+
+            result ~= "final @property void " ~ member.toLower ~ "(typeof(null) n)\n";
+            result ~= "{\n";
+            result ~= "    if (this._" ~ member.toLower ~ " !is null)\n";
+            result ~= "    {\n";
+            foreach(foreignKey; GetForeignKeys!(ClassName))
+            {
+                static if (foreignKey.referencedTableName == member)
+                {
+                    result ~= "        this._" ~ member.toLower ~ ".collectionChanged.disconnect(&" ~ foreignKey.name ~ "_Changed);\n";
+                }
+            }
+            result ~= "    this._" ~ member.toLower ~ " = null;\n";
+            result ~= "    }\n";
+            result ~= "}\n";
+        }
+        return result;
+    }
+}
+
+template foreignKeyCheckExceptions(ClassName)
+{
+    string foreignKeyCheckExceptions()
+    {
+        import std.uni : toLower;
+        string result = "";
+        foreach(foreignKey; GetForeignKeys!(ClassName))
+        {
+            static assert(foreignKey.referencedTableName != foreignKey.referencedTableName.toLower, "The class " ~ member ~ " should start with a capital letter to use Foreign Keys or else there will be name collisions.");
+            result ~= "if (this._" ~ foreignKey.referencedTableName.toLower ~ " !is null)\n";
+            result ~= "{\n";
+            result ~= "    " ~ foreignKey.referencedTableName ~ ".key_type i;\n";
+            result ~= "    if(a." ~ foreignKey.name ~ "_key(i))\n";
+            result ~= "    {\n";
+            result ~= "        enforceEx!ForeignKeyException(this._" ~ foreignKey.referencedTableName.toLower ~ ".contains(i), \"" ~ foreignKey.name ~ " violation.\");\n";
+            result ~= "    }\n";
+            result ~= "}\n";
+        }
+        return result;
+    }
+}
+
+template ForeignKeyChanged(ClassName)
+{
+    string ForeignKeyChanged()
+    {
+        import std.conv : to;
+        import std.algorithm : joiner;
+        string result = "";
+        foreach(foreignKey; GetForeignKeys!(ClassName))
+        {
+            result ~= "Rule " ~ foreignKey.name ~ "_UpdateRule = Rule." ~ foreignKey.updateRule.to!string ~ ";\n";
+            result ~= "Rule " ~ foreignKey.name ~ "_DeleteRule = Rule." ~ foreignKey.deleteRule.to!string ~ ";\n";
+            result ~= "void " ~ foreignKey.name ~ "_Changed(string propertyName, " ~ foreignKey.referencedTableName ~ ".key_type item_key)\n";
+            result ~= "{\n";
+            result ~= "    if (canFind(" ~ foreignKey.referencedColumnNames.to!string ~ ", propertyName))\n";
+            result ~= "    {\n";
+            result ~= "        this._changed" ~ foreignKey.referencedTableName ~ "Row = item_key;\n";
+            result ~= "    }\n";
+            result ~= "    else if (propertyName == \"key\")\n";
+            result ~= "    {\n";
+            // onUpdate
+            result ~= "        auto changed" ~ foreignKey.referencedTableName ~ " = this.byValue.filter!(\n";
+            result ~= "            (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "            {\n";
+            result ~= "                " ~ foreignKey.referencedTableName ~ ".key_type i;\n";
+            result ~= "                return (a." ~ foreignKey.name ~ "_key(i) ? i == this._changed" ~ foreignKey.referencedTableName ~ "Row : false);\n";
+            result ~= "            }());\n";
+            result ~= "        final switch (" ~ foreignKey.name ~ "_UpdateRule) with (Rule)\n";
+            result ~= "        {\n";
+            result ~= "        case noAction:\n";
+            version(noActionIsRestrict)
+            {
+                result ~= "            goto case restrict;\n";
+            }
+            else
+            {
+                result ~= "            break;\n";
+            }
+            result ~= "        case restrict:\n";
+            result ~= "            if (!changed" ~ foreignKey.referencedTableName ~ ".empty)\n";
+            result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ " violation.\");\n";
+            result ~= "            break;\n";
+            result ~= "        case setNull:\n";
+            result ~= "        static if (__traits(compiles,\n";
+            result ~= "                            (" ~ ClassName.stringof ~ " a)\n";
+            result ~= "                            {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                                a." ~ columnName ~ " = null;\n";
+            }
+            result ~= "                            }))\n";
+            result ~= "            {\n";
+            result ~= "                changed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                    (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                    {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                        a." ~ columnName ~ " = null;\n";
+            }
+            result ~= "                    }());\n";
+            result ~= "                break;\n";
+            result ~= "            }\n";
+            result ~= "            else\n";
+            result ~= "            {\n";
+            result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ ". Cannot use Rule.setNull when the member cannot be set to null.\");\n";
+            result ~= "            }\n";
+            result ~= "        case setDefault:\n";
+            result ~= "            changed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                    static if (HasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
+                result ~= "                    {\n";
+                result ~= "                        a." ~ columnName ~ " = GetDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\");\n";
+                result ~= "                    }\n";
+                result ~= "                    else\n";
+                result ~= "                    {\n";
+                result ~= "                        a." ~ columnName ~ " = typeof(a." ~ columnName ~ ").init;\n";
+                result ~= "                    }\n";
+            }
+            result ~= "                }());\n";
+            result ~= "            break;\n";
+            result ~= "        case cascade:\n";
+            result ~= "            changed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                {\n";
+            for (int i = 0; i < foreignKey.columnNames.length; ++i)
+            {
+                result ~= "                    a." ~ foreignKey.columnNames[i] ~ " = item_key." ~ foreignKey.referencedColumnNames[i] ~ ";\n";
+            }
+            result ~= "                }());\n";
+            result ~= "            break;\n";
+
+            result ~= "        }\n";
+            result ~= "    }\n";
+            result ~= "    else if (propertyName == \"remove\")\n";
+            result ~= "    {\n";
+            // onDelete
+            result ~= "        auto removed" ~ foreignKey.referencedTableName ~ " = this.byValue.filter!(\n";
+            result ~= "            (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "            {\n";
+            result ~= "                " ~ foreignKey.referencedTableName ~ ".key_type i;\n";
+            result ~= "                return (a." ~ foreignKey.name ~ "_key(i) ? i == item_key : false);\n";
+            result ~= "            }());\n";
+            result ~= "        final switch (" ~ foreignKey.name ~ "_DeleteRule) with (Rule)\n";
+            result ~= "        {\n";
+            result ~= "        case noAction:\n";
+            version(noActionIsRestrict)
+            {
+                result ~= "            goto case restrict;\n";
+            }
+            else
+            {
+                result ~= "            break;\n";
+            }
+            result ~= "        case restrict:\n";
+            result ~= "            if (!removed" ~ foreignKey.referencedTableName ~ ".empty)\n";
+            result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ " violation.\");\n";
+            result ~= "            break;\n";
+            result ~= "        case setNull:\n";
+            result ~= "        static if (__traits(compiles,\n";
+            result ~= "                            (" ~ ClassName.stringof ~ " a)\n";
+            result ~= "                            {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                                a." ~ columnName ~ " = null;\n";
+            }
+            result ~= "                            }))\n";
+            result ~= "            {\n";
+            result ~= "                removed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                    (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                    {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                        a." ~ columnName ~ " = null;\n";
+            }
+            result ~= "                    }());\n";
+            result ~= "                break;\n";
+            result ~= "            }\n";
+            result ~= "            else\n";
+            result ~= "            {\n";
+            result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ ". Cannot use Rule.setNull when the member cannot be set to null.\");\n";
+            result ~= "            }\n";
+            result ~= "        case setDefault:\n";
+            result ~= "            removed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                {\n";
+            foreach(columnName; foreignKey.columnNames)
+            {
+                result ~= "                    static if (HasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
+                result ~= "                    {\n";
+                result ~= "                        a." ~ columnName ~ " = GetDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\");\n";
+                result ~= "                    }\n";
+                result ~= "                    else\n";
+                result ~= "                    {\n";
+                result ~= "                        a." ~ columnName ~ " = typeof(a." ~ columnName ~ ").init;\n";
+                result ~= "                    }\n";
+            }
+            result ~= "                }());\n";
+            result ~= "            break;\n";
+
+            result ~= "        case cascade:\n";
+            result ~= "            removed" ~ foreignKey.referencedTableName ~ ".each!(\n";
+            result ~= "                (" ~ ClassName.stringof ~ " a) =>\n";
+            result ~= "                {\n";
+            result ~= "                    this.remove(a.key);\n";
+            result ~= "                }());\n";
+            result ~= "            break;\n";
+            result ~= "        }\n";
+            result ~= "    }\n";
+            result ~= "}\n";
+        }
+        return result;
+    }
+}

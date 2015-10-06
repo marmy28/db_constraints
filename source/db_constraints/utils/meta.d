@@ -1,7 +1,6 @@
 module db_constraints.utils.meta;
 
-import std.meta : NoDuplicates;
-import std.typetuple : TypeTuple;
+import std.meta : NoDuplicates, AliasSeq;
 import std.traits : isInstanceOf, hasUDA;
 
 import db_constraints.constraints;
@@ -95,17 +94,17 @@ Takes a type tuple of class members and alias' as a typetuple with all unique co
     {
         static if (T.length == 0)
         {
-            alias Impl = TypeTuple!();
+            alias Impl = AliasSeq!();
         }
         else
         {
             static if (__traits(compiles, __traits(getMember, ClassName, T[0])))
             {
-                alias Impl = TypeTuple!(Overloads!(__traits(getOverloads, ClassName, T[0])), Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(Overloads!(__traits(getOverloads, ClassName, T[0])), Impl!(T[1 .. $]));
             }
             else
             {
-                alias Impl = TypeTuple!(Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(Impl!(T[1 .. $]));
             }
         }
     }
@@ -116,18 +115,18 @@ Looks at the overloads for the functions.
     {
         static if (S.length == 0)
         {
-            alias Overloads = TypeTuple!();
+            alias Overloads = AliasSeq!();
         }
         else
         {
             enum attributes = Get!(__traits(getAttributes, S[0]));
             static if (attributes == "")
             {
-                alias Overloads = TypeTuple!(Overloads!(S[1 .. $]));
+                alias Overloads = AliasSeq!(Overloads!(S[1 .. $]));
             }
             else
             {
-                alias Overloads = TypeTuple!(attributes, Overloads!(S[1 .. $]));
+                alias Overloads = AliasSeq!(attributes, Overloads!(S[1 .. $]));
             }
         }
     }
@@ -164,18 +163,18 @@ template GetMembersWithUDA(ClassName, attribute)
     {
         static if (T.length == 0)
         {
-            alias Impl = TypeTuple!();
+            alias Impl = AliasSeq!();
         }
         else
         {
             static if (__traits(compiles, __traits(getMember, ClassName, T[0])) &&
                        Overloads!(__traits(getOverloads, ClassName, T[0])))
             {
-                alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(T[0], Impl!(T[1 .. $]));
             }
             else
             {
-                alias Impl = TypeTuple!(Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(Impl!(T[1 .. $]));
             }
         }
     }
@@ -292,19 +291,19 @@ template GetForeignKeys(ClassName)
     {
         static if (T.length == 0)
         {
-            alias Impl = TypeTuple!();
+            alias Impl = AliasSeq!();
         }
         else static if (isInstanceOf!(ForeignKey, T[0]))
         {
             static if (T[0].name == "")
             {
-                enum name = "FK_" ~ ClassName.stringof ~ "_" ~ T[0].referencedTableName;
+                enum name = "fk_" ~ ClassName.stringof ~ "_" ~ T[0].referencedTableName;
                 alias R = ForeignKey!(name, T[0].columnNames, T[0].referencedTableName, T[0].referencedColumnNames, T[0].updateRule, T[0].deleteRule);
-                alias Impl = TypeTuple!(R, Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(R, Impl!(T[1 .. $]));
             }
             else
             {
-                alias Impl = TypeTuple!(T[0], Impl!(T[1 .. $]));
+                alias Impl = AliasSeq!(T[0], Impl!(T[1 .. $]));
             }
         }
         else
@@ -341,12 +340,12 @@ template GetForeignKeyRefTable(ClassName)
     {
         static if (T.length == 0)
         {
-            alias Impl = TypeTuple!();
+            alias Impl = AliasSeq!();
         }
         else static if (isInstanceOf!(ForeignKey, T[0]))
         {
             enum attributes = T[0].referencedTableName;
-            alias Impl = TypeTuple!(attributes, Impl!(T[1 .. $]));
+            alias Impl = AliasSeq!(attributes, Impl!(T[1 .. $]));
         }
         else
         {
@@ -364,7 +363,7 @@ template GetDefault(ClassName, string memberName)
     }
     else
     {
-        alias GetDefault = TypeTuple!();
+        alias GetDefault = AliasSeq!();
     }
 
 /**
@@ -375,7 +374,7 @@ Looks at the overloads for the functions.
         import std.conv : to;
         static if (S.length == 0)
         {
-            alias Overloads = TypeTuple!();
+            alias Overloads = AliasSeq!();
         }
         else
         {
@@ -470,13 +469,13 @@ template ForeignKeyProperties(ClassName)
             result ~= "    static if (\n";
             for (int i = 0; i < foreignKey.columnNames.length; ++i)
             {
-                result ~= "        is(typeof(aKey." ~ foreignKey.referencedColumnNames[i] ~ ") == typeof(this." ~ foreignKey.columnNames[i] ~ "))";
                 if (i > 0)
                 {
-                    result ~= " &&";
+                    result ~= " &&\n";
                 }
-                result ~= "\n";
+                result ~= "        is(typeof(aKey." ~ foreignKey.referencedColumnNames[i] ~ ") == typeof(this." ~ foreignKey.columnNames[i] ~ "))";
             }
+            result ~= "\n";
             result ~= "        )\n";
             result ~= "    {\n";
             for (int i = 0; i < foreignKey.columnNames.length; ++i)
@@ -497,13 +496,13 @@ template ForeignKeyProperties(ClassName)
             result ~= "        if (\n";
             foreach(columnName; foreignKey.columnNames)
             {
-                result ~= "            !this." ~ columnName ~ ".isNull";
                 if (columnName != foreignKey.columnNames[0])
                 {
-                    result ~= " &&";
+                    result ~= " &&\n";
                 }
-                result ~= "\n";
+                result ~= "            !this." ~ columnName ~ ".isNull";
             }
+            result ~= "\n";
             result ~= "           )\n";
             result ~= "        {\n";
             for (int i = 0; i < foreignKey.columnNames.length; ++i)

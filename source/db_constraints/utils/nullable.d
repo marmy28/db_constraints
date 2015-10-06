@@ -563,7 +563,7 @@ unittest
 }
 unittest
 {
-    import std.typetuple : TypeTuple;
+    import std.meta : AliasSeq;
     //Check nullable is nicelly embedable in a struct
     static struct S1
     {
@@ -581,7 +581,7 @@ unittest
             ni = other.ni;
         }
     }
-    foreach (S; TypeTuple!(S1, S2))
+    foreach (S; AliasSeq!(S1, S2))
     {
         S a;
         S b = a;

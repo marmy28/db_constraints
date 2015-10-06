@@ -1,3 +1,8 @@
+/**
+ * Copyright: 2015
+ * License: GNU GENERAL PUBLIC LICENSE Version 2
+ * Authors: Matthew Armbruster
+ */
 module db_constraints.utils.meta;
 
 import std.meta : NoDuplicates, AliasSeq;

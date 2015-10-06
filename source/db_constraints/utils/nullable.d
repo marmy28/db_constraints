@@ -1,3 +1,15 @@
+/**
+ * This is basically std.typecons.Nullable with extra features.
+ *
+ * Copyright: Copyright the respective authors, 2008-
+ * License:   Boost License 1.0
+ * Authors:   Andrei Alexandrescu,
+ *            Bartosz Milewski,
+ *            Don Clugston,
+ *            Shin Fujishiro,
+ *            Kenji Hara,
+ *            Matthew Armbruster
+ */
 module db_constraints.utils.nullable;
 
 import std.traits : isBuiltinType;

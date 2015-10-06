@@ -1,5 +1,9 @@
 /**
-User-defined attributes that can be used with the KeyedItem mixin.
+ * User-defined attributes that can be used with the KeyedItem mixin.
+ *
+ * Copyright: 2015
+ * License: GNU GENERAL PUBLIC LICENSE Version 2
+ * Authors: Matthew Armbruster
  */
 module db_constraints.constraints;
 

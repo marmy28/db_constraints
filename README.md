@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/marmy28/db_constraints.svg)](https://travis-ci.org/marmy28/db_constraints)
 
+[![Coverage Status](https://coveralls.io/repos/marmy28/db_constraints/badge.svg?branch=master&service=github)](https://coveralls.io/github/marmy28/db_constraints?branch=master)
+
 ## Generating documentation
 
 Ddoc:

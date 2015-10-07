@@ -1,200 +1,82 @@
+/**
+ * Copyright: 2015
+ * License: GNU GENERAL PUBLIC LICENSE Version 2
+ * Authors: Matthew Armbruster
+ */
 module db_constraints.keyed.keyeditem;
 
-public import db_constraints.extra.constraints;
+import std.traits : isInstanceOf;
+
+public import db_constraints.constraints;
 
 /**
 Use this in the singular class which would describe a row in your
 database.
 Params:
-    T = the type of the class this is mixed into.
-    ClusteredIndexAttribute = the attribute associated with the clustered index.
+    ClusteredIndexAttribute = the unique constraint associated with the clustered index.
  */
-mixin template KeyedItem(T, ClusteredIndexAttribute = PrimaryKeyColumn)
-    if (is(T == class))
+mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
+    if (isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
 {
     import std.algorithm : canFind;
-    import std.array;
     import std.conv : to;
     import std.exception : collectException, enforceEx;
     import std.functional : unaryFun;
-    import std.meta : Erase, NoDuplicates;
+    import std.meta : Erase;
     import std.signals;
     import std.string : lastIndexOf;
-    import std.traits : isInstanceOf, hasUDA;
-    import std.typetuple : TypeTuple;
+    import std.traits : isInstanceOf;
 
-    import db_constraints.extra.db_exceptions : CheckConstraintException;
-    import db_constraints.keyed.generickey : generic_compare;
-private:
-    bool _containsChanges;
-    ClusteredIndex _key;
+    import db_constraints.db_exceptions : CheckConstraintException;
+    import db_constraints.utils.meta;
 
-    template setter(string name_ = __FUNCTION__)
-        if (name_ !is null)
+    final private alias T = typeof(this);
+    private bool _containsChanges;
+    private ClusteredIndex _key;
+
+/**
+The setter should be in your setter member. This checks your check constraint.
+Throws:
+    CheckConstraintException if your value makes checkConstraints fail.
+ */
+    final private void setter(P)(ref P member, P value, string name_ = __FUNCTION__)
     {
-        void setter(P)(ref P member, P value)
+        if (value != member)
         {
-            enum name = name_[lastIndexOf(name_, '.') + 1 .. $];
-            if (value != member)
+            P memberValue = member;
+            member = value;
+            auto ex = collectException!CheckConstraintException(checkConstraints());
+            if (ex is null)
             {
-                P memberValue = member;
-                member = value;
-                auto ex = collectException!CheckConstraintException(checkConstraints());
-                if (ex is null)
-                {
-                    notify!(name);
-                }
-                else
-                {
-                    member = memberValue;
-                    throw ex;
-                }
+                string name = name_[lastIndexOf(name_, '.') + 1 .. $];
+                notify(name);
+            }
+            else
+            {
+                member = memberValue;
+                throw ex;
             }
         }
     }
-
-    void initializeKeyedItem()
+/**
+Initializes the keyed item by running *setClusteredIndex* and *checkConstraints*.
+This should be in your constructor.
+ */
+    final private void initializeKeyedItem()
     {
         setClusteredIndex();
         checkConstraints();
     }
 
-    static assert(!getColumns!(ClusteredIndexAttribute).empty,
+    static assert(HasMembersWithUDA!(T, ClusteredIndexAttribute),
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
-
-/**
-Gets the properties of the class marked with @Attr.
- */
-    static string[] getColumns(Attr)()
-    {
-        string[] result;
-        foreach(member; __traits(derivedMembers, T))
-        {
-            static if (member != "this")
-            {
-                foreach(ov; __traits(getOverloads, T, member))
-                {
-                    static if (hasUDA!(ov, Attr))
-                    {
-                        pragma(msg, T.stringof, ".", member, " is ", Attr.stringof);
-                        result ~= member;
-                    }
-                }
-            }
-        }
-        return result;
-    }
-/**
-Gets the names given to the different UniqueConstraints
- */
-    template UniqueConstraintStructNames(ClassName)
-    {
-/**
-Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
- */
-        template Impl(T...)
-        {
-            static if (T.length == 0)
-            {
-                alias Impl = TypeTuple!();
-            }
-            else
-            {
-                static if (T[0] != "connect" &&
-                           T[0] != "slot_t" &&
-                           T[0] != "slots" &&
-                           T[0] != "slots_idx" &&
-                           T[0] != "__dtor" &&
-                           T[0] != "unhook" &&
-                           T[0] != "disconnect" &&
-                           T[0] != "emit" &&
-                           T[0] != "this")
-                {
-                    enum fullName = ClassName.stringof ~ "." ~ T[0];
-                    enum attributes =  Get!(__traits(getAttributes, mixin(fullName)));
-                    static if (attributes == "")
-                    {
-                        alias Impl = TypeTuple!(Impl!(T[1 .. $]));
-                    }
-                    else
-                    {
-                        alias Impl = TypeTuple!(attributes, Impl!(T[1 .. $]));
-                    }
-                }
-                else
-                {
-                    alias Impl = TypeTuple!(Impl!(T[1 .. $]));
-                }
-            }
-        }
-/**
-Takes a members attributes and finds if it has one that starts with UniqueConstraint
- */
-        template Get(P...)
-        {
-            static if (P.length == 0)
-            {
-                enum Get = "";
-            }
-            else
-            {
-                static if (isInstanceOf!(UniqueConstraintColumn, P[0]))
-                {
-                    alias Get = P[0].name;
-                }
-                else
-                {
-                    alias Get = Get!(P[1 .. $]);
-                }
-            }
-        }
-        alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
-    }
-
-/**
-Returns a string full of the structs.
- */
-    static string createType(string class_name)()
-    {
-        string result = "public:\n";
-        foreach(name; UniqueConstraintStructNames!(T))
-        {
-            static if (name == ClusteredIndexAttribute.name)
-            {
-                result ~= "    alias " ~ name ~ " = ClusteredIndex;\n";
-                result ~= "    alias " ~ name ~ "_key = key;\n";
-            }
-            else
-            {
-                result ~= "    struct " ~ name ~ "\n";
-                result ~= "    {\n";
-                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
-                {
-                    result ~= "        typeof(" ~ class_name ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
-                }
-                result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
-                result ~= "    }\n";
-                result ~= "    " ~ name ~ " " ~ name ~ "_key() const @property nothrow pure @safe @nogc\n";
-                result ~= "    {\n";
-                result ~= "        auto _" ~ name ~ "_key = " ~ name ~ "();\n";
-                foreach(columnName; getColumns!(UniqueConstraintColumn!name)())
-                {
-                    result ~= "        _" ~ name ~ "_key." ~ columnName ~ " = this._" ~ columnName ~ ";\n";
-                }
-                result ~= "        return _" ~ name ~ "_key;\n";
-                result ~= "    }\n";
-            }
-        }
-        return result;
-    }
-public:
 /**
 Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    final bool containsChanges() const @property nothrow pure @safe @nogc
+    final @property bool containsChanges() const nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -219,18 +101,18 @@ along with the clustered index.
 Params:
     propertyName = the property name that changed.
  */
-    final void notify(string propertyName)()
+    final void notify(string propertyName)
     {
         _containsChanges = true;
         emitChange.emit(propertyName, _key);
-        static if (getColumns!(ClusteredIndexAttribute).canFind(propertyName))
+        if (GetMembersWithUDA!(T, ClusteredIndexAttribute).canFind(propertyName))
         {
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
         foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
         {
-            static if (getColumns!(UniqueConstraintColumn!name).canFind(propertyName))
+            if (GetMembersWithUDA!(T, UniqueConstraintColumn!name).canFind(propertyName))
             {
                 emitChange.emit(name ~ "_key", _key);
             }
@@ -266,15 +148,15 @@ This is used to compare classes. The members
 are the members of the class marked with the
 attribute selected as the Clustered Index.
  */
-    struct ClusteredIndex
+    final struct ClusteredIndex
     {
         // creates the members of the clustered key with appropriate type.
         mixin(function string()
               {
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
+                  foreach(columnName; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
-                      result ~= "typeof(" ~ T.stringof ~ "." ~ pkcolumn ~ ") " ~ pkcolumn ~ ";\n";
+                      result ~= "typeof(" ~ T.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                   }
                   return result;
               }());
@@ -288,7 +170,7 @@ The clustered index property for the class.
 Returns:
     The clustered index for the class.
  */
-    final ClusteredIndex key() const @property nothrow pure @safe @nogc
+    final @property ClusteredIndex key() const nothrow pure @safe @nogc
     {
         return _key;
     }
@@ -302,53 +184,21 @@ Sets the clustered index for `this`.
         mixin(function string()
               {
                   string result = "";
-                  foreach(pkcolumn; getColumns!(ClusteredIndexAttribute))
+                  foreach(pkcolumn; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
-                      result ~= "new_key." ~ pkcolumn ~ " = this." ~ pkcolumn ~ ";\n";
+                      result ~= "new_key." ~ pkcolumn ~ " = this._" ~ pkcolumn ~ ";\n";
                   }
                   return result;
               }());
         this._key = new_key;
     }
 
-/**
-Compares `this` based on the clustered index.
-Returns:
-    true if the clustered index equal.
- */
-    override bool opEquals(Object o) const pure nothrow @nogc
+    static if (HasForeignKeys!(T))
     {
-        auto rhs = cast(immutable T)o;
-        return (rhs !is null && this.key == rhs.key);
+        mixin(ForeignKeyProperties!(T));
     }
 
-/**
-Compares `this` based on the clustered index if comparison is with the same class.
-Returns:
-    The comparison from the clustered index.
- */
-    override int opCmp(Object o) const
-    {
-        // Taking advantage of the automatically-maintained order of the types.
-        if (typeid(this) != typeid(o))
-        {
-            return typeid(this).opCmp(typeid(o));
-        }
-        auto rhs = cast(immutable T)o;
-        return this.key.opCmp(rhs.key);
-    }
-
-
-/**
-Gets the hash of the clustered index.
-Returns:
-    The hash of the clustered index.
- */
-    override size_t toHash() const nothrow @safe
-    {
-        return this.key.toHash();
-    }
-    mixin(createType!(T.stringof));
+    mixin(ConstraintStructs!(T, ClusteredIndexAttribute.name));
 }
 
 ///
@@ -362,32 +212,32 @@ unittest
         string _brand;
     public:
         // name is the primary key
-        @PrimaryKeyColumn
-        string name() const @property nothrow pure @safe @nogc
+        @PrimaryKeyColumn @NotNull
+        @property string name() const nothrow pure @safe @nogc
         {
             return _name;
         }
-        void name(string value) @property
+        @property void name(string value)
         {
             setter(_name, value);
         }
         // ranking must be unique among all the other records
         @UniqueConstraintColumn!("uc_Candy_ranking")
-        int ranking() const @property nothrow pure @safe @nogc
+        @property int ranking() const nothrow pure @safe @nogc
         {
             return _ranking;
         }
         // making sure that ranking will always be above 0
         @CheckConstraint!(a => a > 0, "chk_Candy_ranking")
-        void ranking(int value) @property
+        @property void ranking(int value)
         {
             setter(_ranking, value);
         }
-        string brand() const @property nothrow pure @safe @nogc
+        @property string brand() const nothrow pure @safe @nogc
         {
             return _brand;
         }
-        void brand(string value) @property
+        @property void brand(string value)
         {
             setter(_brand, value);
         }
@@ -402,8 +252,9 @@ unittest
         {
             return new Candy(this._name, this._ranking, this._brand);
         }
+
         // The primary key is now the clustered index as it is by default
-        mixin KeyedItem!(typeof(this), PrimaryKeyColumn);
+        mixin KeyedItem!(PrimaryKeyColumn);
     }
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
@@ -418,7 +269,7 @@ unittest
 
     auto j = new Candy("Opal Fruit", 16, "");
     // since name is the primary key i and j are equal because the names are equal
-    assert(i == j);
+    assert(i.key == j.key);
 
     // in 1967 Opal Fruits came to America and changed its name
     i.name = "Starburst";
@@ -428,29 +279,30 @@ unittest
 
     // by changing the name it also changes the primary key
     assert(i.key != pk);
-    assert(i != j);
+    assert(i.key != j.key);
 
     // below is what is created when you include the mixin KeyedItem
     enum candyStructs =
 `public:
-    alias PrimaryKey = ClusteredIndex;
-    alias PrimaryKey_key = key;
-    struct uc_Candy_ranking
+    final alias PrimaryKey = ClusteredIndex;
+    final alias PrimaryKey_key = key;
+    final struct uc_Candy_ranking
     {
         typeof(Candy.ranking) ranking;
         mixin generic_compare!(uc_Candy_ranking);
     }
-    uc_Candy_ranking uc_Candy_ranking_key() const @property nothrow pure @safe @nogc
+    final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe @nogc
     {
         auto _uc_Candy_ranking_key = uc_Candy_ranking();
         _uc_Candy_ranking_key.ranking = this._ranking;
         return _uc_Candy_ranking_key;
     }
 `;
-    assert(Candy.createType!(Candy.stringof) == candyStructs);
+    import db_constraints.utils.meta : ConstraintStructs;
+    static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
     import std.exception : assertThrown;
-    import db_constraints.extra.db_exceptions : CheckConstraintException;
+    import db_constraints.db_exceptions : CheckConstraintException;
     // we expect setting the ranking to 0 will result in an exception
     // since we labeled that column with
     // @CheckConstraint!(a => a > 0, "chk_Candy_ranking")

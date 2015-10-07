@@ -9,22 +9,22 @@ private:
     string _cName;
     int _nNumClasses;
 public:
-    @PrimaryKeyColumn
-    string cName() const @property nothrow pure @safe @nogc
+    @PrimaryKeyColumn @NotNull
+    @property string cName() const nothrow pure @safe @nogc
     {
         return _cName;
     }
     @CheckConstraint!("a.length < 13")
-    void cName(immutable(char)[] value) @property
+    @property void cName(immutable(char)[] value)
     {
         setter(_cName, value);
     }
-    @UniqueConstraintColumn!("uc_Student")
-    int nNumClasses() const @property nothrow pure @safe @nogc
+    @property int nNumClasses() const nothrow pure @safe @nogc
     {
         return _nNumClasses;
     }
-    void nNumClasses(immutable(int) value) @property
+    @UniqueConstraintColumn!("uc_Student")
+    @property void nNumClasses(immutable(int) value)
     {
         setter(_nNumClasses, value);
     }
@@ -60,7 +60,21 @@ public:
     {
         return this.cName;
     }
-    mixin KeyedItem!(typeof(this));
+    override int opCmp(Object o) const
+    {
+        if (typeid(this) != typeid(o))
+        {
+            return typeid(this).opCmp(typeid(o));
+        }
+        auto rhs = cast(immutable Student)o;
+        return this.key.opCmp(rhs.key);
+    }
+    override bool opEquals(Object o) const pure nothrow @nogc
+    {
+        auto rhs = cast(immutable Student)o;
+        return (rhs !is null && this.key == rhs.key);
+    }
+    mixin KeyedItem!();
 }
 
 unittest
@@ -112,18 +126,7 @@ unittest
 
 
 version(unittest)
-class Students : BaseKeyedCollection!(Student)
-{
-public:
-    this(Student[] items)
-    {
-        super(items);
-    }
-    this(Student item)
-    {
-        super(item);
-    }
-}
+alias Students = BaseKeyedCollection!(Student);
 
 unittest
 {

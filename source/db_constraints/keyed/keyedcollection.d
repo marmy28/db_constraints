@@ -1,13 +1,43 @@
+/**
+ * Copyright: 2015
+ * License: GNU GENERAL PUBLIC LICENSE Version 2
+ * Authors: Matthew Armbruster
+ */
 module db_constraints.keyed.keyedcollection;
 
-import std.algorithm : canFind, endsWith;
+import std.algorithm : canFind, endsWith, each;
 import std.conv : to;
 import std.exception : enforceEx;
-import std.signals;
 import std.traits;
+import std.typecons : Flag, Yes, No;
 
-import db_constraints.extra.db_exceptions;
+import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
+import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
+
+template usableForKeyedCollection(alias T)
+{
+    enum usableForKeyedCollection = ( is(T == class) &&
+        __traits(compiles,
+                 (T t)
+                 {
+                     T i = t.dup();
+                     if (i.key == t.key) { }
+                     class Example
+                     {
+                         void itemChanged(string propertyName, typeof(T.key) item_key) { }
+                         void add(T item)
+                         {
+                             item.emitChange.connect(&itemChanged);
+                         }
+                     }
+                     t.checkConstraints();
+                     t.markAsSaved();
+                     auto j = new Example();
+                     j.add(t);
+                     string k = t.toString;
+                 }));
+}
 
 /**
 Turns the inheriting class into a base keyed collection.
@@ -17,27 +47,46 @@ you include the keyeditem in the *T* class.
 Params:
     T = the singular class.
  */
-abstract class BaseKeyedCollection(T)
-    if (hasMember!(T, "dup") &&
-        hasMember!(T, "key") &&
-        hasMember!(T, "emitChange") &&
-        hasMember!(T, "checkConstraints") &&
-        hasMember!(T, "UniqueConstraintStructNames")
-        )
+class BaseKeyedCollection(T)
+    if (usableForKeyedCollection!(T))
 {
-public:
+    mixin KeyedCollection!(T);
+}
+
+mixin template KeyedCollection(T)
+    if (usableForKeyedCollection!(T))
+{
+    import std.algorithm : canFind, endsWith, each, filter;
+    import std.signals;
+
+
 /**
 The key type is alias'd at the type since it looked better than having
 typeof(T.key) everywhere.
  */
-    alias key_type = typeof(T.key);
-private:
-    bool _containsChanges;
-    bool _enforceConstraints = true;
+    final alias key_type = typeof(T.key);
+
+    private bool _containsChanges;
+    private bool _enforceConstraints = true;
+
+    static if (HasForeignKeys!(T))
+    {
+        mixin(foreignKeyTableProperties!(T));
+
+        void checkForeignKeys()
+        {
+            this.byValue.each!(
+                (T a) =>
+                {
+                    mixin(foreignKeyCheckExceptions!(T));
+                }());
+        }
+        mixin(ForeignKeyChanged!(T));
+    }
 /**
 Called when an item is being added or an item changed.
  */
-    final void checkConstraints(T item)
+    final private void checkConstraints(T item)
     {
         if (_enforceConstraints)
         {
@@ -45,51 +94,57 @@ Called when an item is being added or an item changed.
             item.checkConstraints();
             enforceEx!UniqueConstraintException(
                 !violatesUniqueConstraints(item, constraintName),
-                "The " ~ constraintName ~ " constraint was violated by " ~ item.toString ~ ".");
+                "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
+                "  was violated by item " ~ item.toString ~ ".");
+            static if (HasForeignKeys!(T))
+            {
+                checkForeignKeys();
+            }
         }
     }
     /// ditto
-    final void checkConstraints(key_type item_key)
+    final private void checkConstraints(key_type item_key)
     {
         checkConstraints(this[item_key]);
     }
-protected:
 /**
 itemChanged is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
  */
-    final void itemChanged(string propertyName, key_type item_key)
+    protected void itemChanged(string propertyName, key_type item_key)
     {
+        key_type emit_key = item_key;
         if (propertyName == "key")
         {
             T item = this._items[item_key].dup();
-            this.remove(item_key);
-            this.add(item);
+            this.remove(item_key, No.notifyChange);
+            this.add(item, No.notifyChange);
+            emit_key = item.key;
         }
         else if (propertyName.endsWith("_key"))
         {
             checkConstraints(item_key);
         }
-        notify(propertyName);
+        notify(propertyName, emit_key);
     }
     T[key_type] _items;
-public:
-    mixin Signal!(string);
-final:
+
+    mixin Signal!(string, key_type) collectionChanged;
 /**
 Changes `this` to not contain changes. Should only
 be used after a save.
  */
-    void markAsSaved() nothrow pure @safe @nogc
+    final void markAsSaved() nothrow pure @nogc
     {
         _containsChanges = false;
+        this.byValue.each!(a => a.markAsSaved());
     }
 /**
 Read-only property telling if `this` contains changes.
 Returns:
     true if `this` contains changes.
  */
-    bool containsChanges() const @property nothrow pure @safe @nogc
+    final @property bool containsChanges() const nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
@@ -101,12 +156,12 @@ initial data and already trust that is unique and accurate.
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    bool enforceConstraints() const @property nothrow pure @safe @nogc
+    final @property bool enforceConstraints() const nothrow pure @safe @nogc
     {
         return _enforceConstraints;
     }
     /// ditto
-    void enforceConstraints(bool value) @property nothrow pure @safe @nogc
+    final @property void enforceConstraints(bool value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
     }
@@ -116,27 +171,37 @@ Notifies `this` which property changed.
 This also emits a signal with the property name that changed.
 Params:
     propertyName = the property name that changed.
+    item_key = the items key that changed.
  */
-    void notify(string propertyName)
+    final void notify()(string propertyName, key_type item_key)
     {
         _containsChanges = true;
-        emit(propertyName);
+        collectionChanged.emit(propertyName, item_key);
+    }
+    /// ditto
+    final void notify(string propertyName)(key_type item_key)
+    {
+        _containsChanges = true;
+        collectionChanged.emit(propertyName, item_key);
     }
 /**
 Removes an item from `this` and disconnects the signals. Notifies
 that the length of `this` has changed.
  */
-    void remove(key_type item_key)
+    final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     {
         if (this.contains(item_key))
         {
             this._items[item_key].disconnect(&itemChanged);
             this._items.remove(item_key);
-            notify("length");
+            if (notifyChange)
+            {
+                notify!("remove")(item_key);
+            }
         }
     }
     /// ditto
-    void remove(T item)
+    final void remove(T item)
     in
     {
         assert(item !is null, "Trying to remove a null item.");
@@ -146,7 +211,7 @@ that the length of `this` has changed.
         this.remove(item.key);
     }
     /// ditto
-    void remove(A...)(A a)
+    final void remove(A...)(A a)
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -164,14 +229,15 @@ Adds `item` to `this` and connects to the signals emitted by `item`.
 Notifies that the length of `this` has changed.
 Params:
     item = the item you want to add to `this`.
+    notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
 Throws:
     UniqueConstraintException if `this` already contains `item` and
     enforceConstraints is true.
-
+Throws:
     CheckConstraintException if the item is violating any of its
     defined check constraints and enforceConstraints is true.
  */
-    void add(T item)
+    final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
     {
         assert(item !is null, "Trying to add a null item.");
@@ -181,16 +247,18 @@ Throws:
         this.checkConstraints(item);
         item.emitChange.connect(&itemChanged);
         this._items[item.key] = item;
-        notify("length");
+        if (notifyChange)
+        {
+            notify!("add")(item.key);
+        }
     }
     /// ditto
-    this(T item)
+    final this(T item)
     {
-        this.add(item);
-        this._containsChanges = false;
+        this.add(item, No.notifyChange);
     }
     /// ditto
-    ref auto opOpAssign(string op)(T item)
+    final ref auto opOpAssign(string op)(T item)
         if (op == "~")
     {
         this.add(item);
@@ -198,7 +266,7 @@ Throws:
 /**
 Does the same as `add(T item)` but for an array.
  */
-    void add(T[] items)
+    final void add(T[] items)
     in
     {
         assert(items !is null, "Trying to add a null array");
@@ -211,13 +279,15 @@ Does the same as `add(T item)` but for an array.
         }
     }
     /// ditto
-    this(T[] items)
+    final this(T[] items)
     {
-        this.add(items);
-        this._containsChanges = false;
+        foreach(item; items)
+        {
+            this.add(item, No.notifyChange);
+        }
     }
     /// ditto
-    ref auto opOpAssign(string op)(T[] items)
+    final ref auto opOpAssign(string op)(T[] items)
         if (op == "~")
     {
         this.add(items);
@@ -228,8 +298,10 @@ Params:
     item = the item you want back from the collection.
 Returns:
     The item in the collection that matches `item`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(T item)
+    final ref inout(T) opIndex(in T item) inout
     in
     {
         assert(item !is null, "Trying to lookup with a null.");
@@ -244,8 +316,10 @@ Params:
     clIdx = the clustered index of the item you want back.
 Returns:
     The item in the collection that has clustered index `clIdx`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(key_type clIdx)
+    final ref inout(T) opIndex(in key_type clIdx) inout
     {
         if (this.contains(clIdx))
         {
@@ -268,8 +342,10 @@ Params:
     a = the fields of the clustered index of the item you want back.
 Returns:
     The item in the collection that has the clustered index with fields `a`.
+Throws:
+    KeyedException if `this` does not contain a matching clustered index.
  */
-    ref T opIndex(A...)(A a)
+    final ref inout(T) opIndex(A...)(in A a) inout
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -294,10 +370,10 @@ to the private associative array.
 /**
 Allows you to use `this` in a foreach loop.
  */
-    int opApply(int delegate(ref T) dg)
+    final int opApply(int delegate(ref T) dg)
     {
         int result = 0;
-        foreach(T i; this._items.values)
+        foreach(T i; this.values)
         {
             result = dg(i);
             if (result)
@@ -306,10 +382,10 @@ Allows you to use `this` in a foreach loop.
         return result;
     }
     /// ditto
-    int opApply(int delegate(key_type, ref T) dg)
+    final int opApply(int delegate(key_type, ref T) dg)
     {
         int result = 0;
-        foreach(T i; this._items.values)
+        foreach(T i; this.values)
         {
             result = dg(i.key, i);
             if (result)
@@ -322,7 +398,7 @@ Gets the length of the collection.
 Returns:
     The number of items in the collection.
  */
-    size_t length() @property @safe nothrow pure
+    final size_t length() const @property @safe nothrow pure
     {
         return this._items.length;
     }
@@ -333,15 +409,15 @@ Params:
 Returns:
     true if `item` is in the collection.
  */
-    bool contains(T item) nothrow pure @safe @nogc
+    final bool contains(in T item) const nothrow pure @safe @nogc
     {
         return this.contains(item.key);
     }
     /// ditto
-    bool opBinaryRight(string op)(T item) nothrow pure @safe @nogc
+    inout(T)* opBinaryRight(string op)(in T item) inout nothrow pure @safe @nogc
         if (op == "in")
     {
-        return this.contains(item);
+        return (item.key in this);
     }
 /**
 Checks if `clIdx` is in the collection.
@@ -352,16 +428,16 @@ Returns:
     true if there is a clustered index in the collection that
     matches `clIdx`.
  */
-    bool contains(key_type clIdx) nothrow pure @safe @nogc
+    final bool contains(in key_type clIdx) const nothrow pure @safe @nogc
     {
         auto i = (clIdx in this._items);
         return (i !is null);
     }
     /// ditto
-    bool opBinaryRight(string op)(key_type clIdx) nothrow pure @safe @nogc
+    final inout(T)* opBinaryRight(string op)(in key_type clIdx) inout nothrow pure @safe @nogc
         if (op == "in")
     {
-        return this.contains(clIdx);
+        return (clIdx in this._items);
     }
 /**
 Checks if `a` makes a clustered index that is in the collection.
@@ -372,7 +448,7 @@ Returns:
     true if there is a clustered index in the collection that
     matches `a`.
  */
-    bool contains(A...)(A a) nothrow pure @safe @nogc
+    final bool contains(A...)(in A a) const nothrow pure @safe @nogc
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
@@ -386,16 +462,25 @@ Returns:
         return this.contains(clIdx);
     }
     /// ditto
-    bool opBinaryRight(string op, A...)(A a) nothrow pure @safe @nogc
+    final inout(T)* opBinaryRight(string op, A...)(in A a) inout nothrow pure @safe @nogc
         if (op == "in")
+    in
     {
-        return this.contains(a);
+        static assert(A.length == key_type.tupleof.length, T.stringof ~
+                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " member(s). You included " ~ A.length.to!string ~
+                      " members when using 'in'.");
+    }
+    body
+    {
+        auto clIdx = key_type(a);
+        return (clIdx in this);
     }
 /**
 Checks if the item has any conflicting unique constraints. This
 is more extensive than `contains`.
  */
-    bool violatesUniqueConstraints(T item, out string constraintName)
+    final bool violatesUniqueConstraints(in T item, out string constraintName) const nothrow pure
     in
     {
         assert(item !is null, "Cannot check if a null item is duplicated.");
@@ -405,35 +490,35 @@ is more extensive than `contains`.
         if (result)
             assert(constraintName !is null && constraintName != "");
         else
-            assert(constraintName == "");
+            assert(constraintName is null);
     }
     body
     {
         bool result = false;
-        constraintName = "";
-        foreach(uniqueName; T.UniqueConstraintStructNames!(T))
+        foreach(uniqueName; UniqueConstraintStructNames!(T))
         {
-            if (this.byValue.canFind!("a !is b && " ~
+            if (this._items.byValue.canFind!("a !is b && " ~
                                       "a." ~ uniqueName ~ "_key == " ~
                                       "b." ~ uniqueName ~ "_key")(item))
             {
                 result = true;
-                constraintName ~= uniqueName ~ ", ";
+                if (constraintName is null)
+                {
+                    constraintName = uniqueName;
+                }
+                else
+                {
+                    constraintName ~= ", " ~ uniqueName;
+                }
             }
-        }
-
-        if (constraintName.endsWith(", "))
-        {
-            constraintName = constraintName[0..$-2];
         }
         return result;
     }
     // ditto
-    bool violatesUniqueConstraints(T item)
+    final bool violatesUniqueConstraints(in T item) const nothrow pure
     {
-        auto constraintName = "";
-        auto result = this.violatesUniqueConstraints(item, constraintName);
-        return result;
+        string constraintName;
+        return this.violatesUniqueConstraints(item, constraintName);
     }
 }
 
@@ -450,38 +535,38 @@ unittest
         string _brand;
     public:
         // marking name as part of the primary key
-        @PrimaryKeyColumn
-        string name() const @property nothrow pure @safe @nogc
+        @PrimaryKeyColumn @NotNull
+        @property string name() const nothrow pure @safe @nogc
         {
             return _name;
         }
-        void name(string value) @property
+        @property void name(string value)
         {
             setter(_name, value);
         }
-        int ranking() const @property nothrow pure @safe @nogc
+        @property int ranking() const nothrow pure @safe @nogc
         {
             return _ranking;
         }
-        void ranking(int value) @property
+        // making sure that ranking will always be above 0
+        @CheckConstraint!(a => a > 0, "chk_Candys_ranking")
+        @property void ranking(int value)
         {
             setter(_ranking, value);
         }
-        int annualSales() const @property nothrow pure @safe @nogc
+        @property int annualSales() const nothrow pure @safe @nogc
         {
             return _annualSales;
         }
-        void annualSales(int value) @property
+        @property void annualSales(int value)
         {
             setter(_annualSales, value);
         }
-        string brand() const @property nothrow pure @safe @nogc
+        @property string brand() const nothrow pure @safe @nogc
         {
             return _brand;
         }
-        // this can only be Mars or Hershey
-        @CheckConstraint!((a) => a == "Mars" || a == "Hershey")
-        void brand(string value) @property
+        @property void brand(string value)
         {
             setter(_brand, value);
         }
@@ -501,22 +586,13 @@ unittest
         }
         // the default is to make the primary key into the clustered index
         // which allows you to search based on the primary key
-        mixin KeyedItem!(typeof(this));
+        mixin KeyedItem!();
     }
 
     // plural class
-    class Candies : BaseKeyedCollection!(Candy)
-    {
-    public:
-        this(Candy[] items)
-        {
-            super(items);
-        }
-        this(Candy item)
-        {
-            super(item);
-        }
-    }
+    // I am using an alias since BaseKeyedCollection
+    // takes care of everything I want to do for this example.
+    alias Candies = BaseKeyedCollection!(Candy);
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
     auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
@@ -529,12 +605,12 @@ unittest
     assert(!mars.containsChanges);
 
     // use the class as an index
-    assert(mars[milkyWay] == milkyWay);
+    assert(mars[milkyWay] is milkyWay);
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
-    assert(mars[pk] == milkyWay);
+    assert(mars[pk] is milkyWay);
     // use the contents of the primary key as an index
-    assert(mars["Milkey Way"] == milkyWay);
+    assert(mars["Milkey Way"] is milkyWay);
 
     // milky way is in mars
     assert(mars.contains(pk));
@@ -559,25 +635,25 @@ unittest
 
     // trying to add another candy with the same name will
     // result in a unique constraint violation
-    auto milkyWay2 = new Candy("Milky Way", 0, 0, "Mars");
+    auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
     import std.exception : assertThrown;
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
-    // trying to change the brand name to something other than
-    // Mars or Hershey will result in a check constraint violation
-    // since we marked brand with a check constraint
-    assertThrown!(CheckConstraintException)(mars["Milky Way"].brand = "Cars");
+    // ranking has a check constraint saying ranking always must be greater
+    // than 0. setting it to -1 resolves in a CheckConstraintException.
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
+    // Since name is part of the primary key we must mark it with NotNull
+    // trying to set this to null will result in a CheckConstraintException.
+    assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
     // violatesUniqueConstraints will tell you which constraint is violated if any
-    auto violatedConstraint = "";
+    string violatedConstraint;
     assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-    assert(violatedConstraint == "PrimaryKey");
+    assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
 
     // removing milky way from mars
     mars.remove("Milky Way");
     // this means milkyWay2 is no longer a duplicate
     assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
-    assert(violatedConstraint == "");
-
-
+    assert(violatedConstraint is null);
 }

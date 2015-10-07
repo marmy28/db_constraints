@@ -1,20 +1,40 @@
-module db_constraints.extra.nullable;
+/**
+ * This is basically std.typecons.Nullable with extra features.
+ *
+ * Copyright: Copyright the respective authors, 2008-
+ * License:   Boost License 1.0
+ * Authors:   Andrei Alexandrescu,
+ *            Bartosz Milewski,
+ *            Don Clugston,
+ *            Shin Fujishiro,
+ *            Kenji Hara,
+ *            Matthew Armbruster
+ */
+module db_constraints.utils.nullable;
+
+import std.traits : isBuiltinType;
+
+template isNullable(T, I)
+{
+    enum isNullable = __traits(compiles,
+                               (I i)
+                               {
+                                   Nullable!T test = i;
+                               });
+}
 
 /**
 Defines a value paired with a distinctive "null" state that denotes
 the absence of a value. If default constructed, a $(D
 Nullable!T) object starts in the null state. Assigning it renders it
-non-null. Assigning null can nullify it again.
+non-null. Calling $(D nullify) can nullify it again.
 Practically $(D Nullable!T) stores a $(D T) and a $(D bool).
-`T` cannot have an initial value of null for example strings or classes.
  */
 struct Nullable(T)
-    if (!__traits(compiles, T.init == null))
 {
-private:
-    T _value;
-    bool _hasValue;
-public:
+    private T _value;
+    private bool _isNull = true;
+
 /**
 Constructor initializing $(D this) with $(D value).
 Params:
@@ -22,14 +42,10 @@ Params:
  */
     this(inout T value) inout
     {
-        this._value = value;
-        this._hasValue = true;
+        _value = value;
+        _isNull = false;
     }
-
-/**
-Constructor initializing $(D this) to be null.
-*/
-    this(A : typeof(null))(A) inout nothrow pure @safe @nogc
+    this(N : typeof(null))(N n) inout nothrow pure @safe @nogc
     {
     }
 
@@ -39,44 +55,40 @@ Constructor initializing $(D this) to be null.
         // Needs to be a template because of DMD @@BUG@@ 13737.
         void toString()(scope void delegate(const(char)[]) sink, FormatSpec!char fmt)
         {
-            if (this.hasValue)
+            if (isNull)
             {
-                sink.formatValue(_value, fmt);
+                sink.formatValue("Nullable.null", fmt);
             }
             else
             {
+                sink.formatValue(_value, fmt);
+            }
+        }
+
+        // Issue 14940
+        void toString()(scope void delegate(const(char)[]) @safe sink, FormatSpec!char fmt)
+        {
+            if (isNull)
+            {
                 sink.formatValue("Nullable.null", fmt);
+            }
+            else
+            {
+                sink.formatValue(_value, fmt);
             }
         }
     }
 
 /**
-Check if `this` has a value.
-Returns:
-    true $(B iff) `this` has a value, otherwise false.
-*/
-    bool hasValue() const @property nothrow pure @safe @nogc
-    {
-        return this._hasValue;
-    }
-///
-unittest
-{
-    Nullable!int ni;
-    assert(!ni.hasValue);
-
-    ni = 0;
-    assert(ni.hasValue);
-}
-/**
 Check if `this` is in the null state.
 Returns:
     true $(B iff) `this` is in the null state, otherwise false.
-*/
-    bool isNull() const @property nothrow pure @safe @nogc
+ */
+    @property bool isNull() const @safe pure nothrow @nogc
     {
-        return !this.hasValue;
+        return _isNull;
     }
+
 ///
 unittest
 {
@@ -87,47 +99,52 @@ unittest
     assert(!ni.isNull);
 }
 
+// Issue 14940
+@safe unittest
+{
+    import std.array : appender;
+    import std.format : formattedWrite;
+
+    auto app = appender!string();
+    Nullable!int a = 1;
+    formattedWrite(app, "%s", a);
+    assert(app.data == "1");
+}
+
+
+
+
+
+
     static if (!is(T == immutable(T)) && !is(T == const(T)))
     {
 /**
-Assigns $(D rhs) to the internally-held state. If the assignment
+Assigns $(D value) to the internally-held state. If the assignment
 succeeds, $(D this) becomes non-null.
 Params:
-    rhs = A value of type `T` to assign to this `Nullable`.
+    value = A value of type `T` to assign to this `Nullable`.
  */
-        void opAssign(T rhs) //nothrow pure @safe @nogc
+        void opAssign()(T value)
         {
-            this._value = rhs;
-            this._hasValue = true;
+            _value = value;
+            _isNull = false;
         }
 /**
 Forces $(D this) to the null state.
  */
-        void opAssign(RHS : typeof(null))(RHS rhs) nothrow pure @safe @nogc
+        void nullify()() @safe nothrow pure @nogc
         {
-            this._value = T.init;
-            this._hasValue = false;
+            .destroy(_value);
+            _isNull = true;
         }
-
-///
-unittest
-{
-    Nullable!int ni = 0;
-    assert(ni.hasValue);
-    ni = null;
-    assert(!ni.hasValue);
-}
-/**
-Forces $(D this) to the null state.
-Deprecated:
-    Assign null instead.
- */
-        void nullify() nothrow pure @safe
+        /// ditto
+        void opAssign(N : typeof(null))(N n) @safe nothrow pure @nogc
+            if (!__traits(compiles, T.init == null))
         {
-            this._value = T.init;
-            _hasValue = false;
+            this.nullify();
         }
     }
+
 ///
 unittest
 {
@@ -137,145 +154,187 @@ unittest
     ni.nullify();
     assert(ni.isNull);
 }
-
-    // opEquals section
-    bool opEquals(RHS : typeof(null))(inout RHS) const nothrow pure @safe @nogc
-    {
-        return (this.hasValue ? false : true);
-    }
-    bool opEquals(Nullable!T rhs) const
-    {
-        bool result = false;
-        if (rhs.hasValue)
-        {
-            result = this.opEquals(rhs.get);
-        }
-        else if (this.hasValue)
-        {
-            result = false;
-        }
-        else
-        {
-            result = true;
-        }
-        return result;
-    }
-    bool opEquals(inout T rhs) const nothrow pure
-    {
-        bool result = false;
-        if (this.hasValue)
-        {
-            result = (this._value == rhs);
-        }
-        return result;
-    }
-
 /**
-Only allow the comparison if `T` is not a struct or if `T` is a struct
-and has defined opCmp
-*/
-    static if (!is(T == struct) || (is(T == struct) && __traits(compiles,this._value.opCmp(T.init) )))
+    If this `Nullable` wraps a type that already has a null value
+    (such as a pointer), then assigning the null value to this
+    `Nullable` is no different than assigning any other value of
+    type `T`, and the resulting code will look very strange. It
+    is strongly recommended that this be avoided by instead using
+    the version of `Nullable` that takes an additional `nullValue`
+    template argument.
+ */
+unittest
+{
+    //Passes
+    Nullable!(int*) npi;
+    assert(npi.isNull);
+
+    //Passes?!
+    npi = null;
+    assert(!npi.isNull);
+}
+    static if (__traits(compiles, (T a, T b) { return a == b; }) && !is(T == class))
     {
-        int opCmp(RHS : typeof(null))(inout RHS) const nothrow pure @safe @nogc
+        bool opEquals(N : typeof(null))(N n) const nothrow pure @safe @nogc
         {
-            return (this.hasValue ? 1 : 0);
+            return this.isNull;
+        }
+        bool opEquals(inout T rhs) const nothrow pure
+        {
+            bool result = false;
+            if (!this.isNull)
+            {
+                result = (this._value == rhs);
+            }
+            return result;
+        }
+        bool opEquals(Nullable!T rhs) const
+        {
+            bool result = false;
+            if (!rhs.isNull)
+            {
+                result = this.opEquals(rhs.get);
+            }
+            else if (!this.isNull)
+            {
+                result = false;
+            }
+            else
+            {
+                result = true;
+            }
+            return result;
+        }
+    }
+    static if (__traits(compiles, (T a, T b) { return a > b; }) && !is(T == class))
+    {
+        int opCmp(N : typeof(null))(N n) const nothrow pure @safe @nogc
+        {
+            return (this.isNull ? 0 : 1);
+        }
+        int opCmp(inout T rhs) const nothrow pure
+        {
+            int result = -1;
+            if (!this.isNull)
+            {
+                if (this._value < rhs)
+                {
+                    result = -1;
+                }
+                else if (this._value > rhs)
+                {
+                    result = 1;
+                }
+                else
+                {
+                    result = 0;
+                }
+            }
+            return result;
         }
         int opCmp(Nullable!T rhs) const nothrow pure
         {
             int result = 0;
-            if (rhs.hasValue)
+            if (!rhs.isNull)
             {
                 result = this.opCmp(rhs.get);
             }
-            else if (this.hasValue)
+            else if (!this.isNull)
             {
                 result = 1;
             }
             return result;
         }
-        int opCmp(inout T rhs) const nothrow pure
-        {
-            int result = -1;
-            if (this.hasValue)
-            {
-                static if (__traits(compiles, this._value.opCmp(rhs)))
-                {
-                    result = (this._value.opCmp(rhs));
-                }
-                else
-                {
-                    if (this._value < rhs)
-                    {
-                        result = -1;
-                    }
-                    else if (this._value > rhs)
-                    {
-                        result = 1;
-                    }
-                    else
-                    {
-                        result = 0;
-                    }
-                }
-            }
-            return result;
-        }
     }
-/**
-Gets the value.
-This function is also called for the implicit conversion to $(D T).
-Returns:
-    The value held internally by this `Nullable` or null.
- */
-    deprecated("Use get instead")
-    ref inout(T) value() inout @property nothrow pure @safe @nogc
-    {
-        return *(this.hasValue ? &this._value : null);
-    }
-/**
-Gets the value or the extra value passed in.
-Returns:
-    The value held internally by this `Nullable` or the extra value passed in.
- */
-    auto ref getValueOr(lazy inout T extra_value) pure @safe
-    {
-        return (this.hasValue ? this._value : extra_value);
-    }
-    deprecated("Use getValueOr")
-    auto ref valueOr(lazy inout T extra_value) pure @safe
-    {
-        return (this.hasValue ? this._value : extra_value);
-    }
+
 
 /**
 Gets the value. $(D this) must not be in the null state.
+This function is also called for the implicit conversion to $(D T).
 Returns:
     The value held internally by this `Nullable`.
-Deprecated:
-    Use value instead.
  */
-    ref inout(T) get() inout @property nothrow pure @safe @nogc
+    @property ref inout(T) get() inout @safe pure nothrow
+    in
     {
         enum message = "Called `get' on null Nullable!" ~ T.stringof ~ ".";
-        assert(this.hasValue, message);
+        assert(!isNull, message);
+    }
+    body
+    {
         return _value;
     }
+/**
+Gets the value or the default value passed in.
+Returns:
+    The value held internally by this `Nullable` or the extra value passed in.
+ */
+    auto ref inout(T) getValueOr(lazy inout T defVal) inout
+    {
+        return (this.isNull ? defVal : this.get);
+    }
+
+///
+unittest
+{
+    import std.exception: assertThrown, assertNotThrown;
+
+    Nullable!int ni;
+    //`get` is implicitly called. Will throw
+    //an AssertError in non-release mode
+    assertThrown!Throwable(ni += 1);
+
+    ni = 0;
+    assertNotThrown!Throwable(ni += 1);
+}
 
 /**
 Implicitly converts to $(D T).
+$(D this) must not be in the null state.
  */
     alias get this;
 }
 
+///
+unittest
+{
+    struct CustomerRecord
+    {
+        string name;
+        string address;
+        int customerNum;
+    }
+
+    Nullable!CustomerRecord getByName(string name)
+    {
+        //A bunch of hairy stuff
+
+        return Nullable!CustomerRecord.init;
+    }
+
+    auto queryResult = getByName("Doe, John");
+    if (!queryResult.isNull)
+    {
+        //Process Mr. Doe's customer record
+        auto address = queryResult.address;
+        auto customerNum = queryResult.customerNum;
+
+        //Do some things with this customer's info
+    }
+    else
+    {
+        //Add the customer to the database
+    }
+}
 
 unittest
 {
     Nullable!int i;
-    assert(i.isNull && !i.hasValue);
+    assert(i.isNull);
     i = 3;
-    assert(i.hasValue && !i.isNull);
+    assert(!i.isNull);
     i = null;
-    assert(i.isNull && !i.hasValue);
+    assert(i.isNull);
 }
 
 unittest
@@ -324,7 +383,7 @@ unittest
 {
     Nullable!int i;
     Nullable!int j = 3;
-    assert(i < j);
+    //assert(i < j);
     i = 5;
     j = 6;
     assert(i != j);
@@ -343,48 +402,15 @@ unittest
         }
     }
     Nullable!Example i;
-    assert(!i.hasValue);
+    assert(i.isNull);
     assert(i == null);
     i = Example("Tom", 9);
-    assert(i.hasValue);
+    assert(!i.isNull);
     assert(i != null);
     auto j = Example("Tom", 9);
     assert(i == j);
     i = null;
     assert(i != j);
-}
-
-
-///
-unittest
-{
-    struct CustomerRecord
-    {
-        string name;
-        string address;
-        int customerNum;
-    }
-
-    Nullable!CustomerRecord getByName(string name)
-    {
-        //A bunch of hairy stuff
-
-        return Nullable!CustomerRecord.init;
-    }
-
-    auto queryResult = getByName("Doe, John");
-    if (!queryResult.isNull)
-    {
-        //Process Mr. Doe's customer record
-        auto address = queryResult.address;
-        auto customerNum = queryResult.customerNum;
-
-        //Do some things with this customer's info
-    }
-    else
-    {
-        //Add the customer to the database
-    }
 }
 
 unittest
@@ -393,6 +419,7 @@ unittest
 
     Nullable!int a;
     assert(a.isNull);
+    assertThrown!Throwable(a.get);
     a = 5;
     assert(!a.isNull);
     assert(a == 5);
@@ -548,7 +575,7 @@ unittest
 }
 unittest
 {
-    import std.typetuple : TypeTuple;
+    import std.meta : AliasSeq;
     //Check nullable is nicelly embedable in a struct
     static struct S1
     {
@@ -566,7 +593,7 @@ unittest
             ni = other.ni;
         }
     }
-    foreach (S; TypeTuple!(S1, S2))
+    foreach (S; AliasSeq!(S1, S2))
     {
         S a;
         S b = a;
@@ -606,14 +633,14 @@ unittest
         static assert( __traits(compiles, { auto x = immutable Nullable!S2(si); }));
     }
 
-    // {
-    //     auto sm = S3(&ni);
-    //     immutable si = immutable S3(&ni);
-    //     static assert( __traits(compiles, { auto x =           Nullable!S3(sm); }));
-    //     static assert( __traits(compiles, { auto x = immutable Nullable!S3(sm); }));
-    //     static assert( __traits(compiles, { auto x =           Nullable!S3(si); }));
-    //     static assert( __traits(compiles, { auto x = immutable Nullable!S3(si); }));
-    // }
+    {
+        auto sm = S3(&ni);
+        immutable si = immutable S3(&ni);
+        static assert( __traits(compiles, { auto x =           Nullable!S3(sm); }));
+        static assert( __traits(compiles, { auto x = immutable Nullable!S3(sm); }));
+        static assert( __traits(compiles, { auto x =           Nullable!S3(si); }));
+        static assert( __traits(compiles, { auto x = immutable Nullable!S3(si); }));
+    }
 }
 unittest
 {
@@ -641,7 +668,7 @@ unittest
     NullableTest ntn = Test("null");
     assert(ntn.to!string() == `Test("null")`);
 
-    struct TestToString
+    class TestToString
     {
         double d;
 
@@ -650,21 +677,11 @@ unittest
             this.d = d;
         }
 
-        string toString()
+        override string toString()
         {
             return d.to!string();
         }
     }
-    Nullable!TestToString ntts = TestToString(2.5);
+    Nullable!TestToString ntts = new TestToString(2.5);
     assert(ntts.to!string() == "2.5");
-}
-
-unittest
-{
-    bool inputNullable(Nullable!int a)
-    {
-        return a.isNull;
-    }
-    assert(inputNullable(cast(Nullable!int)null));
-    assert(!inputNullable(cast(Nullable!int)3));
 }

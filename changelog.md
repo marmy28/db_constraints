@@ -6,6 +6,25 @@
 
  * db_extensions -> db_constraints
    + the repo name was changed and all followed.
+ * db_constraints.keyed.keyeditem.UniqueConstraintStructNames -> db_constraints.utils.generickey.UniqueConstraintStructNames
+ * db_constraints.keyed.keyeditem.getColumns -> db_constraints.utils.generickey.GetMembersWithUDA
+ * db_constraints.utils.generickey -> db_constraints.utils.meta
+
+### New additions
+
+ * NotNull attribute
+ * db_constraints.utils.generickey.HasMembersWithUDA
+ * mixin template KeyedCollection
+
+### Misc.
+
+ * UniqueConstraintColumn marked on overloaded functions are now recognized.
+ * BaseKeyedCollection now emits the changed propertyName and the items key.
+ * BaseKeyedCollection.violatesUniqueConstraints constraintName parameter is null if the constraint is not violated.
+ * A member marked with PrimaryKeyColumn must also be marked with NotNull.
+ * BaseKeyedCollection.opBinaryRight!("in") returns a pointer to the object (or null) instead of a boolean.
+ * Unique constraint violations message now includes the class name that had the violation.
+ * KeyedItem only takes ClusteredIndexAttribute now
 
 ## 0.0.3 (release date: 2015-09-19)
 

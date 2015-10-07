@@ -1,4 +1,9 @@
-module db_constraints.extra.db_exceptions;
+/**
+ * Copyright: 2015
+ * License: GNU GENERAL PUBLIC LICENSE Version 2
+ * Authors: Matthew Armbruster
+ */
+module db_constraints.db_exceptions;
 
 /**
 Inherits from Exception. This is thrown whenever
@@ -56,5 +61,25 @@ Params:
          Throwable next = null)
     {
         super("Check constraint violation. " ~ msg, file, line, next);
+    }
+}
+
+/**
+Inherits from Exception. This is thrown whenever
+there is an exception dealing with the foreign keys.
+ */
+class ForeignKeyException : Exception
+{
+/**
+Params:
+    msg = the message thrown with the foreign key
+    file = the file where the exception occurred
+    line = the line number where the exception occurred
+    next = references the exception that was being handled when this one was generated
+ */
+    this(string msg, string file = __FILE__, size_t line = __LINE__,
+         Throwable next = null)
+    {
+        super("Foreign key exception. " ~ msg, file, line, next);
     }
 }

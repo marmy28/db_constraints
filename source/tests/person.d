@@ -6,44 +6,84 @@ version(unittest)
     class Person
     {
     private:
-        int _id;
+        Nullable!int _id;
         string _firstName;
         string _lastName;
         string _email;
     public:
-        int id() const @property @PrimaryKeyColumn nothrow pure @safe @nogc
+        @PrimaryKeyColumn @NotNull
+        @property Nullable!int id() const nothrow pure @safe @nogc
         {
             return _id;
         }
-        void id(immutable(int) value) @property
+        @property void id(Nullable!(int) value)
         {
             setter(_id, value);
         }
-        string firstName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        @UniqueConstraintColumn!("uc_Person")
+        @property string firstName() const nothrow pure @safe @nogc
         {
             return _firstName;
         }
-        void firstName(string value) @property
+        @property void firstName(string value)
         {
             setter(_firstName, value);
         }
-        string email() const @property nothrow pure @UniqueConstraintColumn!("uc_PersonEmail") @safe @nogc
+        @UniqueConstraintColumn!("uc_PersonEmail")
+        @property string email() const nothrow pure @safe @nogc
         {
             return _email;
         }
-        void email(string value) @property
+        @property void email(string value)
         {
             setter(_email, value);
         }
-        string lastName() const @property @UniqueConstraintColumn!("uc_Person") nothrow pure @safe @nogc
+        @UniqueConstraintColumn!("uc_Person")
+        @property string lastName() const nothrow pure @safe @nogc
         {
             return _lastName;
         }
-        void lastName(string value) @property
+        @property void lastName(string value)
         {
             setter(_lastName, value);
         }
-
-        mixin KeyedItem!(typeof(this));
+        this(string firstName_, string lastName_, string email_)
+        {
+            static int i = 1;
+            this._id = i;
+            this._firstName = firstName_;
+            this._lastName = lastName_;
+            this._email = email_;
+            ++i;
+            initializeKeyedItem();
+        }
+        Person dup()
+        {
+            return new Person(this._firstName, this._lastName, this._email);
+        }
+        override string toString()
+        {
+            auto result = this._firstName ~ " " ~ this._lastName ~ " email: " ~ (this._email is null ? "null" : this._email);
+            return result;
+        }
+        mixin KeyedItem!(UniqueConstraintColumn!("uc_PersonEmail"));
     }
+}
+
+unittest
+{
+    import db_constraints;
+    alias People = BaseKeyedCollection!(Person);
+    auto people = new People([new Person("Valid", "Person", "vp@test.com"), new Person("Second", "Sup", "s@e.org")]);
+    assert(people.contains("s@e.org"));
+    //assert(!people.contains(null));
+    people["s@e.org"].email = "hello@all";
+    assert(people.contains("hello@all"));
+    people["hello@all"].email = null;
+    assert(!people.contains("s@e.org"));
+    assert(!people.contains("hello@all"));
+    auto i = Person.uc_PersonEmail();
+    i.email = null;
+    assert(people.contains(i));
+    // assert(people.contains(null)); // currently this errors but it should not
 }

@@ -1,7 +1,13 @@
 /**
- * Copyright: 2015
- * License: GNU GENERAL PUBLIC LICENSE Version 2
+ *
+ * License: $(GPL2)
+ *
  * Authors: Matthew Armbruster
+ *
+ * **Source:**
+ * $(SRC $(SRCFILENAME))
+ *
+ * Copyright: 2015
  */
 module db_constraints.utils.meta;
 
@@ -630,14 +636,7 @@ template ForeignKeyChanged(ClassName)
             result ~= "        final switch (" ~ foreignKey.name ~ "_UpdateRule) with (Rule)\n";
             result ~= "        {\n";
             result ~= "        case noAction:\n";
-            version(noActionIsRestrict)
-            {
-                result ~= "            goto case restrict;\n";
-            }
-            else
-            {
-                result ~= "            break;\n";
-            }
+            result ~= "            break;\n";
             result ~= "        case restrict:\n";
             result ~= "            if (!changed" ~ foreignKey.referencedTableName ~ ".empty)\n";
             result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ " violation.\");\n";
@@ -708,14 +707,7 @@ template ForeignKeyChanged(ClassName)
             result ~= "        final switch (" ~ foreignKey.name ~ "_DeleteRule) with (Rule)\n";
             result ~= "        {\n";
             result ~= "        case noAction:\n";
-            version(noActionIsRestrict)
-            {
-                result ~= "            goto case restrict;\n";
-            }
-            else
-            {
-                result ~= "            break;\n";
-            }
+            result ~= "            break;\n";
             result ~= "        case restrict:\n";
             result ~= "            if (!removed" ~ foreignKey.referencedTableName ~ ".empty)\n";
             result ~= "                throw new ForeignKeyException(\"" ~ foreignKey.name ~ " violation.\");\n";

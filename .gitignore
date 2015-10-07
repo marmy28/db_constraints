@@ -5,3 +5,8 @@ __dummy.html
 *.obj
 *.a
 dub.userprefs
+docs/authors.md
+docs/books.md
+docs/package.md
+docs/person.md
+docs/student.md

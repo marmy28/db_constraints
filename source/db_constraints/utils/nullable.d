@@ -2,9 +2,9 @@
  * This is basically std.typecons.Nullable with extra features.
  *
  * Copyright: Copyright the respective authors, 2008-
- * License:   Boost License 1.0
- * Authors:   Andrei Alexandrescu,
- *            Bartosz Milewski,
+ * License:   $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors:   $(WEB erdani.org, Andrei Alexandrescu),
+ *            $(WEB bartoszmilewski.wordpress.com, Bartosz Milewski),
  *            Don Clugston,
  *            Shin Fujishiro,
  *            Kenji Hara,
@@ -29,6 +29,9 @@ the absence of a value. If default constructed, a $(D
 Nullable!T) object starts in the null state. Assigning it renders it
 non-null. Calling $(D nullify) can nullify it again.
 Practically $(D Nullable!T) stores a $(D T) and a $(D bool).
+
+See_Also:
+$(LINK http://dlang.org/phobos/std_typecons.html#.Nullable)
  */
 struct Nullable(T)
 {

@@ -114,7 +114,7 @@ Parameters |
 ```d
 pure nothrow @nogc @safe void nullify()();
 
-pure nothrow @nogc @safe void opAssign(N : typeof(null))(N n) if (!__traits(compiles, T.init == null));
+pure nothrow @nogc @safe void opAssign(N : typeof(null))(N n);
 
 ```
 
@@ -143,9 +143,8 @@ If this Nullable wraps a type that already has a null value
 Nullable!(int*) npi;
 assert(npi.isNull);
 
-//Passes?!
 npi = null;
-assert(!npi.isNull);
+assert(npi.isNull);
 
 
 ```

@@ -139,7 +139,6 @@ Forces $(D this) to the null state.
         }
         /// ditto
         void opAssign(N : typeof(null))(N n) @safe nothrow pure @nogc
-            if (!__traits(compiles, T.init == null))
         {
             this.nullify();
         }
@@ -169,9 +168,8 @@ unittest
     Nullable!(int*) npi;
     assert(npi.isNull);
 
-    //Passes?!
     npi = null;
-    assert(!npi.isNull);
+    assert(npi.isNull);
 }
     static if (__traits(compiles, (T a, T b) { return a == b; }) && !is(T == class))
     {

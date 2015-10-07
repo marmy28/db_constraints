@@ -1,6 +1,6 @@
 # Change log
 
-## 0.0.4-alpha (release date: 2015-??-??)
+## 0.0.4 (release date: 2015-10-??)
 
 ### Name changes
 
@@ -15,6 +15,9 @@
  * NotNull attribute
  * db_constraints.utils.generickey.HasMembersWithUDA
  * mixin template KeyedCollection
+ * ForeignKeyConstraint
+ * struct Default(alias value_)
+ * a lot of functions in utils.meta...
 
 ### Misc.
 
@@ -25,6 +28,10 @@
  * BaseKeyedCollection.opBinaryRight!("in") returns a pointer to the object (or null) instead of a boolean.
  * Unique constraint violations message now includes the class name that had the violation.
  * KeyedItem only takes ClusteredIndexAttribute now
+ * KeyedCollection is a mixin while BaseKeyedCollection continues to be a class
+ * Using Coveralls now!
+ * Foreign Key Constraints are now enforced and can be set to null, default, restricted, no action, or cascading with updates and deletes
+ * Nullable went back to looking more like Phobos with extra functionality.
 
 ## 0.0.3 (release date: 2015-09-19)
 

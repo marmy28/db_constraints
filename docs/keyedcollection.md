@@ -10,6 +10,7 @@ Matthew Armbruster
 ```d
 class BaseKeyedCollection(T) if (usableForKeyedCollection!T);
 
+template KeyedCollection(T) if (usableForKeyedCollection!T)
 ```
 
 Turns the inheriting class into a base keyed collection.
@@ -22,7 +23,143 @@ Parameters |
 *T*|
 &nbsp;&nbsp;&nbsp;&nbsp;the singular class.|
 
+**Examples:**
+```d
 
+// singular class
+class Candy
+{
+private:
+    string _name;
+    int _ranking;
+    int _annualSales;
+    string _brand;
+public:
+    // marking name as part of the primary key
+    @PrimaryKeyColumn @NotNull
+    @property string name() const nothrow pure @safe @nogc
+    {
+        return _name;
+    }
+    @property void name(string value)
+    {
+        setter(_name, value);
+    }
+    @property int ranking() const nothrow pure @safe @nogc
+    {
+        return _ranking;
+    }
+    // making sure that ranking will always be above 0
+    @CheckConstraint!(a => a > 0, "chk_Candys_ranking")
+    @property void ranking(int value)
+    {
+        setter(_ranking, value);
+    }
+    @property int annualSales() const nothrow pure @safe @nogc
+    {
+        return _annualSales;
+    }
+    @property void annualSales(int value)
+    {
+        setter(_annualSales, value);
+    }
+    @property string brand() const nothrow pure @safe @nogc
+    {
+        return _brand;
+    }
+    @property void brand(string value)
+    {
+        setter(_brand, value);
+    }
+
+    this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
+    {
+        this._name = name;
+        this._ranking = ranking;
+        this._annualSales = annualSales;
+        this._brand = brand;
+        // need to initialize the keyed item
+        initializeKeyedItem();
+    }
+    Candy dup() const
+    {
+        return new Candy(this._name, this._ranking, this._annualSales, this._brand);
+    }
+    // the default is to make the primary key into the clustered index
+    // which allows you to search based on the primary key
+    mixin KeyedItem!();
+}
+
+// plural class
+// I am using an alias since BaseKeyedCollection
+// takes care of everything I want to do for this example.
+alias Candies = BaseKeyedCollection!(Candy);
+
+// source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
+auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
+// should be Milky not Milkey, this is wrong on purpose
+auto snickers = new Candy("Snickers", 4, 441_100_000, "Mars");
+auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2, 516_500_000, "Hershey");
+
+auto mars = new Candies([milkyWay, snickers]);
+assert(mars.length == 2);
+assert(!mars.containsChanges);
+
+// use the class as an index
+assert(mars[milkyWay] is milkyWay);
+// use the primary key as an index
+auto pk = Candy.PrimaryKey("Milkey Way");
+assert(mars[pk] is milkyWay);
+// use the contents of the primary key as an index
+assert(mars["Milkey Way"] is milkyWay);
+
+// milky way is in mars
+assert(mars.contains(pk));
+// reesesPBCups is not in mars
+assert(!mars.contains(reesesPBCups));
+
+// now we change the name to be correct
+mars[pk].name = "Milky Way";
+assert(mars.containsChanges);
+
+// since we had name in pk spelled incorrectly
+// and changed it, the primary key in mars has
+// updated so Milkey Way is no longer in it but
+// Milky Way is.
+assert(!mars.contains("Milkey Way"));
+assert(mars.contains("Milky Way"));
+
+foreach(name_pk, candy; mars)
+{
+    assert(mars[name_pk] == candy);
+}
+
+// trying to add another candy with the same name will
+// result in a unique constraint violation
+auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
+import std.exception : assertThrown;
+assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
+
+// ranking has a check constraint saying ranking always must be greater
+// than 0. setting it to -1 resolves in a CheckConstraintException.
+assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
+// Since name is part of the primary key we must mark it with NotNull
+// trying to set this to null will result in a CheckConstraintException.
+assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
+
+// violatesUniqueConstraints will tell you which constraint is violated if any
+string violatedConstraint;
+assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
+assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
+
+// removing milky way from mars
+mars.remove("Milky Way");
+// this means milkyWay2 is no longer a duplicate
+assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
+assert(violatedConstraint is null);
+
+
+```
 
 
 

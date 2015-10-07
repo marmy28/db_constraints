@@ -53,6 +53,7 @@ class BaseKeyedCollection(T)
     mixin KeyedCollection!(T);
 }
 
+/// ditto
 mixin template KeyedCollection(T)
     if (usableForKeyedCollection!(T))
 {

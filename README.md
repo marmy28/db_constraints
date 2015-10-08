@@ -31,7 +31,6 @@ Contributions are welcome. Please let me know by email if you would like to help
 - [ ] Add in description for repo.
 - [ ] Release package on dub
 - [ ] Unittests for meta.d
-- [ ] test foreign key exception
 - [ ] keyed collection takes iterable instead of just array
 - [ ] remove extra functions from examples
 - [ ] Write tutorial

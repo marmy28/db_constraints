@@ -123,6 +123,13 @@ Params:
                 emitChange.emit(name ~ "_key", _key);
             }
         }
+        foreach(fk; GetForeignKeys!(T))
+        {
+            if (fk.columnNames.canFind(propertyName))
+            {
+                emitChange.emit(fk.name ~ "_key", _key);
+            }
+        }
     }
     final void checkConstraints()
     {
@@ -239,24 +246,12 @@ unittest
         {
             setter(_ranking, value);
         }
-        @property string brand() const nothrow pure @safe @nogc
-        {
-            return _brand;
-        }
-        @property void brand(string value)
-        {
-            setter(_brand, value);
-        }
         this(string name, immutable(int) ranking, string brand)
         {
             this._name = name;
             this._ranking = ranking;
             this._brand = brand;
             initializeKeyedItem();
-        }
-        Candy dup() const
-        {
-            return new Candy(this._name, this._ranking, this._brand);
         }
 
         // The primary key is now the clustered index as it is by default
@@ -306,6 +301,7 @@ unittest
 `;
     import db_constraints.utils.meta : ConstraintStructs;
     static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
+    assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
     import std.exception : assertThrown;
     import db_constraints.db_exceptions : CheckConstraintException;

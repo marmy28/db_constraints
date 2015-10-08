@@ -88,6 +88,10 @@ typeof(T.key) everywhere.
                     mixin(foreignKeyCheckExceptions!(T));
                 }());
         }
+        void checkForeignKeys(T a)
+        {
+            mixin(foreignKeyCheckExceptions!(T));
+        }
         mixin(ForeignKeyChanged!(T));
     }
 /**
@@ -105,7 +109,7 @@ Called when an item is being added or an item changed.
                 "  was violated by item " ~ item.toString ~ ".");
             static if (HasForeignKeys!(T))
             {
-                checkForeignKeys();
+                checkForeignKeys(item);
             }
         }
     }
@@ -156,18 +160,13 @@ Returns:
         return _containsChanges;
     }
 /**
-Getter and setter to enforce the constraints. By default
+Setter to enforce the constraints. By default
 this is true but you may set it to false if you have a lot of
 initial data and already trust that is unique and accurate.
 
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    final @property bool enforceConstraints() const nothrow pure @safe @nogc
-    {
-        return _enforceConstraints;
-    }
-    /// ditto
     final @property void enforceConstraints(bool value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
@@ -243,6 +242,9 @@ Throws:
 Throws:
     CheckConstraintException if the item is violating any of its
     defined check constraints and enforceConstraints is true.
+Throws:
+    ForeignKeyException if the item is violating any of its
+    foreign key constraints and enforceConstraints is true.
  */
     final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
@@ -560,22 +562,6 @@ unittest
         @property void ranking(int value)
         {
             setter(_ranking, value);
-        }
-        @property int annualSales() const nothrow pure @safe @nogc
-        {
-            return _annualSales;
-        }
-        @property void annualSales(int value)
-        {
-            setter(_annualSales, value);
-        }
-        @property string brand() const nothrow pure @safe @nogc
-        {
-            return _brand;
-        }
-        @property void brand(string value)
-        {
-            setter(_brand, value);
         }
 
         this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)

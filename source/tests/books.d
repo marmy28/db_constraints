@@ -95,7 +95,7 @@ unittest
     auto authors = Authors.GetFromDB();
     auto books = Books.GetFromDB();
 
-    import std.exception : assertNotThrown, assertThrown;
+    import std.exception : assertNotThrown;
     assertNotThrown!ForeignKeyException(books.authors = authors);
 
     assert(books._authors.contains(1) && !books._authors.contains(5));
@@ -162,8 +162,6 @@ unittest
 
 unittest
 {
-    pragma(msg, GetForeignKeys!(Book));
-    pragma(msg, GetForeignKeyRefTable!(Book));
     static assert(HasForeignKeys!(Book));
 }
 
@@ -246,4 +244,22 @@ unittest
 `;
 
     static assert(ForeignKeyProperties!(Book) == fkproperties, ForeignKeyProperties!(Book));
+    assert(ForeignKeyProperties!(Book) == fkproperties, ForeignKeyProperties!(Book));
+}
+
+unittest
+{
+    auto authors = Authors.GetFromDB();
+    auto books = Books.GetFromDB();
+
+    books.authors = authors;
+    books.fk_Books_Authors_AuthorId_UpdateRule = Rule.restrict;
+    books.fk_Books_Authors_AuthorId_DeleteRule = Rule.restrict;
+
+    import std.exception : assertThrown;
+
+    assertThrown!ForeignKeyException(authors.remove(3));
+
+    assert(!authors.contains(18));
+    assertThrown!ForeignKeyException(books[1].AuthorId = 18);
 }

@@ -65,6 +65,7 @@ mixin template KeyedCollection(T)
 {
     import std.algorithm : canFind, endsWith, each, filter;
     import std.signals;
+    import std.traits : isIterable;
 
 
 /**
@@ -184,12 +185,6 @@ Params:
         _containsChanges = true;
         collectionChanged.emit(propertyName, item_key);
     }
-    /// ditto
-    final void notify(string propertyName)(key_type item_key)
-    {
-        _containsChanges = true;
-        collectionChanged.emit(propertyName, item_key);
-    }
 /**
 Removes an item from `this` and disconnects the signals. Notifies
 that the length of `this` has changed.
@@ -202,7 +197,7 @@ that the length of `this` has changed.
             this._items.remove(item_key);
             if (notifyChange)
             {
-                notify!("remove")(item_key);
+                notify("remove", item_key);
             }
         }
     }
@@ -258,7 +253,7 @@ Throws:
         this._items[item.key] = item;
         if (notifyChange)
         {
-            notify!("add")(item.key);
+            notify("add", item.key);
         }
     }
     /// ditto
@@ -267,15 +262,15 @@ Throws:
         this.add(item, No.notifyChange);
     }
     /// ditto
-    final ref auto opOpAssign(string op)(T item)
-        if (op == "~")
+    final ref auto opOpAssign(string op : "~")(T item)
     {
         this.add(item);
     }
 /**
 Does the same as `add(T item)` but for an array.
  */
-    final void add(T[] items)
+    final void add(I)(I items)
+        if (isIterable!(I))
     in
     {
         assert(items !is null, "Trying to add a null array");
@@ -284,20 +279,28 @@ Does the same as `add(T item)` but for an array.
     {
         foreach(item; items)
         {
+            assert(is(typeof(item) == T));
             this.add(item);
         }
     }
     /// ditto
-    final this(T[] items)
+    final this(I)(I items)
+        if (isIterable!(I))
+    in
+    {
+        assert(items !is null, "Trying to add a null array");
+    }
+    body
     {
         foreach(item; items)
         {
+            assert(is(typeof(item) == T));
             this.add(item, No.notifyChange);
         }
     }
     /// ditto
-    final ref auto opOpAssign(string op)(T[] items)
-        if (op == "~")
+    final ref auto opOpAssign(string op : "~", I)(I items)
+        if (isIterable!(I))
     {
         this.add(items);
     }
@@ -423,8 +426,7 @@ Returns:
         return this.contains(item.key);
     }
     /// ditto
-    inout(T)* opBinaryRight(string op)(in T item) inout nothrow pure @safe @nogc
-        if (op == "in")
+    inout(T)* opBinaryRight(string op : "in")(in T item) inout nothrow pure @safe @nogc
     {
         return (item.key in this);
     }
@@ -443,8 +445,7 @@ Returns:
         return (i !is null);
     }
     /// ditto
-    final inout(T)* opBinaryRight(string op)(in key_type clIdx) inout nothrow pure @safe @nogc
-        if (op == "in")
+    final inout(T)* opBinaryRight(string op : "in")(in key_type clIdx) inout nothrow pure @safe @nogc
     {
         return (clIdx in this._items);
     }
@@ -471,8 +472,7 @@ Returns:
         return this.contains(clIdx);
     }
     /// ditto
-    final inout(T)* opBinaryRight(string op, A...)(in A a) inout nothrow pure @safe @nogc
-        if (op == "in")
+    final inout(T)* opBinaryRight(string op : "in", A...)(in A a) inout nothrow pure @safe @nogc
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~

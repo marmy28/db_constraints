@@ -1,13 +1,15 @@
 /**
- *
- * License: $(GPL2)
- *
- * Authors: Matthew Armbruster
- *
- * **Source:**
- * $(SRC $(SRCFILENAME))
- *
- * Copyright: 2015
+Keyed item is used in combination with KeyedCollection to mimic databases in your classes.
+This module contains:
+  $(TOC KeyedItem)
+
+License: $(GPL2)
+
+Authors: Matthew Armbruster
+
+$(B Source:) $(SRC $(SRCFILENAME))
+
+Copyright: 2015
  */
 module db_constraints.keyed.keyeditem;
 
@@ -16,6 +18,7 @@ import std.traits : isInstanceOf;
 public import db_constraints.constraints;
 
 /**
+$(ANCHOR KeyedItem)
 Use this in the singular class which would describe a row in your
 database.
 Params:
@@ -65,7 +68,7 @@ Throws:
         }
     }
 /**
-Initializes the keyed item by running *setClusteredIndex* and *checkConstraints*.
+Initializes the keyed item by running $(I setClusteredIndex) and $(I checkConstraints).
 This should be in your constructor.
  */
     final private void initializeKeyedItem()
@@ -78,16 +81,16 @@ This should be in your constructor.
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
 /**
-Read-only property telling if `this` contains changes.
+Read-only property telling if $(D this) contains changes.
 Returns:
-    true if `this` contains changes.
+    true if $(D this) contains changes.
  */
     final @property bool containsChanges() const nothrow pure @safe @nogc
     {
         return _containsChanges;
     }
 /**
-Changes `this` to not contain changes. Should only
+Changes $(D this) to not contain changes. Should only
 be used after a save.
  */
     final void markAsSaved() nothrow pure @safe @nogc
@@ -95,17 +98,17 @@ be used after a save.
         _containsChanges = false;
     }
 /**
-The signal used to emit changes that occur in `this`.
+The signal used to emit changes that occur in $(D this).
  */
     mixin Signal!(string, typeof(_key)) emitChange;
 
 /**
-Notifies `this` which property changed. If the property is
+Notifies $(D this) which property changed. If the property is
 part of the clustered index then the clustered index is updated.
 This also emits a signal with the property name that changed
 along with the clustered index.
 Params:
-    propertyName = the property name that changed.
+    propertyName = the property name that changed
  */
     final void notify(string propertyName)
     {
@@ -189,7 +192,7 @@ Returns:
     }
 
 /**
-Sets the clustered index for `this`.
+Sets the clustered index for $(D this).
  */
     final void setClusteredIndex() nothrow pure @safe @nogc
     {

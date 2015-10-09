@@ -1,13 +1,16 @@
 /**
- *
- * License: $(GPL2)
- *
- * Authors: Matthew Armbruster
- *
- * **Source:**
- * $(SRC $(SRCFILENAME))
- *
- * Copyright: 2015
+The keyedcollection module contains:
+  $(TOC usableForKeyedCollection)
+  $(TOC BaseKeyedCollection)
+  $(TOC KeyedCollection)
+
+License: $(GPL2)
+
+Authors: Matthew Armbruster
+
+$(B Source:) $(SRC $(SRCFILENAME))
+
+Copyright: 2015
  */
 module db_constraints.keyed.keyedcollection;
 
@@ -21,6 +24,9 @@ import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
 import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
 
+/**
+$(ANCHOR usableForKeyedCollection)
+ */
 template usableForKeyedCollection(alias T)
 {
     enum usableForKeyedCollection = ( is(T == class) &&
@@ -46,12 +52,13 @@ template usableForKeyedCollection(alias T)
 }
 
 /**
+$(ANCHOR BaseKeyedCollection)
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
-you include the keyeditem in the *T* class.
+you include the keyeditem in the $(I T) class.
 Params:
-    T = the singular class.
+    T = the singular class
  */
 class BaseKeyedCollection(T)
     if (usableForKeyedCollection!(T))
@@ -59,7 +66,16 @@ class BaseKeyedCollection(T)
     mixin KeyedCollection!(T);
 }
 
-/// ditto
+
+/**
+$(ANCHOR KeyedCollection)
+Turns the inheriting class into a base keyed collection.
+The key is based on the singular class' clustered index.
+The requirements (except for dup) are taken care of when
+you include the keyeditem in the $(I T) class.
+Params:
+    T = the singular class
+ */
 mixin template KeyedCollection(T)
     if (usableForKeyedCollection!(T))
 {
@@ -143,7 +159,7 @@ constraints and makes sure the changes are acceptable.
 
     mixin Signal!(string, key_type) collectionChanged;
 /**
-Changes `this` to not contain changes. Should only
+Changes $(D this) to not contain changes. Should only
 be used after a save.
  */
     final void markAsSaved() nothrow pure @nogc
@@ -152,9 +168,9 @@ be used after a save.
         this.byValue.each!(a => a.markAsSaved());
     }
 /**
-Read-only property telling if `this` contains changes.
+Read-only property telling if $(D this) contains changes.
 Returns:
-    true if `this` contains changes.
+    true if $(D this) contains changes.
  */
     final @property bool containsChanges() const nothrow pure @safe @nogc
     {
@@ -174,11 +190,11 @@ is a duplicate clustered index, it will be overwritten.
     }
 
 /**
-Notifies `this` which property changed.
+Notifies $(D this) which property changed.
 This also emits a signal with the property name that changed.
 Params:
-    propertyName = the property name that changed.
-    item_key = the items key that changed.
+    propertyName = the property name that changed
+    item_key = the items key that changed
  */
     final void notify()(string propertyName, key_type item_key)
     {
@@ -186,8 +202,8 @@ Params:
         collectionChanged.emit(propertyName, item_key);
     }
 /**
-Removes an item from `this` and disconnects the signals. Notifies
-that the length of `this` has changed.
+Removes an item from $(D this) and disconnects the signals. Notifies
+that the length of $(D this) has changed.
  */
     final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     {
@@ -226,13 +242,13 @@ that the length of `this` has changed.
         return this.remove(clIdx);
     }
 /**
-Adds `item` to `this` and connects to the signals emitted by `item`.
-Notifies that the length of `this` has changed.
+Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
+Notifies that the length of $(D this) has changed.
 Params:
-    item = the item you want to add to `this`.
+    item = the item you want to add to $(D this)
     notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
 Throws:
-    UniqueConstraintException if `this` already contains `item` and
+    UniqueConstraintException if $(D this) already contains $(D item) and
     enforceConstraints is true.
 Throws:
     CheckConstraintException if the item is violating any of its
@@ -240,6 +256,7 @@ Throws:
 Throws:
     ForeignKeyException if the item is violating any of its
     foreign key constraints and enforceConstraints is true.
+$(B Precondition:) $(D_CODE assert(items !is null);)
  */
     final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
@@ -267,7 +284,9 @@ Throws:
         this.add(item);
     }
 /**
-Does the same as `add(T item)` but for an array.
+Does the same as $(D add(T item)) but for an array.
+
+$(B Precondition:) $(D_CODE assert(items !is null);)
  */
     final void add(I)(I items)
         if (isIterable!(I))
@@ -305,13 +324,13 @@ Does the same as `add(T item)` but for an array.
         this.add(items);
     }
 /**
-Gets the approriate `T` that equals `item`.
+Gets the approriate $(D T) that equals $(D item).
 Params:
-    item = the item you want back from the collection.
+    item = the item you want back from the collection
 Returns:
-    The item in the collection that matches `item`.
+    The item in the collection that matches $(D item).
 Throws:
-    KeyedException if `this` does not contain a matching clustered index.
+    KeyedException if $(D this) does not contain a matching clustered index.
  */
     final ref inout(T) opIndex(in T item) inout
     in
@@ -323,13 +342,13 @@ Throws:
         return this[item.key];
     }
 /**
-Gets the approriate `T` that has clustered index `clIdx`.
+Gets the approriate $(D T) that has clustered index $(D clIdx).
 Params:
-    clIdx = the clustered index of the item you want back.
+    clIdx = the clustered index of the item you want back
 Returns:
-    The item in the collection that has clustered index `clIdx`.
+    The item in the collection that has clustered index $(D clIdx).
 Throws:
-    KeyedException if `this` does not contain a matching clustered index.
+    KeyedException if $(D this) does not contain a matching clustered index.
  */
     final ref inout(T) opIndex(in key_type clIdx) inout
     {
@@ -349,13 +368,13 @@ Throws:
         }
     }
 /**
-Gets the approriate `T` that has clustered index `a`.
+Gets the approriate $(D T) that has clustered index $(D a).
 Params:
     a = the fields of the clustered index of the item you want back.
 Returns:
-    The item in the collection that has the clustered index with fields `a`.
+    The item in the collection that has the clustered index with fields $(D a).
 Throws:
-    KeyedException if `this` does not contain a matching clustered index.
+    KeyedException if $(D this) does not contain a matching clustered index.
  */
     final ref inout(T) opIndex(A...)(in A a) inout
     in
@@ -380,7 +399,7 @@ to the private associative array.
         return mixin("this._items." ~ name ~ "(a)");
     }
 /**
-Allows you to use `this` in a foreach loop.
+Allows you to use $(D this) in a foreach loop.
  */
     final int opApply(int delegate(ref T) dg)
     {
@@ -415,11 +434,11 @@ Returns:
         return this._items.length;
     }
 /**
-Checks if `item` is in the collection.
+Checks if $(D item) is in the collection.
 Params:
-    item = the item you want to see is in the collection.
+    item = the item you want to see is in the collection
 Returns:
-    true if `item` is in the collection.
+    true if $(D item) is in the collection.
  */
     final bool contains(in T item) const nothrow pure @safe @nogc
     {
@@ -431,13 +450,12 @@ Returns:
         return (item.key in this);
     }
 /**
-Checks if `clIdx` is in the collection.
+Checks if $(D clIdx) is in the collection.
 Params:
-    clIdx = the clustered index of the item you want
-    to see is in the collection.
+    clIdx = the clustered index of the item you want to see is in the collection
 Returns:
     true if there is a clustered index in the collection that
-    matches `clIdx`.
+    matches $(D clIdx).
  */
     final bool contains(in key_type clIdx) const nothrow pure @safe @nogc
     {
@@ -450,13 +468,12 @@ Returns:
         return (clIdx in this._items);
     }
 /**
-Checks if `a` makes a clustered index that is in the collection.
+Checks if $(D a) makes a clustered index that is in the collection.
 Params:
-    a = the fields of the clustered index of the item you want
-    to see is in the collection.
+    a = the fields of the clustered index of the item you want to see is in the collection
 Returns:
     true if there is a clustered index in the collection that
-    matches `a`.
+    matches $(D a).
  */
     final bool contains(A...)(in A a) const nothrow pure @safe @nogc
     in
@@ -487,7 +504,16 @@ Returns:
     }
 /**
 Checks if the item has any conflicting unique constraints. This
-is more extensive than `contains`.
+is more extensive than $(D contains).
+
+$(B Precondition:) $(D_CODE assert(items !is null);)
+$(B Postcondition:)
+$(D_CODE
+if (result)
+    assert(constraintName !is null && constraintName != "");
+else
+    assert(constraintName is null);
+)
  */
     final bool violatesUniqueConstraints(in T item, out string constraintName) const nothrow pure
     in

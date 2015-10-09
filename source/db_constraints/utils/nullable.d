@@ -1,19 +1,28 @@
 /**
- * This is basically std.typecons.Nullable with extra features.
- *
- * Copyright: Copyright the respective authors, 2008-
- * License:   $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Authors:   $(WEB erdani.org, Andrei Alexandrescu),
- *            $(WEB bartoszmilewski.wordpress.com, Bartosz Milewski),
- *            Don Clugston,
- *            Shin Fujishiro,
- *            Kenji Hara,
- *            Matthew Armbruster
+This is basically std.typecons.Nullable with extra features.
+This module contains:
+  $(TOC isNullable)
+  $(TOC Nullable)
+
+Copyright: Copyright the respective authors, 2008-
+License:   $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
+Authors:   $(WEB erdani.org, Andrei Alexandrescu),
+           $(WEB bartoszmilewski.wordpress.com, Bartosz Milewski),
+           Don Clugston,
+           Shin Fujishiro,
+           Kenji Hara,
+           Matthew Armbruster
+
+$(B Source:) $(SRC $(SRCFILENAME))
  */
 module db_constraints.utils.nullable;
 
 import std.traits : isBuiltinType;
 
+/**
+$(ANCHOR isNullable)
+Checks if you can assign the value to a $(D Nullable!T)
+ */
 template isNullable(T, I)
 {
     enum isNullable = __traits(compiles,
@@ -24,14 +33,15 @@ template isNullable(T, I)
 }
 
 /**
+$(ANCHOR Nullable)
 Defines a value paired with a distinctive "null" state that denotes
 the absence of a value. If default constructed, a $(D
 Nullable!T) object starts in the null state. Assigning it renders it
 non-null. Calling $(D nullify) can nullify it again.
 Practically $(D Nullable!T) stores a $(D T) and a $(D bool).
 
-See_Also:
-$(LINK http://dlang.org/phobos/std_typecons.html#.Nullable)
+See_Also: $(LINK http://dlang.org/phobos/std_typecons.html#.Nullable)
+
  */
 struct Nullable(T)
 {
@@ -41,7 +51,7 @@ struct Nullable(T)
 /**
 Constructor initializing $(D this) with $(D value).
 Params:
-    value = The value to initialize this `Nullable` with.
+    value = The value to initialize this $(D Nullable) with
  */
     this(inout T value) inout
     {
@@ -83,9 +93,10 @@ Params:
     }
 
 /**
-Check if `this` is in the null state.
+Check if $(D this) is in the null state.
 Returns:
-    true $(B iff) `this` is in the null state, otherwise false.
+    true $(B iff) $(D this) is in the null state, otherwise false.
+
  */
     @property bool isNull() const @safe pure nothrow @nogc
     {
@@ -125,7 +136,7 @@ unittest
 Assigns $(D value) to the internally-held state. If the assignment
 succeeds, $(D this) becomes non-null.
 Params:
-    value = A value of type `T` to assign to this `Nullable`.
+    value = A value of type $(D T) to assign to this $(D Nullable)
  */
         void opAssign()(T value)
         {
@@ -156,15 +167,8 @@ unittest
     ni.nullify();
     assert(ni.isNull);
 }
-/**
-    If this `Nullable` wraps a type that already has a null value
-    (such as a pointer), then assigning the null value to this
-    `Nullable` is no different than assigning any other value of
-    type `T`, and the resulting code will look very strange. It
-    is strongly recommended that this be avoided by instead using
-    the version of `Nullable` that takes an additional `nullValue`
-    template argument.
- */
+
+
 unittest
 {
     //Passes
@@ -253,7 +257,8 @@ unittest
 Gets the value. $(D this) must not be in the null state.
 This function is also called for the implicit conversion to $(D T).
 Returns:
-    The value held internally by this `Nullable`.
+    The value held internally by this $(D Nullable).
+$(B Precondition:) $(D_CODE assert(!isNull);)
  */
     @property ref inout(T) get() inout @safe pure nothrow
     in
@@ -268,7 +273,7 @@ Returns:
 /**
 Gets the value or the default value passed in.
 Returns:
-    The value held internally by this `Nullable` or the extra value passed in.
+    The value held internally by this $(D Nullable) or the extra value passed in.
  */
     auto ref inout(T) getValueOr(lazy inout T defVal) inout
     {
@@ -384,7 +389,7 @@ unittest
 {
     Nullable!int i;
     Nullable!int j = 3;
-    //assert(i < j);
+    assert(i < j);
     i = 5;
     j = 6;
     assert(i != j);

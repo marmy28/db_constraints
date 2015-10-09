@@ -1,13 +1,27 @@
 /**
- *
- * License: $(GPL2)
- *
- * Authors: Matthew Armbruster
- *
- * **Source:**
- * $(SRC $(SRCFILENAME))
- *
- * Copyright: 2015
+The meta module contains:
+  $(TOC generic_compare)
+  $(TOC UniqueConstraintStructNames)
+  $(TOC GetMembersWithUDA)
+  $(TOC HasMembersWithUDA)
+  $(TOC ConstraintStructs)
+  $(TOC GetForeignKeys)
+  $(TOC HasForeignKeys)
+  $(TOC GetForeignKeyRefTable)
+  $(TOC GetDefault)
+  $(TOC HasDefault)
+  $(TOC ForeignKeyProperties)
+  $(TOC foreignKeyTableProperties)
+  $(TOC foreignKeyCheckExceptions)
+  $(TOC ForeignKeyChanged)
+
+License: $(GPL2)
+
+Authors: Matthew Armbruster
+
+$(B Source:) $(SRC $(SRCFILENAME))
+
+Copyright: 2015
  */
 module db_constraints.utils.meta;
 
@@ -16,14 +30,18 @@ import std.traits : isInstanceOf, hasUDA;
 
 import db_constraints.constraints;
 /**
+$(ANCHOR generic_compare)
 Used in KeyedItem for the generated structs.
 This allows the struct to be used as a key
 in an associative array.
+
+The template loops over the members to define
+toHash, opEquals, and opCmp for the struct.
  */
 mixin template generic_compare(T)
     if (is(T == struct))
 {
-/**
+/*
 Gets the hash code of the struct by looping over the members.
  */
     final size_t toHash() const nothrow @safe
@@ -42,7 +60,7 @@ Gets the hash code of the struct by looping over the members.
         }
         return result;
     }
-/**
+/*
 Checks each member to determine if the structs are equal.
  */
     final bool opEquals(inout(T) pk) const pure nothrow @nogc @safe
@@ -64,7 +82,7 @@ Checks each member to determine if the structs are equal.
         }
         return result;
     }
-/**
+/*
 Compares each member and returns the result.
  */
     final int opCmp(inout(T) pk) const pure nothrow @nogc @safe
@@ -94,11 +112,12 @@ Compares each member and returns the result.
 }
 
 /**
+$(ANCHOR UniqueConstraintStructNames)
 Gets the names given to the different UniqueConstraints
  */
 template UniqueConstraintStructNames(ClassName)
 {
-/**
+/*
 Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
 */
     template Impl(T...)
@@ -119,7 +138,7 @@ Takes a type tuple of class members and alias' as a typetuple with all unique co
             }
         }
     }
-/**
+/*
 Looks at the overloads for the functions.
 */
     template Overloads(S...)
@@ -141,7 +160,7 @@ Looks at the overloads for the functions.
             }
         }
     }
-/**
+/*
 Takes a members attributes and finds if it has one that starts with UniqueConstraint
 */
     template Get(P...)
@@ -166,6 +185,7 @@ Takes a members attributes and finds if it has one that starts with UniqueConstr
 }
 
 /**
+$(ANCHOR GetMembersWithUDA)
 Gets the properties of ClassName marked with @attribute.
  */
 template GetMembersWithUDA(ClassName, attribute)
@@ -257,6 +277,7 @@ template HasMembersWithUDA(ClassName, attribute)
 }
 
 /**
+$(ANCHOR ConstraintStructs)
 Returns a string full of the structs for ClassName.
  */
 template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)
@@ -377,7 +398,7 @@ template GetDefault(ClassName, string memberName)
         alias GetDefault = AliasSeq!();
     }
 
-/**
+/*
 Looks at the overloads for the functions.
 */
     template Overloads(S...)
@@ -428,7 +449,7 @@ template HasDefault(ClassName, string memberName)
         enum HasDefault = false;
     }
 
-/**
+/*
 Looks at the overloads for the functions.
 */
     template Overloads(S...)

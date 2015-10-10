@@ -1,5 +1,6 @@
 /**
 The keyedcollection module contains:
+  $(TOC Enforce)
   $(TOC usableForKeyedCollection)
   $(TOC BaseKeyedCollection)
   $(TOC KeyedCollection)
@@ -23,6 +24,38 @@ import std.typecons : Flag, Yes, No;
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
 import db_constraints.utils.meta : UniqueConstraintStructNames, hasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
+
+/**
+Tells the keyed collection which constraints to check.
+ */
+enum Enforce
+{
+/**
+Set enforceConstraints equal to this if you do not want
+any constraints to be enforced.
+ */
+    none = 0,
+/**
+Enforce the item's check constraint meaning anything with
+NotNull or CheckConstraint.
+ */
+    check = 1,
+/**
+Enforce the collection does not already contain
+the item you are trying to add. Makes sure there would not
+be conflicting clustered indicies.
+ */
+    clusteredUnique = 2,
+/**
+Enforce all unique constraints are not being violated. If
+you have this then you do not need to have clusteredUnique.
+ */
+    unique = 4,
+/**
+Enforce the foreign key constraints if there are any.
+ */
+    foreignKey = 8
+}
 
 /**
 Makes sure the class is usable for keyed collection. This really just makes sure it
@@ -101,7 +134,7 @@ $(D typeof(T.key)) everywhere.
     final alias key_type = typeof(T.key);
 
     private bool _containsChanges;
-    private bool _enforceConstraints = true;
+    private ubyte _enforceConstraints = (Enforce.check | Enforce.unique | Enforce.foreignKey);
 
     static if (hasForeignKeys!(T))
     {
@@ -127,14 +160,28 @@ the item's check constraints, unique constraints, and foreign key constraints.
  */
     final private void checkConstraints(T item)
     {
-        if (_enforceConstraints)
+        if (_enforceConstraints & Enforce.check)
+        {
+            item.checkConstraints();
+        }
+        if (_enforceConstraints & Enforce.clusteredUnique)
+        {
+            auto i = (item in this);
+            enforceEx!UniqueConstraintException(
+                (i is null || (*i) is item),
+                "The " ~ key_type.stringof ~ " constraint for class " ~ T.stringof ~
+                "  was violated by item " ~ item.toString ~ ".");
+        }
+        if (_enforceConstraints & Enforce.unique)
         {
             auto constraintName = "";
-            item.checkConstraints();
             enforceEx!UniqueConstraintException(
                 !violatesUniqueConstraints(item, constraintName),
                 "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
                 "  was violated by item " ~ item.toString ~ ".");
+        }
+        if (_enforceConstraints & Enforce.foreignKey)
+        {
             static if (hasForeignKeys!(T))
             {
                 checkForeignKeys(item);
@@ -189,15 +236,20 @@ Returns:
     {
         return _containsChanges;
     }
-/**
-Write-only property to enforce the constraints. By default
-this is true but you may set it to false if you have a lot of
+/*
+Property to enforce the constraints. By default
+this is  $(D (Enforce.check | Enforce.unique | Enforce.foreignKey))
+but you may set it to 0 if you have a lot of
 initial data and already trust that it does not violate any constraints.
 
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    final @property void enforceConstraints(bool value) nothrow pure @safe @nogc
+    final @property ubyte enforceConstraints() const nothrow pure @safe @nogc
+    {
+        return _enforceConstraints;
+    }
+    final @property void enforceConstraints(ubyte value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
     }

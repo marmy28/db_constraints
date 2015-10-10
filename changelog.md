@@ -38,6 +38,7 @@
  * Using Coveralls now!
  * Foreign Key Constraints are now enforced and can be set to null, default, restricted, no action, or cascading with updates and deletes
  * Nullable went back to looking more like Phobos with extra functionality.
+ * enforceConstraints now takes a bitwise or arguement
 
 ## 0.0.3 (release date: 2015-09-19)
 

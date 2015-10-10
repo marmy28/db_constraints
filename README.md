@@ -35,7 +35,6 @@ Contributions are welcome. Please let me know by email if you would like to help
   * [ ] Nested classes
   * [ ] Start with SQL CREATE TABLE and show how to transform to class
   * [ ] Add in special notes about limitations (private getter setter need to be same name, only foreign key to clustered index, etc.)
-- [ ] Make enforceConstraints into a bitwise or parameter
 
 ## Bugs
 - [ ] Dealing with nulls for creating keyed item clustered key

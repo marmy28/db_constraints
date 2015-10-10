@@ -236,7 +236,7 @@ unittest
     assert(i.length == 1);
     tom2.cName = "James";
     assertThrown!UniqueConstraintException(i.add(tom2));
-    i.enforceConstraints = false;
+    i.enforceConstraints = Enforce.none;
     assertNotThrown!UniqueConstraintException(i.add(tom2));
     assert(i.length == 2);
 }

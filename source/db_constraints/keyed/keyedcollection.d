@@ -23,7 +23,7 @@ import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
-import db_constraints.utils.meta : UniqueConstraintStructNames, hasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
+import db_constraints.utils.meta;
 
 /**
 Tells the keyed collection which constraints to check.
@@ -31,13 +31,17 @@ Tells the keyed collection which constraints to check.
 enum Enforce
 {
 /**
-Set enforceConstraints equal to this if you do not want
+Set $(SRCTAG enforceConstraints) equal to this if you do not want
 any constraints to be enforced.
  */
     none = 0,
 /**
 Enforce the item's check constraint meaning anything with
-NotNull or CheckConstraint.
+$(WIKI constraints, NotNull) or $(WIKI constraints, CheckConstraint).
+
+Not using this means an item will not be checked when it is added
+to the collection. If you set up the singular class like the examples
+though the setter method will still check constraints.
  */
     check = 1,
 /**
@@ -138,21 +142,25 @@ $(D typeof(T.key)) everywhere.
 
     static if (hasForeignKeys!(T))
     {
-        mixin(foreignKeyTableProperties!(T));
-
+        mixin(createForeignKeyProperties!(T));
+/**
+Called when you associate a foreign key or an item changed. This checks
+the current items against its foreign keyed class.
+ */
         final private void checkForeignKeys()
         {
             this.byValue.each!(
                 (T a) =>
                 {
-                    mixin(foreignKeyCheckExceptions!(T));
+                    mixin(createForeignKeyCheckExceptions!(T));
                 }());
         }
+        /// ditto
         final private void checkForeignKeys(T a)
         {
-            mixin(foreignKeyCheckExceptions!(T));
+            mixin(createForeignKeyCheckExceptions!(T));
         }
-        mixin(ForeignKeyChanged!(T));
+        mixin(createForeignKeyChanged!(T));
     }
 /**
 Called when an item is being added or an item changed. This checks
@@ -197,7 +205,7 @@ the item's check constraints, unique constraints, and foreign key constraints.
 $(D itemChanged) is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
  */
-    protected void itemChanged(string propertyName, key_type item_key)
+    final private void itemChanged(string propertyName, key_type item_key)
     {
         key_type emit_key = item_key;
         if (propertyName == "key")
@@ -236,7 +244,7 @@ Returns:
     {
         return _containsChanges;
     }
-/*
+/**
 Property to enforce the constraints. By default
 this is  $(D (Enforce.check | Enforce.unique | Enforce.foreignKey))
 but you may set it to 0 if you have a lot of
@@ -249,6 +257,7 @@ is a duplicate clustered index, it will be overwritten.
     {
         return _enforceConstraints;
     }
+    /// ditto
     final @property void enforceConstraints(ubyte value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
@@ -313,12 +322,16 @@ Notifies that the length of $(D this) has changed.
 Params:
     item(s) = the item(s) you want to add to $(D this)
     notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
+
 $(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
 enforceConstraints is true.)
+
 $(THROWS CheckConstraintException, if the item is violating any of its
 defined check constraints and enforceConstraints is true.)
+
 $(THROWS ForeignKeyException, if the item is violating any of its
 foreign key constraints and enforceConstraints is true.)
+
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
     final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
@@ -337,44 +350,26 @@ $(B Precondition:) $(D_CODE assert(item(s) !is null);)
         }
     }
     /// ditto
-    final this(T item)
+    final void add(I)(I items, Flag!"notifyChange" notifyChange = Yes.notifyChange)
+        if (isIterable!(I))
+    in
     {
-        this.add(item, No.notifyChange);
+        assert(items !is null, "Trying to add a null array");
     }
-    /// ditto
+    body
+    {
+        foreach(item; items)
+        {
+            assert(is(typeof(item) == T));
+            this.add(item, notifyChange);
+        }
+    }
+/**
+This just calls $(SRCTAG add).
+ */
     final ref auto opOpAssign(string op : "~")(T item)
     {
         this.add(item);
-    }
-    /// ditto
-    final void add(I)(I items)
-        if (isIterable!(I))
-    in
-    {
-        assert(items !is null, "Trying to add a null array");
-    }
-    body
-    {
-        foreach(item; items)
-        {
-            assert(is(typeof(item) == T));
-            this.add(item);
-        }
-    }
-    /// ditto
-    final this(I)(I items)
-        if (isIterable!(I))
-    in
-    {
-        assert(items !is null, "Trying to add a null array");
-    }
-    body
-    {
-        foreach(item; items)
-        {
-            assert(is(typeof(item) == T));
-            this.add(item, No.notifyChange);
-        }
     }
     /// ditto
     final ref auto opOpAssign(string op : "~", I)(I items)
@@ -382,13 +377,54 @@ $(B Precondition:) $(D_CODE assert(item(s) !is null);)
     {
         this.add(items);
     }
+
+/**
+Initializes $(D this). Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
+Params:
+    item(s) = the item(s) you want to add to $(D this)
+
+$(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
+enforceConstraints is true.)
+
+$(THROWS CheckConstraintException, if the item is violating any of its
+defined check constraints and enforceConstraints is true.)
+
+$(THROWS ForeignKeyException, if the item is violating any of its
+foreign key constraints and enforceConstraints is true.)
+
+$(B Precondition:) $(D_CODE assert(item(s) !is null);)
+ */
+    final this(T item)
+    in
+    {
+        assert(item !is null, "Trying to initialize with a null " ~ T.stringof ~ ".");
+    }
+    body
+    {
+        this.add(item, No.notifyChange);
+    }
+    /// ditto
+    final this(I)(I items)
+        if (isIterable!(I))
+    in
+    {
+        assert(items !is null, "Trying to initialize with a null iterable.");
+    }
+    body
+    {
+        this.add(items, No.notifyChange);
+    }
+
+
 /**
 Gets the approriate $(D T). You can either use an item
 that equals the item you want back, a key of the item you want
 back or parameters that can make the key for the item you want back.
 Returns:
     The item in the collection that matches $(D item).
+
 $(THROWS KeyedException, if $(D this) does not contain a matching clustered index.)
+
 $(B Precondition:) $(D_CODE assert(item !is null);)
  */
     final ref inout(T) opIndex(in T item) inout
@@ -507,7 +543,7 @@ Returns:
         auto clIdx = key_type(a);
         return this.contains(clIdx);
     }
-/*
+/**
 The $(WEB dlang.org/expression.html#InExpression, InExpression) yields a pointer
 to the value if the key is in the associative array, or null if not.
  */
@@ -539,6 +575,7 @@ Checks if the item has any conflicting unique constraints. This
 is more extensive than $(SRCTAG contains).
 
 $(B Precondition:) $(D_CODE assert(items !is null);)
+
 $(B Postcondition:)
 $(D_CODE
 if (result)
@@ -562,7 +599,7 @@ else
     body
     {
         bool result = false;
-        foreach(uniqueName; UniqueConstraintStructNames!(T))
+        foreach(uniqueName; GetUniqueConstraintStructNames!(T))
         {
             if (this._items.byValue.canFind!("a !is b && " ~
                                       "a." ~ uniqueName ~ "_key == " ~

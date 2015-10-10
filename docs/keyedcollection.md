@@ -21,8 +21,7 @@ Matthew Armbruster
 
 
 ***
-
-<a id="Enforce"></a>
+<a name="Enforce" href="#Enforce"></a>
 ```d
 enum Enforce: int;
 
@@ -31,30 +30,32 @@ enum Enforce: int;
 Tells the keyed collection which constraints to check.
 
 ***
-
-<a id="Enforce.none"></a>
+<a name="Enforce.none" href="#Enforce.none"></a>
 ```d
 none
 ```
 
-Set enforceConstraints equal to this if you do not want
+Set [enforceConstraints](#enforceConstraints) equal to this if you do not want
 any constraints to be enforced.
 
 
 ***
-
-<a id="Enforce.check"></a>
+<a name="Enforce.check" href="#Enforce.check"></a>
 ```d
 check
 ```
 
 Enforce the item's check constraint meaning anything with
-NotNull or CheckConstraint.
+[NotNull](https://github.com/marmy28/db_constraints/wiki/constraints#NotNull) or [CheckConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#CheckConstraint).
+
+
+Not using this means an item will not be checked when it is added
+to the collection. If you set up the singular class like the examples
+though the setter method will still check constraints.
 
 
 ***
-
-<a id="Enforce.clusteredUnique"></a>
+<a name="Enforce.clusteredUnique" href="#Enforce.clusteredUnique"></a>
 ```d
 clusteredUnique
 ```
@@ -65,8 +66,7 @@ be conflicting clustered indicies.
 
 
 ***
-
-<a id="Enforce.unique"></a>
+<a name="Enforce.unique" href="#Enforce.unique"></a>
 ```d
 unique
 ```
@@ -76,8 +76,7 @@ you have this then you do not need to have clusteredUnique.
 
 
 ***
-
-<a id="Enforce.foreignKey"></a>
+<a name="Enforce.foreignKey" href="#Enforce.foreignKey"></a>
 ```d
 foreignKey
 ```
@@ -88,8 +87,7 @@ Enforce the foreign key constraints if there are any.
 
 
 ***
-
-<a id="usableForKeyedCollection"></a>
+<a name="usableForKeyedCollection" href="#usableForKeyedCollection"></a>
 ```d
 enum usableForKeyedCollection(alias T);
 
@@ -103,8 +101,7 @@ true if class can be used for keyed collection
 
 
 ***
-
-<a id="BaseKeyedCollection"></a>
+<a name="BaseKeyedCollection" href="#BaseKeyedCollection"></a>
 ```d
 class BaseKeyedCollection(T) if (usableForKeyedCollection!T);
 
@@ -136,8 +133,7 @@ Parameters |
 
 
 ***
-
-<a id="KeyedCollection"></a>
+<a name="KeyedCollection" href="#KeyedCollection"></a>
 ```d
 template KeyedCollection(T) if (usableForKeyedCollection!T)
 ```
@@ -277,8 +273,7 @@ assert(violatedConstraint is null);
 ```
 
 ***
-
-<a id="KeyedCollection.key_type"></a>
+<a name="KeyedCollection.key_type" href="#KeyedCollection.key_type"></a>
 ```d
 alias key_type = typeof(T.key);
 
@@ -289,20 +284,7 @@ The `key_type` is alias'd at the type since it looked better than having
 
 
 ***
-
-<a id="KeyedCollection.itemChanged"></a>
-```d
-void itemChanged(string propertyName, key_type item_key);
-
-```
-
-`itemChanged` is connected to the signal emitted by the item. This checks
-constraints and makes sure the changes are acceptable.
-
-
-***
-
-<a id="KeyedCollection.markAsSaved"></a>
+<a name="KeyedCollection.markAsSaved" href="#KeyedCollection.markAsSaved"></a>
 ```d
 final pure nothrow @nogc void markAsSaved();
 
@@ -313,8 +295,7 @@ the items as saved. Should only be used after a save.
 
 
 ***
-
-<a id="KeyedCollection.containsChanges"></a>
+<a name="KeyedCollection.containsChanges" href="#KeyedCollection.containsChanges"></a>
 ```d
 final const pure nothrow @nogc @property @safe bool containsChanges();
 
@@ -327,8 +308,26 @@ true if `this` contains changes.
 
 
 ***
+<a name="KeyedCollection.enforceConstraints" href="#KeyedCollection.enforceConstraints"></a>
+```d
+final const pure nothrow @nogc @property @safe ubyte enforceConstraints();
 
-<a id="KeyedCollection.notify"></a>
+final pure nothrow @nogc @property @safe void enforceConstraints(ubyte value);
+
+```
+
+Property to enforce the constraints. By default
+this is  `(Enforce.check | Enforce.unique | Enforce.foreignKey)`
+but you may set it to 0 if you have a lot of
+initial data and already trust that it does not violate any constraints.
+
+
+Setting this to false means that there are no checks and if there
+is a duplicate clustered index, it will be overwritten.
+
+
+***
+<a name="KeyedCollection.notify" href="#KeyedCollection.notify"></a>
 ```d
 final void notify()(string propertyName, key_type item_key);
 
@@ -348,8 +347,7 @@ Parameters |
 
 
 ***
-
-<a id="KeyedCollection.remove"></a>
+<a name="KeyedCollection.remove" href="#KeyedCollection.remove"></a>
 ```d
 final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
@@ -364,30 +362,11 @@ that the length of `this` has changed by emitting "remove".
 
 
 ***
-
-<a id="KeyedCollection.add"></a>
+<a name="KeyedCollection.add" href="#KeyedCollection.add"></a>
 ```d
 final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
-<a id="KeyedCollection.this"></a>
-```d
-final this(T item);
-
-<a id="KeyedCollection.opOpAssign"></a>
-```d
-final ref auto opOpAssign(string op : "~")(T item);
-
-<a id="KeyedCollection.add.2"></a>
-```d
-final void add(I)(I items) if (isIterable!I);
-
-<a id="KeyedCollection.this.2"></a>
-```d
-final this(I)(I items) if (isIterable!I);
-
-<a id="KeyedCollection.opOpAssign.2"></a>
-```d
-final ref auto opOpAssign(string op : "~", I)(I items) if (isIterable!I);
+final void add(I)(I items, Flag!"notifyChange" notifyChange = Yes.notifyChange) if (isIterable!I);
 
 ```
 
@@ -398,15 +377,23 @@ Parameters |
 ---|
 *Flag!"notifyChange" notifyChange*|
 &nbsp;&nbsp;&nbsp;&nbsp;whether or not to emit this change. Should only be No if coming from itemChanged
+
+
 :exclamation: **Throws:**
 [UniqueConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#UniqueConstraintException) if `this` already contains `item` and
 enforceConstraints is true.
+
+
 :exclamation: **Throws:**
 [CheckConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#CheckConstraintException) if the item is violating any of its
 defined check constraints and enforceConstraints is true.
+
+
 :exclamation: **Throws:**
 [ForeignKeyException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#ForeignKeyException) if the item is violating any of its
 foreign key constraints and enforceConstraints is true.
+
+
 **Precondition:** 
 ```d
 assert(item(s) !is null);
@@ -415,8 +402,35 @@ assert(item(s) !is null);
 
 
 ***
+<a name="KeyedCollection.opOpAssign" href="#KeyedCollection.opOpAssign"></a>
+```d
+final ref auto opOpAssign(string op : "~")(T item);
 
-<a id="KeyedCollection.opIndex"></a>
+final ref auto opOpAssign(string op : "~", I)(I items) if (isIterable!I);
+
+```
+
+This just calls [add](#add).
+
+
+***
+<a name="KeyedCollection.this" href="#KeyedCollection.this"></a>
+```d
+final this(T item);
+
+final this(I)(I items) if (isIterable!I);
+
+```
+
+Initializes `this`. Adds `item` to `this` and connects to the signals emitted by `item`.
+
+Parameters |
+---|
+
+
+
+***
+<a name="KeyedCollection.opIndex" href="#KeyedCollection.opIndex"></a>
 ```d
 final inout ref inout(T) opIndex(in T item);
 
@@ -432,8 +446,12 @@ back or parameters that can make the key for the item you want back.
 
 **Returns:**
 The item in the collection that matches `item`.
+
+
 :exclamation: **Throws:**
 [KeyedException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#KeyedException) if `this` does not contain a matching clustered index.
+
+
 **Precondition:** 
 ```d
 assert(item !is null);
@@ -441,8 +459,7 @@ assert(item !is null);
 
 
 ***
-
-<a id="KeyedCollection.opDispatch"></a>
+<a name="KeyedCollection.opDispatch" href="#KeyedCollection.opDispatch"></a>
 ```d
 auto opDispatch(string name, A...)(A a);
 
@@ -453,8 +470,7 @@ to the private associative array.
 
 
 ***
-
-<a id="KeyedCollection.opApply"></a>
+<a name="KeyedCollection.opApply" href="#KeyedCollection.opApply"></a>
 ```d
 final int opApply(int delegate(ref T) dg);
 
@@ -466,8 +482,7 @@ Allows you to use `this` in a foreach loop.
 
 
 ***
-
-<a id="KeyedCollection.length"></a>
+<a name="KeyedCollection.length" href="#KeyedCollection.length"></a>
 ```d
 final const pure nothrow @property @safe size_t length();
 
@@ -480,20 +495,13 @@ The number of items in the collection.
 
 
 ***
-
-<a id="KeyedCollection.contains"></a>
+<a name="KeyedCollection.contains" href="#KeyedCollection.contains"></a>
 ```d
 final const pure nothrow @nogc @safe bool contains(in T item);
 
 final const pure nothrow @nogc @safe bool contains(in key_type clIdx);
 
 final const pure nothrow @nogc @safe bool contains(A...)(in A a);
-
-<a id="KeyedCollection.opBinaryRight"></a>
-```d
-final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in key_type clIdx);
-
-final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in", A...)(in A a);
 
 ```
 
@@ -509,8 +517,22 @@ true if `item` is in the collection.
 
 
 ***
+<a name="KeyedCollection.opBinaryRight" href="#KeyedCollection.opBinaryRight"></a>
+```d
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in T item);
 
-<a id="KeyedCollection.violatesUniqueConstraints"></a>
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in key_type clIdx);
+
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in", A...)(in A a);
+
+```
+
+The [InExpression](http://dlang.org/expression.html#InExpression) yields a pointer
+to the value if the key is in the associative array, or null if not.
+
+
+***
+<a name="KeyedCollection.violatesUniqueConstraints" href="#KeyedCollection.violatesUniqueConstraints"></a>
 ```d
 final const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
 
@@ -524,6 +546,8 @@ is more extensive than [contains](#contains).
 ```d
 assert(items !is null);
 ```
+
+
 **Postcondition:**
 
 ```d
@@ -539,5 +563,5 @@ else
 
 
 
-Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 15:12:48 2015
+Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 18:48:34 2015
 

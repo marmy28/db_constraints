@@ -243,8 +243,8 @@ unittest
 }
 `;
 
-    static assert(ForeignKeyProperties!(Book) == fkproperties, ForeignKeyProperties!(Book));
-    assert(ForeignKeyProperties!(Book) == fkproperties, ForeignKeyProperties!(Book));
+    static assert(createForeignKeyPropertyConverter!(Book) == fkproperties, createForeignKeyPropertyConverter!(Book));
+    assert(createForeignKeyPropertyConverter!(Book) == fkproperties, createForeignKeyPropertyConverter!(Book));
 }
 
 unittest

@@ -16,6 +16,7 @@ module db_constraints.keyed.keyeditem;
 import std.traits : isInstanceOf;
 
 public import db_constraints.constraints;
+import db_constraints.utils.meta : hasMembersWithUDA;
 
 /**
 Use this in the singular class which would describe a row in your
@@ -40,9 +41,14 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     private bool _containsChanges;
     private ClusteredIndex _key;
 
+    static assert(hasMembersWithUDA!(T, ClusteredIndexAttribute),
+                  "Must have columns with @UniqueConstraintColumn!\"" ~
+                  ClusteredIndexAttribute.name ~ "\" to use this mixin.");
+
 /**
 The setter should be in your setter member. This checks your check constraint and notifies the
 item if it is different and does not violate the check constraint.
+
 $(THROWS CheckConstraintException, if your value makes checkConstraints fail.)
  */
     final private void setter(P)(ref P member, P value, string name_ = __FUNCTION__)
@@ -67,6 +73,7 @@ $(THROWS CheckConstraintException, if your value makes checkConstraints fail.)
 /**
 Initializes the keyed item by running $(SRCTAG setClusteredIndex) and $(SRCTAG checkConstraints).
 This should be in your constructor.
+
 $(THROWS CheckConstraintException, if a member violates their constraint.)
  */
     final private void initializeKeyedItem()
@@ -75,9 +82,7 @@ $(THROWS CheckConstraintException, if a member violates their constraint.)
         checkConstraints();
     }
 
-    static assert(hasMembersWithUDA!(T, ClusteredIndexAttribute),
-                  "Must have columns with @UniqueConstraintColumn!\"" ~
-                  ClusteredIndexAttribute.name ~ "\" to use this mixin.");
+
 /**
 Read-only property telling if $(D this) contains changes.
 Returns:
@@ -117,7 +122,7 @@ Params:
             emitChange.emit("key", _key);
             setClusteredIndex();
         }
-        foreach(name; Erase!(ClusteredIndexAttribute.name, UniqueConstraintStructNames!(T)))
+        foreach(name; Erase!(ClusteredIndexAttribute.name, GetUniqueConstraintStructNames!(T)))
         {
             if (GetMembersWithUDA!(T, UniqueConstraintColumn!name).canFind(propertyName))
             {
@@ -134,13 +139,14 @@ Params:
     }
 /**
 Checks if any of the members of $(D T) have values that violate their check constraint.
+
 $(THROWS CheckConstraintException, if the constraint is violated.)
  */
     final void checkConstraints()
     {
         foreach(member; __traits(derivedMembers, T))
         {
-            static if (member != "this")
+            static if (__traits(compiles, __traits(getMember, T, member)))
             {
                 foreach(ov; __traits(getOverloads, T, member))
                 {
@@ -148,11 +154,21 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                     {
                         static if (isInstanceOf!(CheckConstraint, attr))
                         {
+                            static if (attr.name == "NotNull")
+                            {
+                                enum msg = T.stringof ~ "." ~ member ~ " NotNull violation.";
+
+                            }
+                            else static if (attr.name == "")
+                            {
+                                enum msg = "chk_" ~ T.stringof ~ "_" ~ member ~ " violation.";
+                            }
+                            else
+                            {
+                                enum msg = attr.name ~ " violation.";
+                            }
                             enforceEx!(CheckConstraintException)(
-                                attr.check(mixin("this." ~ member)),
-                                (attr.name == "" ? "" : attr.name ~ " violation. ") ~
-                                member ~ " failed its check with value " ~
-                                mixin("this." ~ member).to!string());
+                                    attr.check(mixin("this." ~ member)), msg);
                         }
                     }
                 }
@@ -213,7 +229,7 @@ Sets the clustered index for $(D this).
 
     static if (hasForeignKeys!(T))
     {
-        mixin(ForeignKeyProperties!(T));
+        mixin(createForeignKeyPropertyConverter!(T));
     }
 
     mixin(createConstraintStructs!(T, ClusteredIndexAttribute.name));

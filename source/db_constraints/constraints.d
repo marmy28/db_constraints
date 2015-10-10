@@ -90,11 +90,13 @@ effect.
 /**
 The item is prohibited from deleting or modifying a parent key when there exists
 one or more child keys mapped to it.
+
 $(THROWS ForeignKeyException, when a member changes.)
  */
     restrict,
 /**
 Sets the member to $(D null) when deleting or modifying a parent key.
+
 $(THROWS ForeignKeyException, when the type cannot be set to null.)
  */
     setNull,

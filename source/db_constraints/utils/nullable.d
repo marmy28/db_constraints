@@ -141,6 +141,11 @@ Params:
             _value = value;
             _isNull = false;
         }
+        /// ditto
+        void opAssign(N : typeof(null))(N n) @safe nothrow pure @nogc
+        {
+            this.nullify();
+        }
 /**
 Forces $(D this) to the null state.
  */
@@ -148,11 +153,6 @@ Forces $(D this) to the null state.
         {
             .destroy(_value);
             _isNull = true;
-        }
-        /// ditto
-        void opAssign(N : typeof(null))(N n) @safe nothrow pure @nogc
-        {
-            this.nullify();
         }
     }
 
@@ -256,6 +256,7 @@ Gets the value. $(D this) must not be in the null state.
 This function is also called for the implicit conversion to $(D T).
 Returns:
     The value held internally by this $(D Nullable).
+
 $(B Precondition:) $(D_CODE assert(!isNull);)
  */
     @property ref inout(T) get() inout @safe pure nothrow

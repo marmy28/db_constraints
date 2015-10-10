@@ -1,7 +1,7 @@
 /**
 The meta module contains:
   $(TOC opAAKey)
-  $(TOC UniqueConstraintStructNames)
+  $(TOC GetUniqueConstraintStructNames)
   $(TOC GetMembersWithUDA)
   $(TOC hasMembersWithUDA)
   $(TOC createConstraintStructs)
@@ -10,10 +10,10 @@ The meta module contains:
   $(TOC GetForeignKeyRefTable)
   $(TOC GetDefault)
   $(TOC hasDefault)
-  $(TOC ForeignKeyProperties)
-  $(TOC foreignKeyTableProperties)
-  $(TOC foreignKeyCheckExceptions)
-  $(TOC ForeignKeyChanged)
+  $(TOC createForeignKeyPropertyConverter)
+  $(TOC createForeignKeyProperties)
+  $(TOC createForeignKeyCheckExceptions)
+  $(TOC createForeignKeyChanged)
 
 License: $(GPL2)
 
@@ -110,7 +110,7 @@ The UniqueConstraintColumns are usually put on getters and setters.
 Returns:
     AliasSeq of all the distinct UniqueConstraintColumn.name in ClassName
  */
-template UniqueConstraintStructNames(ClassName)
+template GetUniqueConstraintStructNames(ClassName)
 {
     template Impl(T...)
     {
@@ -167,7 +167,7 @@ template UniqueConstraintStructNames(ClassName)
             }
         }
     }
-    alias UniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
+    alias GetUniqueConstraintStructNames = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
 }
 
 /**
@@ -272,7 +272,7 @@ template hasMembersWithUDA(ClassName, attribute)
 
 /*
 Using the ClassName and ClusteredIndexAttributeName, createConstraintStructs will
-append together strings using $(SRCTAG UniqueConstraintStructNames) and $(SRCTAG GetMembersWithUDA)
+append together strings using $(SRCTAG GetUniqueConstraintStructNames) and $(SRCTAG GetMembersWithUDA)
 that make up the structs used as your unique keys.
 Returns:
     A string full of the structs for ClassName that make each row unique.
@@ -282,7 +282,7 @@ template createConstraintStructs(ClassName, string ClusteredIndexAttributeName)
     string createConstraintStructs()
     {
         string result = "public:\n";
-        foreach(name; UniqueConstraintStructNames!(ClassName))
+        foreach(name; GetUniqueConstraintStructNames!(ClassName))
         {
             static if (name == ClusteredIndexAttributeName)
             {
@@ -316,7 +316,7 @@ template createConstraintStructs(ClassName, string ClusteredIndexAttributeName)
 
 /**
 Gets all of the $(WIKI constraints, ForeignKey) that ClassName is attributed with. If
-the foreign key name is left blank then the default name is $(D "fk_" ~ ClassName ~ "_" ~ referencedClassName).
+the foreign key name is left blank then the default name is $(D "fk_" ~ ClassName ~ "__" ~ referencedClassName).
  */
 template GetForeignKeys(ClassName)
 {
@@ -500,10 +500,14 @@ template hasDefault(ClassName, string memberName)
         }
     }
 }
-
-template ForeignKeyProperties(ClassName)
+/**
+Creates the foreign key properties inside of $(D KeyedItem)
+that convert the keyed items properties into the necessary
+foreign key clustered index.
+ */
+template createForeignKeyPropertyConverter(ClassName)
 {
-    string ForeignKeyProperties()
+    string createForeignKeyPropertyConverter()
     {
         string result = "";
         foreach(foreignKey; GetForeignKeys!(ClassName))
@@ -572,10 +576,24 @@ template ForeignKeyProperties(ClassName)
     }
 }
 
+/**
+Creates the foreign key properties that will be used in KeyedCollection.
+It loops over all of the foreign key attributes for ClassName and creates
+a write-only property for each referenced class by using the class' name
+in lower case. There is a static assert that makes sure the lower case
+class name does not equal the class name. This would result in name
+collisions and is not conforming to the D style.
 
-template foreignKeyTableProperties(ClassName)
+There are two setters that are made. One takes the referenced class
+by reference and the other accepts null. The null setter removes the
+reference and disconnects the emitted signals. The setter that takes
+the class by reference connects the emitted signals and keeps the
+address of the class to check foreign key constraints when anything
+changes.
+ */
+template createForeignKeyProperties(ClassName)
 {
-    string foreignKeyTableProperties()
+    string createForeignKeyProperties()
     {
         import std.uni : toLower;
         string result = "";
@@ -619,9 +637,13 @@ template foreignKeyTableProperties(ClassName)
     }
 }
 
-template foreignKeyCheckExceptions(ClassName)
+/**
+Creates the foreign key check exceptions by seeing if the foreign key has been associated and
+whether or not the referenced table has a matching record.
+ */
+template createForeignKeyCheckExceptions(ClassName)
 {
-    string foreignKeyCheckExceptions()
+    string createForeignKeyCheckExceptions()
     {
         import std.uni : toLower;
         string result = "";
@@ -641,12 +663,16 @@ template foreignKeyCheckExceptions(ClassName)
     }
 }
 
-template ForeignKeyChanged(ClassName)
+/**
+Creates the foreign keys update rule and delete rule property and sets them to the foreign key attribute property.
+It also creates the function that will be attached to the foreign key when it is associated. This is where
+the update rule and delete rule are used since the referenced class will emit what changed and to which item.
+ */
+template createForeignKeyChanged(ClassName)
 {
-    string ForeignKeyChanged()
+    string createForeignKeyChanged()
     {
         import std.conv : to;
-        import std.algorithm : joiner;
         string result = "";
         foreach(foreignKey; GetForeignKeys!(ClassName))
         {

@@ -1,6 +1,6 @@
 /**
 The meta module contains:
-  $(TOC generic_compare)
+  $(TOC opAAKey)
   $(TOC UniqueConstraintStructNames)
   $(TOC GetMembersWithUDA)
   $(TOC HasMembersWithUDA)
@@ -37,7 +37,7 @@ in an associative array.
 The template loops over the members to define
 toHash, opEquals, and opCmp for the struct.
  */
-mixin template generic_compare(T)
+mixin template opAAKey(T)
     if (is(T == struct))
 {
 /*
@@ -296,7 +296,7 @@ template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)
                 {
                     result ~= "        typeof(" ~ ClassName.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
                 }
-                result ~= "        mixin generic_compare!(" ~ name ~ ");\n";
+                result ~= "        mixin opAAKey!(" ~ name ~ ");\n";
                 result ~= "    }\n";
                 result ~= "    final @property " ~ name ~ " " ~ name ~ "_key() const nothrow pure @safe @nogc\n";
                 result ~= "    {\n";

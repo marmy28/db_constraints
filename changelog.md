@@ -9,6 +9,7 @@
  * db_constraints.keyed.keyeditem.UniqueConstraintStructNames -> db_constraints.utils.generickey.UniqueConstraintStructNames
  * db_constraints.keyed.keyeditem.getColumns -> db_constraints.utils.generickey.GetMembersWithUDA
  * db_constraints.utils.generickey -> db_constraints.utils.meta
+ * db_constraints.utils.meta.generic_compare -> db_constraints.utils.meta.opAAKey
 
 ### New additions
 

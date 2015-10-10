@@ -176,7 +176,7 @@ attribute selected as the Clustered Index.
                   return result;
               }());
         // adds the generic comparison for structs
-        mixin generic_compare!(ClusteredIndex);
+        mixin opAAKey!(ClusteredIndex);
     }
 
 
@@ -292,7 +292,7 @@ unittest
     final struct uc_Candy_ranking
     {
         typeof(Candy.ranking) ranking;
-        mixin generic_compare!(uc_Candy_ranking);
+        mixin opAAKey!(uc_Candy_ranking);
     }
     final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe @nogc
     {

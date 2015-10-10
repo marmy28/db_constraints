@@ -11,6 +11,8 @@
  * db_constraints.utils.generickey -> db_constraints.utils.meta
  * db_constraints.utils.meta.generic_compare -> db_constraints.utils.meta.opAAKey
  * db_constraints.utils.meta.HasMembersWithUDA -> db_constraints.utils.meta.hasMembersWithUDA
+ * db_constraints.utils.meta.ConstraintStructs -> db_constraints.utils.meta.createConstraintStructs
+
 
 ### New additions
 

@@ -213,7 +213,7 @@ Sets the clustered index for $(D this).
         mixin(ForeignKeyProperties!(T));
     }
 
-    mixin(ConstraintStructs!(T, ClusteredIndexAttribute.name));
+    mixin(createConstraintStructs!(T, ClusteredIndexAttribute.name));
 }
 
 ///
@@ -301,9 +301,9 @@ unittest
         return _uc_Candy_ranking_key;
     }
 `;
-    import db_constraints.utils.meta : ConstraintStructs;
-    static assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
-    assert(ConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
+    import db_constraints.utils.meta : createConstraintStructs;
+    static assert(createConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
+    assert(createConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
 
     import std.exception : assertThrown;
     import db_constraints.db_exceptions : CheckConstraintException;

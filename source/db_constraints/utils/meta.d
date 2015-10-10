@@ -4,7 +4,7 @@ The meta module contains:
   $(TOC UniqueConstraintStructNames)
   $(TOC GetMembersWithUDA)
   $(TOC hasMembersWithUDA)
-  $(TOC ConstraintStructs)
+  $(TOC createConstraintStructs)
   $(TOC GetForeignKeys)
   $(TOC HasForeignKeys)
   $(TOC GetForeignKeyRefTable)
@@ -286,12 +286,16 @@ template hasMembersWithUDA(ClassName, attribute)
     enum hasMembersWithUDA = Impl!(__traits(derivedMembers, ClassName));
 }
 
-/**
-Returns a string full of the structs for ClassName.
+/*
+Using the ClassName and ClusteredIndexAttributeName, createConstraintStructs will
+append together strings using $(TOC UniqueConstraintStructNames) and $(TOC GetMembersWithUDA)
+that make up the structs used as your unique keys.
+Returns:
+    A string full of the structs for ClassName that make each row unique.
  */
-template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)
+template createConstraintStructs(ClassName, string ClusteredIndexAttributeName)
 {
-    string ConstraintStructs()
+    string createConstraintStructs()
     {
         string result = "public:\n";
         foreach(name; UniqueConstraintStructNames!(ClassName))

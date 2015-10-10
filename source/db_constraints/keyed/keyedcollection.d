@@ -25,6 +25,10 @@ import db_constraints.keyed.keyeditem;
 import db_constraints.utils.meta : UniqueConstraintStructNames, hasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
 
 /**
+Makes sure the class is usable for keyed collection. This really just makes sure it
+has the necessary members that come with keyeditem.
+Returns:
+    true if class can be used for keyed collection
  */
 template usableForKeyedCollection(alias T)
 {
@@ -55,6 +59,14 @@ Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
 you include the keyeditem in the $(I T) class.
+
+If $(D T) has foreign keys you must use $(SRCTAG KeyedCollection) instead
+since the functions that come with foreign keys need to have the
+other class imported.
+
+This also allows you to make a keyed collection in one line.
+$(D_CODE alias Candies = BaseKeyedCollection!(Candy);)
+Now you can use Candies as a collection.
 Params:
     T = the singular class
  */
@@ -66,12 +78,13 @@ class BaseKeyedCollection(T)
 
 
 /**
-Turns the inheriting class into a base keyed collection.
+Turns the inheriting class into a keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
 you include the keyeditem in the $(I T) class.
-Params:
-    T = the singular class
+
+$(D T) should represent a single row in the database. Use
+this when $(D T) has foreign keys.
  */
 mixin template KeyedCollection(T)
     if (usableForKeyedCollection!(T))
@@ -82,8 +95,8 @@ mixin template KeyedCollection(T)
 
 
 /**
-The key type is alias'd at the type since it looked better than having
-typeof(T.key) everywhere.
+The $(D key_type) is alias'd at the type since it looked better than having
+$(D typeof(T.key)) everywhere.
  */
     final alias key_type = typeof(T.key);
 
@@ -94,7 +107,7 @@ typeof(T.key) everywhere.
     {
         mixin(foreignKeyTableProperties!(T));
 
-        void checkForeignKeys()
+        final private void checkForeignKeys()
         {
             this.byValue.each!(
                 (T a) =>
@@ -102,14 +115,15 @@ typeof(T.key) everywhere.
                     mixin(foreignKeyCheckExceptions!(T));
                 }());
         }
-        void checkForeignKeys(T a)
+        final private void checkForeignKeys(T a)
         {
             mixin(foreignKeyCheckExceptions!(T));
         }
         mixin(ForeignKeyChanged!(T));
     }
 /**
-Called when an item is being added or an item changed.
+Called when an item is being added or an item changed. This checks
+the item's check constraints, unique constraints, and foreign key constraints.
  */
     final private void checkConstraints(T item)
     {
@@ -133,7 +147,7 @@ Called when an item is being added or an item changed.
         checkConstraints(this[item_key]);
     }
 /**
-itemChanged is connected to the signal emitted by the item. This checks
+$(D itemChanged) is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
  */
     protected void itemChanged(string propertyName, key_type item_key)
@@ -153,11 +167,13 @@ constraints and makes sure the changes are acceptable.
         notify(propertyName, emit_key);
     }
     T[key_type] _items;
-
+/**
+The signal used to emit changes that occur in $(D this).
+ */
     mixin Signal!(string, key_type) collectionChanged;
 /**
-Changes $(D this) to not contain changes. Should only
-be used after a save.
+Changes $(D this) to not contain changes and also marks all
+the items as saved. Should only be used after a save.
  */
     final void markAsSaved() nothrow pure @nogc
     {
@@ -174,9 +190,9 @@ Returns:
         return _containsChanges;
     }
 /**
-Setter to enforce the constraints. By default
+Write-only property to enforce the constraints. By default
 this is true but you may set it to false if you have a lot of
-initial data and already trust that is unique and accurate.
+initial data and already trust that it does not violate any constraints.
 
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
@@ -187,8 +203,9 @@ is a duplicate clustered index, it will be overwritten.
     }
 
 /**
-Notifies $(D this) which property changed.
-This also emits a signal with the property name that changed.
+Notifies $(D this) which property changed and sets containsChanges to true.
+This also emits a signal with the property name that changed
+and the key to it in this collection.
 Params:
     propertyName = the property name that changed
     item_key = the items key that changed
@@ -200,7 +217,7 @@ Params:
     }
 /**
 Removes an item from $(D this) and disconnects the signals. Notifies
-that the length of $(D this) has changed.
+that the length of $(D this) has changed by emitting "remove".
  */
     final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     {
@@ -242,18 +259,15 @@ that the length of $(D this) has changed.
 Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
 Notifies that the length of $(D this) has changed.
 Params:
-    item = the item you want to add to $(D this)
+    item(s) = the item(s) you want to add to $(D this)
     notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
-Throws:
-    UniqueConstraintException if $(D this) already contains $(D item) and
-    enforceConstraints is true.
-Throws:
-    CheckConstraintException if the item is violating any of its
-    defined check constraints and enforceConstraints is true.
-Throws:
-    ForeignKeyException if the item is violating any of its
-    foreign key constraints and enforceConstraints is true.
-$(B Precondition:) $(D_CODE assert(items !is null);)
+$(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
+enforceConstraints is true.)
+$(THROWS CheckConstraintException, if the item is violating any of its
+defined check constraints and enforceConstraints is true.)
+$(THROWS ForeignKeyException, if the item is violating any of its
+foreign key constraints and enforceConstraints is true.)
+$(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
     final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
@@ -280,11 +294,7 @@ $(B Precondition:) $(D_CODE assert(items !is null);)
     {
         this.add(item);
     }
-/**
-Does the same as $(D add(T item)) but for an array.
-
-$(B Precondition:) $(D_CODE assert(items !is null);)
- */
+    /// ditto
     final void add(I)(I items)
         if (isIterable!(I))
     in
@@ -321,13 +331,13 @@ $(B Precondition:) $(D_CODE assert(items !is null);)
         this.add(items);
     }
 /**
-Gets the approriate $(D T) that equals $(D item).
-Params:
-    item = the item you want back from the collection
+Gets the approriate $(D T). You can either use an item
+that equals the item you want back, a key of the item you want
+back or parameters that can make the key for the item you want back.
 Returns:
     The item in the collection that matches $(D item).
-Throws:
-    KeyedException if $(D this) does not contain a matching clustered index.
+$(THROWS KeyedException, if $(D this) does not contain a matching clustered index.)
+$(B Precondition:) $(D_CODE assert(item !is null);)
  */
     final ref inout(T) opIndex(in T item) inout
     in
@@ -338,15 +348,7 @@ Throws:
     {
         return this[item.key];
     }
-/**
-Gets the approriate $(D T) that has clustered index $(D clIdx).
-Params:
-    clIdx = the clustered index of the item you want back
-Returns:
-    The item in the collection that has clustered index $(D clIdx).
-Throws:
-    KeyedException if $(D this) does not contain a matching clustered index.
- */
+    /// ditto
     final ref inout(T) opIndex(in key_type clIdx) inout
     {
         if (this.contains(clIdx))
@@ -364,15 +366,7 @@ Throws:
             throw new KeyedException(fields);
         }
     }
-/**
-Gets the approriate $(D T) that has clustered index $(D a).
-Params:
-    a = the fields of the clustered index of the item you want back.
-Returns:
-    The item in the collection that has the clustered index with fields $(D a).
-Throws:
-    KeyedException if $(D this) does not contain a matching clustered index.
- */
+    /// ditto
     final ref inout(T) opIndex(A...)(in A a) inout
     in
     {
@@ -442,36 +436,12 @@ Returns:
         return this.contains(item.key);
     }
     /// ditto
-    inout(T)* opBinaryRight(string op : "in")(in T item) inout nothrow pure @safe @nogc
-    {
-        return (item.key in this);
-    }
-/**
-Checks if $(D clIdx) is in the collection.
-Params:
-    clIdx = the clustered index of the item you want to see is in the collection
-Returns:
-    true if there is a clustered index in the collection that
-    matches $(D clIdx).
- */
     final bool contains(in key_type clIdx) const nothrow pure @safe @nogc
     {
         auto i = (clIdx in this._items);
         return (i !is null);
     }
     /// ditto
-    final inout(T)* opBinaryRight(string op : "in")(in key_type clIdx) inout nothrow pure @safe @nogc
-    {
-        return (clIdx in this._items);
-    }
-/**
-Checks if $(D a) makes a clustered index that is in the collection.
-Params:
-    a = the fields of the clustered index of the item you want to see is in the collection
-Returns:
-    true if there is a clustered index in the collection that
-    matches $(D a).
- */
     final bool contains(A...)(in A a) const nothrow pure @safe @nogc
     in
     {
@@ -484,6 +454,19 @@ Returns:
     {
         auto clIdx = key_type(a);
         return this.contains(clIdx);
+    }
+/*
+The $(WEB dlang.org/expression.html#InExpression, InExpression) yields a pointer
+to the value if the key is in the associative array, or null if not.
+ */
+    final inout(T)* opBinaryRight(string op : "in")(in T item) inout nothrow pure @safe @nogc
+    {
+        return (item.key in this);
+    }
+    /// ditto
+    final inout(T)* opBinaryRight(string op : "in")(in key_type clIdx) inout nothrow pure @safe @nogc
+    {
+        return (clIdx in this._items);
     }
     /// ditto
     final inout(T)* opBinaryRight(string op : "in", A...)(in A a) inout nothrow pure @safe @nogc
@@ -501,7 +484,7 @@ Returns:
     }
 /**
 Checks if the item has any conflicting unique constraints. This
-is more extensive than $(D contains).
+is more extensive than $(SRCTAG contains).
 
 $(B Precondition:) $(D_CODE assert(items !is null);)
 $(B Postcondition:)
@@ -557,14 +540,12 @@ else
 ///
 unittest
 {
-    // singular class
+    // singular class this holds all of the columns
     class Candy
     {
     private:
         string _name;
         int _ranking;
-        int _annualSales;
-        string _brand;
     public:
         // marking name as part of the primary key
         @PrimaryKeyColumn @NotNull
@@ -587,18 +568,16 @@ unittest
             setter(_ranking, value);
         }
 
-        this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
+        this(string name, int ranking)
         {
             this._name = name;
             this._ranking = ranking;
-            this._annualSales = annualSales;
-            this._brand = brand;
             // need to initialize the keyed item
             initializeKeyedItem();
         }
         Candy dup() const
         {
-            return new Candy(this._name, this._ranking, this._annualSales, this._brand);
+            return new Candy(this._name, this._ranking);
         }
         // the default is to make the primary key into the clustered index
         // which allows you to search based on the primary key
@@ -607,20 +586,23 @@ unittest
 
     // plural class
     // I am using an alias since BaseKeyedCollection
-    // takes care of everything I want to do for this example.
+    // takes care of everything I want to do for this example in one line.
     alias Candies = BaseKeyedCollection!(Candy);
 
     // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
-    auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
     // should be Milky not Milkey, this is wrong on purpose
-    auto snickers = new Candy("Snickers", 4, 441_100_000, "Mars");
-    auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2, 516_500_000, "Hershey");
+    auto milkyWay = new Candy("Milkey Way", 18);
+    auto snickers = new Candy("Snickers", 4);
+    auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2);
 
     auto mars = new Candies([milkyWay, snickers]);
     assert(mars.length == 2);
     assert(!mars.containsChanges);
 
-    // use the class as an index
+    auto hershey = new Candies(reesesPBCups);
+    assert(hershey.length == 1);
+
+    // use the class as an index and confirm it returns the correct value
     assert(mars[milkyWay] is milkyWay);
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
@@ -634,7 +616,9 @@ unittest
     assert(!mars.contains(reesesPBCups));
 
     // now we change the name to be correct
-    mars[pk].name = "Milky Way";
+    mars[pk].name = "Milky Way"; // remember pk is primary key for milky way
+
+    // since we changed milky way's name, mars contains changes
     assert(mars.containsChanges);
 
     // since we had name in pk spelled incorrectly
@@ -644,14 +628,15 @@ unittest
     assert(!mars.contains("Milkey Way"));
     assert(mars.contains("Milky Way"));
 
+    // looping over mars we make sure the key can be used to get the correct value.
     foreach(name_pk, candy; mars)
     {
         assert(mars[name_pk] == candy);
     }
 
     // trying to add another candy with the same name will
-    // result in a unique constraint violation
-    auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
+    // result in a unique constraint violation even if the ranking is different
+    auto milkyWay2 = new Candy("Milky Way", 16);
     import std.exception : assertThrown;
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
@@ -662,7 +647,7 @@ unittest
     // trying to set this to null will result in a CheckConstraintException.
     assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
-    // violatesUniqueConstraints will tell you which constraint is violated if any
+    // violatesUniqueConstraints will tell you which unique constraint is violated if any
     string violatedConstraint;
     assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
     assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");

@@ -178,6 +178,7 @@ Returns:
     AliasSeq with distinct properties that have @attribute assigned to it.
  */
 template GetMembersWithUDA(ClassName, attribute)
+    if (hasMembersWithUDA!(ClassName, attribute))
 {
     template Impl(T...)
     {
@@ -271,7 +272,7 @@ template hasMembersWithUDA(ClassName, attribute)
 
 /*
 Using the ClassName and ClusteredIndexAttributeName, createConstraintStructs will
-append together strings using $(TOC UniqueConstraintStructNames) and $(TOC GetMembersWithUDA)
+append together strings using $(SRCTAG UniqueConstraintStructNames) and $(SRCTAG GetMembersWithUDA)
 that make up the structs used as your unique keys.
 Returns:
     A string full of the structs for ClassName that make each row unique.
@@ -377,6 +378,7 @@ Returns:
    Distinct list of all referenced classes for ClassName.
  */
 template GetForeignKeyRefTable(ClassName)
+    if (hasForeignKeys!(ClassName))
 {
     template Impl(T...)
     {
@@ -401,6 +403,7 @@ template GetForeignKeyRefTable(ClassName)
 Gets the value for ClassName.memberName inside of @Default!(value) if memberName has @Default!(value)
  */
 template GetDefault(ClassName, string memberName)
+    if (hasDefault!(ClassName, memberName))
 {
     static if (__traits(compiles, __traits(getMember, ClassName, memberName)))
     {

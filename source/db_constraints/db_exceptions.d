@@ -16,8 +16,7 @@ Copyright: 2015
 module db_constraints.db_exceptions;
 
 /**
-Inherits from Exception. This is thrown whenever
-there is a unique constraint violation.
+Exception thrown on unique constraint violations.
  */
 class UniqueConstraintException : Exception
 {
@@ -35,8 +34,7 @@ Params:
     }
 }
 /**
-Inherits from Exception. This is thrown whenever
-there is an exception dealing with the keyed items.
+Exception thrown on errors involved with keyed items.
  */
 class KeyedException : Exception
 {
@@ -55,8 +53,7 @@ Params:
 }
 
 /**
-Inherits from Exception. This is thrown whenever
-there is a check constraint violation.
+Exception thrown on check constraint violations.
  */
 class CheckConstraintException : Exception
 {
@@ -75,14 +72,13 @@ Params:
 }
 
 /**
-Inherits from Exception. This is thrown whenever
-there is an exception dealing with the foreign keys.
+Exception thrown on foreign key violations.
  */
 class ForeignKeyException : Exception
 {
 /**
 Params:
-    msg = the message thrown with the foreign key
+    msg = the message thrown with the foreign key violation
     file = the file where the exception occurred
     line = the line number where the exception occurred
     next = references the exception that was being handled when this one was generated

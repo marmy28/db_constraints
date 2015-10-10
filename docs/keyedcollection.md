@@ -27,6 +27,12 @@ enum usableForKeyedCollection(alias T);
 
 ```
 
+Makes sure the class is usable for keyed collection. This really just makes sure it
+has the necessary members that come with keyeditem.
+
+**Returns:**
+true if class can be used for keyed collection
+
 
 ***
 
@@ -40,6 +46,19 @@ Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
 you include the keyeditem in the _T_ class.
+
+
+If `T` has foreign keys you must use [KeyedCollection](#KeyedCollection) instead
+since the functions that come with foreign keys need to have the
+other class imported.
+
+
+This also allows you to make a keyed collection in one line.
+
+```d
+alias Candies = BaseKeyedCollection!(Candy);
+```
+Now you can use Candies as a collection.
 
 Parameters |
 ---|
@@ -55,30 +74,26 @@ Parameters |
 template KeyedCollection(T) if (usableForKeyedCollection!T)
 ```
 
-Turns the inheriting class into a base keyed collection.
+Turns the inheriting class into a keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
 you include the keyeditem in the _T_ class.
 
-Parameters |
----|
-*T*|
-&nbsp;&nbsp;&nbsp;&nbsp;the singular class|
 
+`T` should represent a single row in the database. Use
+this when `T` has foreign keys.
 
 **Examples:**
 
 
 ```d
 
-// singular class
+// singular class this holds all of the columns
 class Candy
 {
 private:
     string _name;
     int _ranking;
-    int _annualSales;
-    string _brand;
 public:
     // marking name as part of the primary key
     @PrimaryKeyColumn @NotNull
@@ -101,18 +116,16 @@ public:
         setter(_ranking, value);
     }
 
-    this(string name, immutable(int) ranking, immutable(int) annualSales, string brand)
+    this(string name, int ranking)
     {
         this._name = name;
         this._ranking = ranking;
-        this._annualSales = annualSales;
-        this._brand = brand;
         // need to initialize the keyed item
         initializeKeyedItem();
     }
     Candy dup() const
     {
-        return new Candy(this._name, this._ranking, this._annualSales, this._brand);
+        return new Candy(this._name, this._ranking);
     }
     // the default is to make the primary key into the clustered index
     // which allows you to search based on the primary key
@@ -121,20 +134,23 @@ public:
 
 // plural class
 // I am using an alias since BaseKeyedCollection
-// takes care of everything I want to do for this example.
+// takes care of everything I want to do for this example in one line.
 alias Candies = BaseKeyedCollection!(Candy);
 
 // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
-auto milkyWay = new Candy("Milkey Way", 18, 129_000_000, "Mars");
 // should be Milky not Milkey, this is wrong on purpose
-auto snickers = new Candy("Snickers", 4, 441_100_000, "Mars");
-auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2, 516_500_000, "Hershey");
+auto milkyWay = new Candy("Milkey Way", 18);
+auto snickers = new Candy("Snickers", 4);
+auto reesesPBCups = new Candy("Reese's Peanut Butter Cups", 2);
 
 auto mars = new Candies([milkyWay, snickers]);
 assert(mars.length == 2);
 assert(!mars.containsChanges);
 
-// use the class as an index
+auto hershey = new Candies(reesesPBCups);
+assert(hershey.length == 1);
+
+// use the class as an index and confirm it returns the correct value
 assert(mars[milkyWay] is milkyWay);
 // use the primary key as an index
 auto pk = Candy.PrimaryKey("Milkey Way");
@@ -148,7 +164,9 @@ assert(mars.contains(pk));
 assert(!mars.contains(reesesPBCups));
 
 // now we change the name to be correct
-mars[pk].name = "Milky Way";
+mars[pk].name = "Milky Way"; // remember pk is primary key for milky way
+
+// since we changed milky way's name, mars contains changes
 assert(mars.containsChanges);
 
 // since we had name in pk spelled incorrectly
@@ -158,14 +176,15 @@ assert(mars.containsChanges);
 assert(!mars.contains("Milkey Way"));
 assert(mars.contains("Milky Way"));
 
+// looping over mars we make sure the key can be used to get the correct value.
 foreach(name_pk, candy; mars)
 {
     assert(mars[name_pk] == candy);
 }
 
 // trying to add another candy with the same name will
-// result in a unique constraint violation
-auto milkyWay2 = new Candy("Milky Way", 18, 0, null);
+// result in a unique constraint violation even if the ranking is different
+auto milkyWay2 = new Candy("Milky Way", 16);
 import std.exception : assertThrown;
 assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
@@ -176,7 +195,7 @@ assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
 // trying to set this to null will result in a CheckConstraintException.
 assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
-// violatesUniqueConstraints will tell you which constraint is violated if any
+// violatesUniqueConstraints will tell you which unique constraint is violated if any
 string violatedConstraint;
 assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
 assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
@@ -197,8 +216,8 @@ alias key_type = typeof(T.key);
 
 ```
 
-The key type is alias'd at the type since it looked better than having
-typeof(T.key) everywhere.
+The `key_type` is alias'd at the type since it looked better than having
+`typeof(T.key)` everywhere.
 
 
 ***
@@ -209,7 +228,7 @@ void itemChanged(string propertyName, key_type item_key);
 
 ```
 
-itemChanged is connected to the signal emitted by the item. This checks
+`itemChanged` is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
 
 
@@ -221,8 +240,8 @@ final pure nothrow @nogc void markAsSaved();
 
 ```
 
-Changes `this` to not contain changes. Should only
-be used after a save.
+Changes `this` to not contain changes and also marks all
+the items as saved. Should only be used after a save.
 
 
 ***
@@ -247,9 +266,9 @@ final pure nothrow @nogc @property @safe void enforceConstraints(bool value);
 
 ```
 
-Setter to enforce the constraints. By default
+Write-only property to enforce the constraints. By default
 this is true but you may set it to false if you have a lot of
-initial data and already trust that is unique and accurate.
+initial data and already trust that it does not violate any constraints.
 
 
 Setting this to false means that there are no checks and if there
@@ -264,8 +283,9 @@ final void notify()(string propertyName, key_type item_key);
 
 ```
 
-Notifies `this` which property changed.
-This also emits a signal with the property name that changed.
+Notifies `this` which property changed and sets containsChanges to true.
+This also emits a signal with the property name that changed
+and the key to it in this collection.
 
 Parameters |
 ---|
@@ -289,7 +309,7 @@ final void remove(A...)(A a);
 ```
 
 Removes an item from `this` and disconnects the signals. Notifies
-that the length of `this` has changed.
+that the length of `this` has changed by emitting "remove".
 
 
 ***
@@ -306,37 +326,6 @@ final this(T item);
 ```d
 final ref auto opOpAssign(string op : "~")(T item);
 
-```
-
-Adds `item` to `this` and connects to the signals emitted by `item`.
-Notifies that the length of `this` has changed.
-
-Parameters |
----|
-*T item*|
-&nbsp;&nbsp;&nbsp;&nbsp;the item you want to add to `this`|
-*Flag!"notifyChange" notifyChange*|
-&nbsp;&nbsp;&nbsp;&nbsp;whether or not to emit this change. Should only be No if coming from itemChanged|
-
-:exclamation: **Throws:**
-UniqueConstraintException if `this` already contains `item` and
-    enforceConstraints is true.
-
-:exclamation: **Throws:**
-CheckConstraintException if the item is violating any of its
-    defined check constraints and enforceConstraints is true.
-
-:exclamation: **Throws:**
-ForeignKeyException if the item is violating any of its
-    foreign key constraints and enforceConstraints is true.
-**Precondition:** 
-```d
-assert(items !is null);
-```
-
-
-***
-
 <a id="KeyedCollection.add.2"></a>
 ```d
 final void add(I)(I items) if (isIterable!I);
@@ -351,13 +340,27 @@ final ref auto opOpAssign(string op : "~", I)(I items) if (isIterable!I);
 
 ```
 
-Does the same as `add(T item)` but for an array.
+Adds `item` to `this` and connects to the signals emitted by `item`.
+Notifies that the length of `this` has changed.
 
-
+Parameters |
+---|
+*Flag!"notifyChange" notifyChange*|
+&nbsp;&nbsp;&nbsp;&nbsp;whether or not to emit this change. Should only be No if coming from itemChanged
+:exclamation: **Throws:**
+[UniqueConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#UniqueConstraintException) if `this` already contains `item` and
+enforceConstraints is true.
+:exclamation: **Throws:**
+[CheckConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#CheckConstraintException) if the item is violating any of its
+defined check constraints and enforceConstraints is true.
+:exclamation: **Throws:**
+[ForeignKeyException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#ForeignKeyException) if the item is violating any of its
+foreign key constraints and enforceConstraints is true.
 **Precondition:** 
 ```d
-assert(items !is null);
-```
+assert(item(s) !is null);
+```|
+
 
 
 ***
@@ -366,64 +369,24 @@ assert(items !is null);
 ```d
 final inout ref inout(T) opIndex(in T item);
 
-```
-
-Gets the approriate `T` that equals `item`.
-
-Parameters |
----|
-*T item*|
-&nbsp;&nbsp;&nbsp;&nbsp;the item you want back from the collection|
-
-**Returns:**
-The item in the collection that matches `item`.
-
-:exclamation: **Throws:**
-KeyedException if `this` does not contain a matching clustered index.
-
-
-***
-
-<a id="KeyedCollection.opIndex.2"></a>
-```d
 final inout ref inout(T) opIndex(in key_type clIdx);
 
-```
-
-Gets the approriate `T` that has clustered index `clIdx`.
-
-Parameters |
----|
-*key_type clIdx*|
-&nbsp;&nbsp;&nbsp;&nbsp;the clustered index of the item you want back|
-
-**Returns:**
-The item in the collection that has clustered index `clIdx`.
-
-:exclamation: **Throws:**
-KeyedException if `this` does not contain a matching clustered index.
-
-
-***
-
-<a id="KeyedCollection.opIndex.3"></a>
-```d
 final inout ref inout(T) opIndex(A...)(in A a);
 
 ```
 
-Gets the approriate `T` that has clustered index `a`.
-
-Parameters |
----|
-*A a*|
-&nbsp;&nbsp;&nbsp;&nbsp;the fields of the clustered index of the item you want back.|
+Gets the approriate `T`. You can either use an item
+that equals the item you want back, a key of the item you want
+back or parameters that can make the key for the item you want back.
 
 **Returns:**
-The item in the collection that has the clustered index with fields `a`.
-
+The item in the collection that matches `item`.
 :exclamation: **Throws:**
-KeyedException if `this` does not contain a matching clustered index.
+[KeyedException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#KeyedException) if `this` does not contain a matching clustered index.
+**Precondition:** 
+```d
+assert(item !is null);
+```
 
 
 ***
@@ -471,9 +434,15 @@ The number of items in the collection.
 ```d
 final const pure nothrow @nogc @safe bool contains(in T item);
 
+final const pure nothrow @nogc @safe bool contains(in key_type clIdx);
+
+final const pure nothrow @nogc @safe bool contains(A...)(in A a);
+
 <a id="KeyedCollection.opBinaryRight"></a>
 ```d
-inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in T item);
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in key_type clIdx);
+
+final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in", A...)(in A a);
 
 ```
 
@@ -490,54 +459,6 @@ true if `item` is in the collection.
 
 ***
 
-<a id="KeyedCollection.contains.2"></a>
-```d
-final const pure nothrow @nogc @safe bool contains(in key_type clIdx);
-
-<a id="KeyedCollection.opBinaryRight.2"></a>
-```d
-final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in key_type clIdx);
-
-```
-
-Checks if `clIdx` is in the collection.
-
-Parameters |
----|
-*key_type clIdx*|
-&nbsp;&nbsp;&nbsp;&nbsp;the clustered index of the item you want to see is in the collection|
-
-**Returns:**
-true if there is a clustered index in the collection that
-    matches `clIdx`.
-
-
-***
-
-<a id="KeyedCollection.contains.3"></a>
-```d
-final const pure nothrow @nogc @safe bool contains(A...)(in A a);
-
-<a id="KeyedCollection.opBinaryRight.3"></a>
-```d
-final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in", A...)(in A a);
-
-```
-
-Checks if `a` makes a clustered index that is in the collection.
-
-Parameters |
----|
-*A a*|
-&nbsp;&nbsp;&nbsp;&nbsp;the fields of the clustered index of the item you want to see is in the collection|
-
-**Returns:**
-true if there is a clustered index in the collection that
-    matches `a`.
-
-
-***
-
 <a id="KeyedCollection.violatesUniqueConstraints"></a>
 ```d
 final const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
@@ -545,7 +466,7 @@ final const pure nothrow bool violatesUniqueConstraints(in T item, out string co
 ```
 
 Checks if the item has any conflicting unique constraints. This
-is more extensive than `contains`.
+is more extensive than [contains](#contains).
 
 
 **Precondition:** 
@@ -567,5 +488,5 @@ else
 
 
 
-Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 10:55:04 2015
+Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 13:40:52 2015
 

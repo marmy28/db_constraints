@@ -41,7 +41,7 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 
 
 /**
-KeyedItem.checkConstraints will check all of the members marked
+$(WIKI keyeditem, checkConstraints) will check all of the members marked
 with this attribute and use the check given.
 Params:
     check_ = The function that returns a boolean
@@ -83,21 +83,19 @@ enum Rule
 {
 /**
 When a parent key is modified or deleted from the collection, no special action is taken.
-If you are using MySQL or MSSQL use $(D Rule.restrict) instead for the desired
+If you are using MySQL or MSSQL use $(SRCTAG Rule.restrict) instead for the desired
 effect.
  */
     noAction,
 /**
 The item is prohibited from deleting or modifying a parent key when there exists
 one or more child keys mapped to it.
-Throws:
-    ForeignKeyException when a member changes.
+$(THROWS ForeignKeyException, when a member changes.)
  */
     restrict,
 /**
 Sets the member to $(D null) when deleting or modifying a parent key.
-Throws:
-    ForeignKeyException when the type cannot be set to null.
+$(THROWS ForeignKeyException, when the type cannot be set to null.)
  */
     setNull,
 /**
@@ -112,8 +110,15 @@ Updates or deletes the item based on what happened to the parent key.
 }
 
 /**
-ForeignKeyConstraint should be used instead of this struct.
+$(SRCTAG ForeignKeyConstraint) should be used instead of this struct.
 This is more the behind the scenes struct.
+Params:
+    name_ = The name of the foreign key constraint. Will be used in error message when violated
+    columnNames_ = The members in the child class that are used in the foreign key
+    referencedTableName_ = The referenced table's name (collection class)
+    referencedColumnNames_ = The members in the parent class that are references in the foreign key
+    updateRule_ = What should happen when a foreign key is updated that is being referenced
+    deleteRule_ = What should happen when a foreign key is deleted that is being referenced
  */
 struct ForeignKey(string name_,
                   string[] columnNames_,
@@ -132,13 +137,6 @@ struct ForeignKey(string name_,
 
 /**
 The foreign key user-defined attribute.
-Params:
-    name_ = The name of the foreign key constraint. Will be used in error message when violated
-    columnNames_ = The members in the child class that are used in the foreign key
-    referencedTableName_ = The referenced table's name (collection class)
-    referencedColumnNames_ = The members in the parent class that are references in the foreign key
-    updateRule_ = What should happen when a foreign key is updated that is being referenced
-    deleteRule_ = What should happen when a foreign key is deleted that is being referenced
  */
 template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
                               string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
@@ -172,7 +170,9 @@ template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_
 }
 
 /**
-Default used with Rule.setDefault for foreign keys.
+Default used with $(SRCTAG Rule.setDefault) for foreign keys.
+Params:
+    value_ = the value that should be used for the default value.
  */
 struct Default(alias value_)
 {

@@ -19,9 +19,7 @@ public import db_constraints.constraints;
 
 /**
 Use this in the singular class which would describe a row in your
-database.
-Params:
-    ClusteredIndexAttribute = the unique constraint associated with the clustered index.
+database. ClusteredIndexAttribute is the unique constraint associated with the clustered index.
  */
 mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     if (isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
@@ -43,9 +41,9 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     private ClusteredIndex _key;
 
 /**
-The setter should be in your setter member. This checks your check constraint.
-Throws:
-    CheckConstraintException if your value makes checkConstraints fail.
+The setter should be in your setter member. This checks your check constraint and notifies the
+item if it is different and does not violate the check constraint.
+$(THROWS CheckConstraintException, if your value makes checkConstraints fail.)
  */
     final private void setter(P)(ref P member, P value, string name_ = __FUNCTION__)
     {
@@ -67,8 +65,9 @@ Throws:
         }
     }
 /**
-Initializes the keyed item by running $(I setClusteredIndex) and $(I checkConstraints).
+Initializes the keyed item by running $(SRCTAG setClusteredIndex) and $(SRCTAG checkConstraints).
 This should be in your constructor.
+$(THROWS CheckConstraintException, if a member violates their constraint.)
  */
     final private void initializeKeyedItem()
     {
@@ -133,6 +132,10 @@ Params:
             }
         }
     }
+/**
+Checks if any of the members of $(D T) have values that violate their check constraint.
+$(THROWS CheckConstraintException, if the constraint is violated.)
+ */
     final void checkConstraints()
     {
         foreach(member; __traits(derivedMembers, T))
@@ -224,7 +227,6 @@ unittest
     private:
         string _name;
         int _ranking;
-        string _brand;
     public:
         // name is the primary key
         @PrimaryKeyColumn @NotNull
@@ -248,11 +250,10 @@ unittest
         {
             setter(_ranking, value);
         }
-        this(string name, immutable(int) ranking, string brand)
+        this(string name, int ranking)
         {
             this._name = name;
             this._ranking = ranking;
-            this._brand = brand;
             initializeKeyedItem();
         }
 
@@ -260,31 +261,10 @@ unittest
         mixin KeyedItem!(PrimaryKeyColumn);
     }
 
-    // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
-    auto i = new Candy("Opal Fruit", 17, "Mars");
-
-    assert(!i.containsChanges);
-
-    auto pk = Candy.PrimaryKey("Opal Fruit");
-    assert(i.key == pk);
-    assert(i.key == i.PrimaryKey_key);
-    assert(i.key.name == pk.name);
-
-    auto j = new Candy("Opal Fruit", 16, "");
-    // since name is the primary key i and j are equal because the names are equal
-    assert(i.key == j.key);
-
-    // in 1967 Opal Fruits came to America and changed its name
-    i.name = "Starburst";
-    assert(i.containsChanges);
-    i.markAsSaved();
-    assert(!i.containsChanges);
-
-    // by changing the name it also changes the primary key
-    assert(i.key != pk);
-    assert(i.key != j.key);
-
     // below is what is created when you include the mixin KeyedItem
+    // ClusteredIndex is alias'd as PrimaryKey since we said the primary key is our clustered index above.
+    // this also creates a uc_Candy_ranking struct and key since we labeled ranking with
+    // @UniqueConstraintColumn!("uc_Candy_ranking")
     enum candyStructs =
 `public:
     final alias PrimaryKey = ClusteredIndex;
@@ -304,6 +284,42 @@ unittest
     import db_constraints.utils.meta : createConstraintStructs;
     static assert(createConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
     assert(createConstraintStructs!(Candy, "PrimaryKey") == candyStructs);
+
+
+    // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/10.htm
+    auto i = new Candy("Opal Fruit", 17);
+
+    // i does not contain changes
+    assert(!i.containsChanges);
+
+    auto pk = Candy.PrimaryKey("Opal Fruit");
+    // the key property is the clustered index
+    // since we said the primary key is the clustered index
+    // i.key and pk are equal
+    assert(i.key == pk);
+    // PrimaryKey_key is an alias for key
+    assert(i.key == i.PrimaryKey_key);
+    // the primary key struct has member name since that was marked with @PrimaryKeyColumn
+    assert(i.key.name == pk.name);
+
+    auto j = new Candy("Opal Fruit", 16);
+    // since name is the primary key i and j are equal because the names are equal
+    // even though the ranking is different
+    assert(i.key == j.key);
+
+    // in 1967 Opal Fruits came to America and changed its name
+    i.name = "Starburst";
+    // i now contains changes since we changed the name
+    assert(i.containsChanges);
+    i.markAsSaved();
+    // once we mark it as saved it no longer contains changes
+    assert(!i.containsChanges);
+
+    // by changing the name it also changes the primary key
+    // so now i.key should not equal the pk we defined above
+    // or j.key
+    assert(i.key != pk);
+    assert(i.key != j.key);
 
     import std.exception : assertThrown;
     import db_constraints.db_exceptions : CheckConstraintException;

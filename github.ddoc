@@ -157,5 +157,6 @@ ESCAPES = /</</
 HTTP = $(LINK2 http://$1,$2)
 WEB = $(HTTP $1,$2)
 SRC = $(LINK2 https://github.com/marmy28/db_constraints/tree/master/$0, $0)
+WIKI = $(LINK2 https://github.com/marmy28/db_constraints/wiki/$1#$2, $2)
 GPL2 = $(LINK2 https://github.com/marmy28/db_constraints/blob/master/LICENSE, GPL-2.0)
 TOC = + [$0](#$0)

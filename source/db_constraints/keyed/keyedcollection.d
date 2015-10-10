@@ -22,7 +22,7 @@ import std.typecons : Flag, Yes, No;
 
 import db_constraints.db_exceptions;
 import db_constraints.keyed.keyeditem;
-import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
+import db_constraints.utils.meta : UniqueConstraintStructNames, hasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
 
 /**
  */
@@ -90,7 +90,7 @@ typeof(T.key) everywhere.
     private bool _containsChanges;
     private bool _enforceConstraints = true;
 
-    static if (HasForeignKeys!(T))
+    static if (hasForeignKeys!(T))
     {
         mixin(foreignKeyTableProperties!(T));
 
@@ -121,7 +121,7 @@ Called when an item is being added or an item changed.
                 !violatesUniqueConstraints(item, constraintName),
                 "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
                 "  was violated by item " ~ item.toString ~ ".");
-            static if (HasForeignKeys!(T))
+            static if (hasForeignKeys!(T))
             {
                 checkForeignKeys(item);
             }

@@ -6,7 +6,7 @@ The meta module contains:
   $(TOC hasMembersWithUDA)
   $(TOC createConstraintStructs)
   $(TOC GetForeignKeys)
-  $(TOC HasForeignKeys)
+  $(TOC hasForeignKeys)
   $(TOC GetForeignKeyRefTable)
   $(TOC GetDefault)
   $(TOC HasDefault)
@@ -330,6 +330,10 @@ template createConstraintStructs(ClassName, string ClusteredIndexAttributeName)
     }
 }
 
+/**
+Gets all of the $(WIKI constraints, ForeignKey) that ClassName is attributed with. If
+the foreign key name is left blank then the default name is $(D "fk_" ~ ClassName ~ "_" ~ referencedClassName).
+ */
 template GetForeignKeys(ClassName)
 {
     template Impl(T...)
@@ -359,7 +363,12 @@ template GetForeignKeys(ClassName)
     alias GetForeignKeys = Impl!(__traits(getAttributes, ClassName));
 }
 
-template HasForeignKeys(ClassName)
+/**
+Confirms ClassName has foreign keys.
+Returns:
+    true if ClassName has an instance of @ForeignKey
+ */
+template hasForeignKeys(ClassName)
 {
     template Impl(T...)
     {
@@ -376,7 +385,7 @@ template HasForeignKeys(ClassName)
             alias Impl = Impl!(T[1 .. $]);
         }
     }
-    alias HasForeignKeys = Impl!(__traits(getAttributes, ClassName));
+    enum hasForeignKeys = Impl!(__traits(getAttributes, ClassName));
 }
 
 template GetForeignKeyRefTable(ClassName)

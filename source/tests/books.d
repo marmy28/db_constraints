@@ -162,7 +162,7 @@ unittest
 
 unittest
 {
-    static assert(HasForeignKeys!(Book));
+    static assert(hasForeignKeys!(Book));
 }
 
 unittest

@@ -208,7 +208,7 @@ Sets the clustered index for $(D this).
         this._key = new_key;
     }
 
-    static if (HasForeignKeys!(T))
+    static if (hasForeignKeys!(T))
     {
         mixin(ForeignKeyProperties!(T));
     }

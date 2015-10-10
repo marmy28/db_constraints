@@ -16,7 +16,6 @@ Copyright: 2015
 module db_constraints.db_exceptions;
 
 /**
-$(ANCHOR UniqueConstraintException)
 Inherits from Exception. This is thrown whenever
 there is a unique constraint violation.
  */
@@ -36,7 +35,6 @@ Params:
     }
 }
 /**
-$(ANCHOR KeyedException)
 Inherits from Exception. This is thrown whenever
 there is an exception dealing with the keyed items.
  */
@@ -57,7 +55,6 @@ Params:
 }
 
 /**
-$(ANCHOR CheckConstraintException)
 Inherits from Exception. This is thrown whenever
 there is a check constraint violation.
  */
@@ -78,7 +75,6 @@ Params:
 }
 
 /**
-$(ANCHOR ForeignKeyException)
 Inherits from Exception. This is thrown whenever
 there is an exception dealing with the foreign keys.
  */

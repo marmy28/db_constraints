@@ -20,7 +20,6 @@ module db_constraints.utils.nullable;
 import std.traits : isBuiltinType;
 
 /**
-$(ANCHOR isNullable)
 Checks if you can assign the value to a $(D Nullable!T)
  */
 template isNullable(T, I)
@@ -33,7 +32,6 @@ template isNullable(T, I)
 }
 
 /**
-$(ANCHOR Nullable)
 Defines a value paired with a distinctive "null" state that denotes
 the absence of a value. If default constructed, a $(D
 Nullable!T) object starts in the null state. Assigning it renders it

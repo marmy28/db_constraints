@@ -18,7 +18,6 @@ import std.traits : isInstanceOf;
 public import db_constraints.constraints;
 
 /**
-$(ANCHOR KeyedItem)
 Use this in the singular class which would describe a row in your
 database.
 Params:

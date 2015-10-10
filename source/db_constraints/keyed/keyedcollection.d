@@ -25,7 +25,6 @@ import db_constraints.keyed.keyeditem;
 import db_constraints.utils.meta : UniqueConstraintStructNames, HasForeignKeys, GetForeignKeyRefTable, foreignKeyCheckExceptions, foreignKeyTableProperties;
 
 /**
-$(ANCHOR usableForKeyedCollection)
  */
 template usableForKeyedCollection(alias T)
 {
@@ -52,7 +51,6 @@ template usableForKeyedCollection(alias T)
 }
 
 /**
-$(ANCHOR BaseKeyedCollection)
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
@@ -68,7 +66,6 @@ class BaseKeyedCollection(T)
 
 
 /**
-$(ANCHOR KeyedCollection)
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when

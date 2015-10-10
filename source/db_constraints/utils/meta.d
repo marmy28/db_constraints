@@ -30,7 +30,6 @@ import std.traits : isInstanceOf, hasUDA;
 
 import db_constraints.constraints;
 /**
-$(ANCHOR generic_compare)
 Used in KeyedItem for the generated structs.
 This allows the struct to be used as a key
 in an associative array.
@@ -112,7 +111,6 @@ Compares each member and returns the result.
 }
 
 /**
-$(ANCHOR UniqueConstraintStructNames)
 Gets the names given to the different UniqueConstraints
  */
 template UniqueConstraintStructNames(ClassName)
@@ -185,7 +183,6 @@ Takes a members attributes and finds if it has one that starts with UniqueConstr
 }
 
 /**
-$(ANCHOR GetMembersWithUDA)
 Gets the properties of ClassName marked with @attribute.
  */
 template GetMembersWithUDA(ClassName, attribute)
@@ -277,7 +274,6 @@ template HasMembersWithUDA(ClassName, attribute)
 }
 
 /**
-$(ANCHOR ConstraintStructs)
 Returns a string full of the structs for ClassName.
  */
 template ConstraintStructs(ClassName, string ClusteredIndexAttributeName)

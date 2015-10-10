@@ -21,22 +21,21 @@ Matthew Armbruster
 
 ***
 
+<a id="usableForKeyedCollection"></a>
 ```d
 enum usableForKeyedCollection(alias T);
 
 ```
 
-<a id="usableForKeyedCollection"></a>
-
 
 ***
 
+<a id="BaseKeyedCollection"></a>
 ```d
 class BaseKeyedCollection(T) if (usableForKeyedCollection!T);
 
 ```
 
-<a id="BaseKeyedCollection"></a>
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
@@ -51,11 +50,11 @@ Parameters |
 
 ***
 
+<a id="KeyedCollection"></a>
 ```d
 template KeyedCollection(T) if (usableForKeyedCollection!T)
 ```
 
-<a id="KeyedCollection"></a>
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
 The requirements (except for dup) are taken care of when
@@ -192,6 +191,7 @@ assert(violatedConstraint is null);
 
 ***
 
+<a id="KeyedCollection.key_type"></a>
 ```d
 alias key_type = typeof(T.key);
 
@@ -203,6 +203,7 @@ typeof(T.key) everywhere.
 
 ***
 
+<a id="KeyedCollection.itemChanged"></a>
 ```d
 void itemChanged(string propertyName, key_type item_key);
 
@@ -214,6 +215,7 @@ constraints and makes sure the changes are acceptable.
 
 ***
 
+<a id="KeyedCollection.markAsSaved"></a>
 ```d
 final pure nothrow @nogc void markAsSaved();
 
@@ -225,6 +227,7 @@ be used after a save.
 
 ***
 
+<a id="KeyedCollection.containsChanges"></a>
 ```d
 final const pure nothrow @nogc @property @safe bool containsChanges();
 
@@ -238,6 +241,7 @@ true if `this` contains changes.
 
 ***
 
+<a id="KeyedCollection.enforceConstraints"></a>
 ```d
 final pure nothrow @nogc @property @safe void enforceConstraints(bool value);
 
@@ -254,6 +258,7 @@ is a duplicate clustered index, it will be overwritten.
 
 ***
 
+<a id="KeyedCollection.notify"></a>
 ```d
 final void notify()(string propertyName, key_type item_key);
 
@@ -273,6 +278,7 @@ Parameters |
 
 ***
 
+<a id="KeyedCollection.remove"></a>
 ```d
 final void remove(key_type item_key, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
@@ -288,11 +294,16 @@ that the length of `this` has changed.
 
 ***
 
+<a id="KeyedCollection.add"></a>
 ```d
 final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange);
 
+<a id="KeyedCollection.this"></a>
+```d
 final this(T item);
 
+<a id="KeyedCollection.opOpAssign"></a>
+```d
 final ref auto opOpAssign(string op : "~")(T item);
 
 ```
@@ -326,11 +337,16 @@ assert(items !is null);
 
 ***
 
+<a id="KeyedCollection.add.2"></a>
 ```d
 final void add(I)(I items) if (isIterable!I);
 
+<a id="KeyedCollection.this.2"></a>
+```d
 final this(I)(I items) if (isIterable!I);
 
+<a id="KeyedCollection.opOpAssign.2"></a>
+```d
 final ref auto opOpAssign(string op : "~", I)(I items) if (isIterable!I);
 
 ```
@@ -346,6 +362,7 @@ assert(items !is null);
 
 ***
 
+<a id="KeyedCollection.opIndex"></a>
 ```d
 final inout ref inout(T) opIndex(in T item);
 
@@ -367,6 +384,7 @@ KeyedException if `this` does not contain a matching clustered index.
 
 ***
 
+<a id="KeyedCollection.opIndex.2"></a>
 ```d
 final inout ref inout(T) opIndex(in key_type clIdx);
 
@@ -388,6 +406,7 @@ KeyedException if `this` does not contain a matching clustered index.
 
 ***
 
+<a id="KeyedCollection.opIndex.3"></a>
 ```d
 final inout ref inout(T) opIndex(A...)(in A a);
 
@@ -409,6 +428,7 @@ KeyedException if `this` does not contain a matching clustered index.
 
 ***
 
+<a id="KeyedCollection.opDispatch"></a>
 ```d
 auto opDispatch(string name, A...)(A a);
 
@@ -420,6 +440,7 @@ to the private associative array.
 
 ***
 
+<a id="KeyedCollection.opApply"></a>
 ```d
 final int opApply(int delegate(ref T) dg);
 
@@ -432,6 +453,7 @@ Allows you to use `this` in a foreach loop.
 
 ***
 
+<a id="KeyedCollection.length"></a>
 ```d
 final const pure nothrow @property @safe size_t length();
 
@@ -445,9 +467,12 @@ The number of items in the collection.
 
 ***
 
+<a id="KeyedCollection.contains"></a>
 ```d
 final const pure nothrow @nogc @safe bool contains(in T item);
 
+<a id="KeyedCollection.opBinaryRight"></a>
+```d
 inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in T item);
 
 ```
@@ -465,9 +490,12 @@ true if `item` is in the collection.
 
 ***
 
+<a id="KeyedCollection.contains.2"></a>
 ```d
 final const pure nothrow @nogc @safe bool contains(in key_type clIdx);
 
+<a id="KeyedCollection.opBinaryRight.2"></a>
+```d
 final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in")(in key_type clIdx);
 
 ```
@@ -486,9 +514,12 @@ true if there is a clustered index in the collection that
 
 ***
 
+<a id="KeyedCollection.contains.3"></a>
 ```d
 final const pure nothrow @nogc @safe bool contains(A...)(in A a);
 
+<a id="KeyedCollection.opBinaryRight.3"></a>
+```d
 final inout pure nothrow @nogc @safe inout(T)* opBinaryRight(string op : "in", A...)(in A a);
 
 ```
@@ -507,6 +538,7 @@ true if there is a clustered index in the collection that
 
 ***
 
+<a id="KeyedCollection.violatesUniqueConstraints"></a>
 ```d
 final const pure nothrow bool violatesUniqueConstraints(in T item, out string constraintName);
 
@@ -535,5 +567,5 @@ else
 
 
 
-Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Thu Oct  8 21:39:57 2015
+Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 10:04:12 2015
 

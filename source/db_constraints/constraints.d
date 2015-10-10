@@ -22,7 +22,6 @@ module db_constraints.constraints;
 import std.functional : unaryFun;
 
 /**
-$(ANCHOR UniqueConstraintColumn)
 KeyedItem will create a struct with $(I name) defined in the compile-time argument.
 For example a property marked with @UniqueColumn!("uc_Person") will
 be part of the struct uc_Person.
@@ -35,7 +34,6 @@ struct UniqueConstraintColumn(string name_)
 }
 
 /**
-$(ANCHOR PrimaryKeyColumn)
 An alias for the primary key column. A member with this attribute
 must also have the NotNull attribute.
  */
@@ -43,7 +41,6 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 
 
 /**
-$(ANCHOR CheckConstraint)
 KeyedItem.checkConstraints will check all of the members marked
 with this attribute and use the check given.
 Params:
@@ -58,7 +55,6 @@ struct CheckConstraint(alias check_, string name_ = "")
 }
 
 /**
-$(ANCHOR NotNull)
 Alias for a special check constraint that makes sure the column is never null.
 This is checked the same time as all the other check constraints. The name of
 the constraint is NotNull in the error messages if this is ever violated.
@@ -81,7 +77,6 @@ alias NotNull = CheckConstraint!(
     }, "NotNull");
 
 /**
-$(ANCHOR Rule)
 Rules for foreign keys when updating or deleting.
  */
 enum Rule
@@ -117,7 +112,6 @@ Updates or deletes the item based on what happened to the parent key.
 }
 
 /**
-$(ANCHOR ForeignKey)
 ForeignKeyConstraint should be used instead of this struct.
 This is more the behind the scenes struct.
  */
@@ -137,7 +131,6 @@ struct ForeignKey(string name_,
 }
 
 /**
-$(ANCHOR ForeignKeyConstraint)
 The foreign key user-defined attribute.
 Params:
     name_ = The name of the foreign key constraint. Will be used in error message when violated
@@ -179,7 +172,6 @@ template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_
 }
 
 /**
-$(ANCHOR ForeignKeyConstraint)
 Default used with Rule.setDefault for foreign keys.
  */
 struct Default(alias value_)

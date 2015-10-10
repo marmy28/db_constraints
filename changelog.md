@@ -10,6 +10,7 @@
  * db_constraints.keyed.keyeditem.getColumns -> db_constraints.utils.generickey.GetMembersWithUDA
  * db_constraints.utils.generickey -> db_constraints.utils.meta
  * db_constraints.utils.meta.generic_compare -> db_constraints.utils.meta.opAAKey
+ * db_constraints.utils.meta.HasMembersWithUDA -> db_constraints.utils.meta.hasMembersWithUDA
 
 ### New additions
 

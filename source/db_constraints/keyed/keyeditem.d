@@ -76,7 +76,7 @@ This should be in your constructor.
         checkConstraints();
     }
 
-    static assert(HasMembersWithUDA!(T, ClusteredIndexAttribute),
+    static assert(hasMembersWithUDA!(T, ClusteredIndexAttribute),
                   "Must have columns with @UniqueConstraintColumn!\"" ~
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
 /**

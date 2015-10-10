@@ -3,7 +3,7 @@ The meta module contains:
   $(TOC opAAKey)
   $(TOC UniqueConstraintStructNames)
   $(TOC GetMembersWithUDA)
-  $(TOC HasMembersWithUDA)
+  $(TOC hasMembersWithUDA)
   $(TOC ConstraintStructs)
   $(TOC GetForeignKeys)
   $(TOC HasForeignKeys)
@@ -111,7 +111,10 @@ Compares each member and returns the result.
 }
 
 /**
-Gets the names given to the different UniqueConstraints
+Gets the names given to the different UniqueConstraints for ClassName.
+The UniqueConstraintColumns are usually put on getters and setters.
+Returns:
+    AliasSeq of all the distinct UniqueConstraintColumn.name in ClassName
  */
 template UniqueConstraintStructNames(ClassName)
 {
@@ -183,10 +186,15 @@ Takes a members attributes and finds if it has one that starts with UniqueConstr
 }
 
 /**
-Gets the properties of ClassName marked with @attribute.
+Gets the properties of ClassName marked with @attribute. If the
+attribute is PrimaryKeyColumn then it also confirms the property has
+NotNull.
+Returns:
+    AliasSeq with distinct properties that have @attribute assigned to it.
  */
 template GetMembersWithUDA(ClassName, attribute)
 {
+    // looks for all members and passes it to Overloads
     template Impl(T...)
     {
         static if (T.length == 0)
@@ -206,6 +214,7 @@ template GetMembersWithUDA(ClassName, attribute)
             }
         }
     }
+    // looks through the overloaded functions to find the attribute
     template Overloads(P...)
     {
         static if (P.length == 0)
@@ -232,8 +241,12 @@ template GetMembersWithUDA(ClassName, attribute)
     alias GetMembersWithUDA = NoDuplicates!(Impl!(__traits(derivedMembers, ClassName)));
 }
 
-
-template HasMembersWithUDA(ClassName, attribute)
+/**
+Confirms there are members in ClassName with @attribute.
+Returns:
+    true if there are members that have @attribute
+ */
+template hasMembersWithUDA(ClassName, attribute)
 {
     template Impl(T...)
     {
@@ -270,7 +283,7 @@ template HasMembersWithUDA(ClassName, attribute)
         }
     }
 
-    alias HasMembersWithUDA = Impl!(__traits(derivedMembers, ClassName));
+    enum hasMembersWithUDA = Impl!(__traits(derivedMembers, ClassName));
 }
 
 /**

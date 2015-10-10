@@ -9,7 +9,7 @@ The meta module contains:
   $(TOC hasForeignKeys)
   $(TOC GetForeignKeyRefTable)
   $(TOC GetDefault)
-  $(TOC HasDefault)
+  $(TOC hasDefault)
   $(TOC ForeignKeyProperties)
   $(TOC foreignKeyTableProperties)
   $(TOC foreignKeyCheckExceptions)
@@ -40,9 +40,7 @@ toHash, opEquals, and opCmp for the struct.
 mixin template opAAKey(T)
     if (is(T == struct))
 {
-/*
-Gets the hash code of the struct by looping over the members.
- */
+    // Gets the hash code of the struct by looping over the members.
     final size_t toHash() const nothrow @safe
     {
         size_t result;
@@ -59,9 +57,7 @@ Gets the hash code of the struct by looping over the members.
         }
         return result;
     }
-/*
-Checks each member to determine if the structs are equal.
- */
+    // Checks each member to determine if the structs are equal.
     final bool opEquals(inout(T) pk) const pure nothrow @nogc @safe
     {
         bool result;
@@ -81,9 +77,7 @@ Checks each member to determine if the structs are equal.
         }
         return result;
     }
-/*
-Compares each member and returns the result.
- */
+    // Compares each member and returns the result.
     final int opCmp(inout(T) pk) const pure nothrow @nogc @safe
     {
         int result;
@@ -118,9 +112,6 @@ Returns:
  */
 template UniqueConstraintStructNames(ClassName)
 {
-/*
-Takes a type tuple of class members and alias' as a typetuple with all unique constraint names
-*/
     template Impl(T...)
     {
         static if (T.length == 0)
@@ -139,9 +130,6 @@ Takes a type tuple of class members and alias' as a typetuple with all unique co
             }
         }
     }
-/*
-Looks at the overloads for the functions.
-*/
     template Overloads(S...)
     {
         static if (S.length == 0)
@@ -161,9 +149,6 @@ Looks at the overloads for the functions.
             }
         }
     }
-/*
-Takes a members attributes and finds if it has one that starts with UniqueConstraint
-*/
     template Get(P...)
     {
         static if (P.length == 0)
@@ -194,7 +179,6 @@ Returns:
  */
 template GetMembersWithUDA(ClassName, attribute)
 {
-    // looks for all members and passes it to Overloads
     template Impl(T...)
     {
         static if (T.length == 0)
@@ -214,7 +198,6 @@ template GetMembersWithUDA(ClassName, attribute)
             }
         }
     }
-    // looks through the overloaded functions to find the attribute
     template Overloads(P...)
     {
         static if (P.length == 0)
@@ -388,6 +371,11 @@ template hasForeignKeys(ClassName)
     enum hasForeignKeys = Impl!(__traits(getAttributes, ClassName));
 }
 
+/**
+Gets all of the referenced foreign keys for ClassName.
+Returns:
+   Distinct list of all referenced classes for ClassName.
+ */
 template GetForeignKeyRefTable(ClassName)
 {
     template Impl(T...)
@@ -409,6 +397,9 @@ template GetForeignKeyRefTable(ClassName)
     alias GetForeignKeyRefTable = NoDuplicates!(Impl!(__traits(getAttributes, ClassName)));
 }
 
+/**
+Gets the value for ClassName.memberName inside of @Default!(value) if memberName has @Default!(value)
+ */
 template GetDefault(ClassName, string memberName)
 {
     static if (__traits(compiles, __traits(getMember, ClassName, memberName)))
@@ -419,10 +410,6 @@ template GetDefault(ClassName, string memberName)
     {
         alias GetDefault = AliasSeq!();
     }
-
-/*
-Looks at the overloads for the functions.
-*/
     template Overloads(S...)
     {
         import std.conv : to;
@@ -460,20 +447,21 @@ Looks at the overloads for the functions.
     }
 }
 
-template HasDefault(ClassName, string memberName)
+/**
+Confirms ClassName.memberName has @Default!(value)
+Returns:
+    true if ClassName.memberName has @Default!(value)
+ */
+template hasDefault(ClassName, string memberName)
 {
     static if (__traits(compiles, __traits(getMember, ClassName, memberName)))
     {
-        alias HasDefault = Overloads!(__traits(getOverloads, ClassName, memberName));
+        enum hasDefault = Overloads!(__traits(getOverloads, ClassName, memberName));
     }
     else
     {
-        enum HasDefault = false;
+        enum hasDefault = false;
     }
-
-/*
-Looks at the overloads for the functions.
-*/
     template Overloads(S...)
     {
         static if (S.length == 0)
@@ -714,7 +702,7 @@ template ForeignKeyChanged(ClassName)
             result ~= "                {\n";
             foreach(columnName; foreignKey.columnNames)
             {
-                result ~= "                    static if (HasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
+                result ~= "                    static if (hasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
                 result ~= "                    {\n";
                 result ~= "                        a." ~ columnName ~ " = GetDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\");\n";
                 result ~= "                    }\n";
@@ -785,7 +773,7 @@ template ForeignKeyChanged(ClassName)
             result ~= "                {\n";
             foreach(columnName; foreignKey.columnNames)
             {
-                result ~= "                    static if (HasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
+                result ~= "                    static if (hasDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\"))";
                 result ~= "                    {\n";
                 result ~= "                        a." ~ columnName ~ " = GetDefault!(" ~ ClassName.stringof ~ ", \"" ~ columnName ~ "\");\n";
                 result ~= "                    }\n";

@@ -13,6 +13,7 @@
  * db_constraints.utils.meta.HasMembersWithUDA -> db_constraints.utils.meta.hasMembersWithUDA
  * db_constraints.utils.meta.ConstraintStructs -> db_constraints.utils.meta.createConstraintStructs
  * db_constraints.utils.meta.HasForeignKeys -> db_constraints.utils.meta.hasForeignKeys
+ * db_constraints.utils.meta.HasDefault -> db_constraints.utils.meta.hasDefault
 
 
 ### New additions

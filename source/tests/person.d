@@ -1,6 +1,14 @@
 module tests.person;
 
-version(unittest)
+version(D_Ddoc)
+{
+    /// Really important class
+    class Example { }
+}
+/**
+This is just an example of stuff
+ */
+unittest
 {
     import db_constraints;
     class Person
@@ -68,22 +76,19 @@ version(unittest)
         }
         mixin KeyedItem!(UniqueConstraintColumn!("uc_PersonEmail"));
     }
-}
 
-unittest
-{
-    import db_constraints;
-    alias People = BaseKeyedCollection!(Person);
-    auto people = new People([new Person("Valid", "Person", "vp@test.com"), new Person("Second", "Sup", "s@e.org")]);
-    assert(people.contains("s@e.org"));
-    //assert(!people.contains(null));
-    people["s@e.org"].email = "hello@all";
-    assert(people.contains("hello@all"));
-    people["hello@all"].email = null;
-    assert(!people.contains("s@e.org"));
-    assert(!people.contains("hello@all"));
-    auto i = Person.uc_PersonEmail();
-    i.email = null;
-    assert(people.contains(i));
-    // assert(people.contains(null)); // currently this errors but it should not
+    {
+        alias People = BaseKeyedCollection!(Person);
+        auto people = new People([new Person("Valid", "Person", "vp@test.com"), new Person("Second", "Sup", "s@e.org")]);
+        assert(people.contains("s@e.org"));
+        //assert(!people.contains(null));
+        people["s@e.org"].email = "hello@all";
+        assert(people.contains("hello@all"));
+        people["hello@all"].email = null;
+        assert(!people.contains("s@e.org"));
+        assert(!people.contains("hello@all"));
+        auto i = Person.uc_PersonEmail();
+        i.email = null;
+        assert(people.contains(i));
+    }
 }

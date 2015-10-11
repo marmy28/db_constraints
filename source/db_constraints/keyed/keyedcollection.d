@@ -618,7 +618,7 @@ else
         }
         return result;
     }
-    // ditto
+    /// ditto
     final bool violatesUniqueConstraints(in T item) const nothrow pure
     {
         string constraintName;

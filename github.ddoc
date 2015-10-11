@@ -22,7 +22,7 @@ LINK       = [$0]($0)
 LINK2      = [$+]($1)
 LPAREN     = (
 RPAREN     = )
-BACKTICK   = \`
+BACKTICK   = `
 DOLLAR     = $
 DEPRECATED = $0
 

@@ -31,7 +31,7 @@ Tells the keyed collection which constraints to check.
 enum Enforce
 {
 /**
-Set $(SRCTAG enforceConstraints) equal to this if you do not want
+Set $(SRCTAG KeyedCollection.enforceConstraints) equal to this if you do not want
 any constraints to be enforced.
  */
     none = 0,
@@ -319,20 +319,21 @@ that the length of $(D this) has changed by emitting "remove".
 /**
 Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
 Notifies that the length of $(D this) has changed.
+
+$(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
+enforceConstraints include $(SRCTAG Enforce.unique) or $(SRCTAG Enforce.clusteredUnique).)
+
+$(THROWS CheckConstraintException, if the item is violating any of its
+defined check constraints and enforceConstraints include $(SRCTAG Enforce.check).)
+
+$(THROWS ForeignKeyException, if the item is violating any of its
+foreign key constraints and enforceConstraints include $(SRCTAG Enforce.foreignKey).)
+
+$(B Precondition:) $(D_CODE assert(item(s) !is null);)
+
 Params:
     item(s) = the item(s) you want to add to $(D this)
     notifyChange = whether or not to emit this change. Should only be No if coming from itemChanged
-
-$(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
-enforceConstraints is true.)
-
-$(THROWS CheckConstraintException, if the item is violating any of its
-defined check constraints and enforceConstraints is true.)
-
-$(THROWS ForeignKeyException, if the item is violating any of its
-foreign key constraints and enforceConstraints is true.)
-
-$(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
     final void add(T item, Flag!"notifyChange" notifyChange = Yes.notifyChange)
     in
@@ -365,7 +366,7 @@ $(B Precondition:) $(D_CODE assert(item(s) !is null);)
         }
     }
 /**
-This just calls $(SRCTAG add).
+This just calls $(SRCTAG KeyedCollection.add).
  */
     final ref auto opOpAssign(string op : "~")(T item)
     {
@@ -380,17 +381,15 @@ This just calls $(SRCTAG add).
 
 /**
 Initializes $(D this). Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
-Params:
-    item(s) = the item(s) you want to add to $(D this)
 
 $(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
-enforceConstraints is true.)
+enforceConstraints include $(SRCTAG Enforce.unique) or $(SRCTAG Enforce.clusteredUnique).)
 
 $(THROWS CheckConstraintException, if the item is violating any of its
-defined check constraints and enforceConstraints is true.)
+defined check constraints and enforceConstraints include $(SRCTAG Enforce.check).)
 
 $(THROWS ForeignKeyException, if the item is violating any of its
-foreign key constraints and enforceConstraints is true.)
+foreign key constraints and enforceConstraints include $(SRCTAG Enforce.foreignKey).)
 
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
@@ -572,7 +571,7 @@ to the value if the key is in the associative array, or null if not.
     }
 /**
 Checks if the item has any conflicting unique constraints. This
-is more extensive than $(SRCTAG contains).
+is more extensive than $(SRCTAG KeyedCollection.contains).
 
 $(B Precondition:) $(D_CODE assert(items !is null);)
 

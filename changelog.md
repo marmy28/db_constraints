@@ -10,18 +10,15 @@
  * db_constraints.keyed.keyeditem.getColumns -> db_constraints.utils.generickey.GetMembersWithUDA
  * db_constraints.utils.generickey -> db_constraints.utils.meta
  * db_constraints.utils.meta.generic_compare -> db_constraints.utils.meta.opAAKey
- * db_constraints.utils.meta.HasMembersWithUDA -> db_constraints.utils.meta.hasMembersWithUDA
  * db_constraints.utils.meta.ConstraintStructs -> db_constraints.utils.meta.createConstraintStructs
- * db_constraints.utils.meta.HasForeignKeys -> db_constraints.utils.meta.hasForeignKeys
- * db_constraints.utils.meta.HasDefault -> db_constraints.utils.meta.hasDefault
-
 
 ### New additions
 
  * NotNull attribute
- * db_constraints.utils.generickey.HasMembersWithUDA
+ * db_constraints.utils.meta.hasMembersWithUDA
  * mixin template KeyedCollection
  * ForeignKeyConstraint
+ * ForeignKey
  * struct Default(alias value_)
  * a lot of functions in utils.meta...
 
@@ -39,6 +36,7 @@
  * Foreign Key Constraints are now enforced and can be set to null, default, restricted, no action, or cascading with updates and deletes
  * Nullable went back to looking more like Phobos with extra functionality.
  * enforceConstraints now takes a bitwise or arguement
+ * github.ddoc is better than ever!
 
 ## 0.0.3 (release date: 2015-09-19)
 

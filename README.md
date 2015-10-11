@@ -29,7 +29,7 @@ Contributions are welcome. Feel free to fork and pull request!
 
 ## Limitations
 
- + The getter and setter should have the same name. The private member should have the same name as the getter and setter but starting with an underscore. Look at any of the examples on [the wiki](https://github.com/marmy28/db_constraints/wiki/examples_from_zetcode) if this wording does not make sense.
+ + The getter and setter should have the same name. The private member should have the same name as the getter and setter but starting with an underscore. Look at any of the examples on [the wiki](https://github.com/marmy28/db_constraints/wiki/examples_from_zetcode1) if this wording does not make sense.
  + You may only foreign key to the referenced class' clustered index. If you foreign key to id's and mark all your id's as primary keys then you do not need to worry about this.
 
 ## To do

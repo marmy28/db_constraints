@@ -31,8 +31,8 @@ Tells the keyed collection which constraints to check.
 enum Enforce
 {
 /**
-Set $(SRCTAG KeyedCollection.enforceConstraints) equal to this if you do not want
-any constraints to be enforced.
+Set $(SRCTAG KeyedCollection.enforceConstraints) equal to this if you do
+not want any constraints to be enforced.
  */
     none = 0,
 /**
@@ -62,8 +62,8 @@ Enforce the foreign key constraints if there are any.
 }
 
 /**
-Makes sure the class is usable for keyed collection. This really just makes sure it
-has the necessary members that come with keyeditem.
+Makes sure the class is usable for keyed collection. This really just
+makes sure it has the necessary members that come with keyeditem.
 Returns:
     true if class can be used for keyed collection
  */
@@ -77,7 +77,7 @@ template usableForKeyedCollection(alias T)
                      if (i.key == t.key) { }
                      class Example
                      {
-                         void itemChanged(string propertyName, typeof(T.key) item_key) { }
+                         void itemChanged(string s, typeof(T.key) k) { }
                          void add(T item)
                          {
                              item.emitChange.connect(&itemChanged);
@@ -138,7 +138,9 @@ $(D typeof(T.key)) everywhere.
     final alias key_type = typeof(T.key);
 
     private bool _containsChanges;
-    private ubyte _enforceConstraints = (Enforce.check | Enforce.unique | Enforce.foreignKey);
+    private ubyte _enforceConstraints = (Enforce.check |
+                                         Enforce.unique |
+                                         Enforce.foreignKey);
 
     static if (hasForeignKeys!(T))
     {
@@ -177,7 +179,8 @@ the item's check constraints, unique constraints, and foreign key constraints.
             auto i = (item in this);
             enforceEx!UniqueConstraintException(
                 (i is null || (*i) is item),
-                "The " ~ key_type.stringof ~ " constraint for class " ~ T.stringof ~
+                "The " ~ key_type.stringof ~ " constraint for class " ~
+                T.stringof ~
                 "  was violated by item " ~ item.toString ~ ".");
         }
         if (_enforceConstraints & Enforce.unique)
@@ -185,7 +188,8 @@ the item's check constraints, unique constraints, and foreign key constraints.
             auto constraintName = "";
             enforceEx!UniqueConstraintException(
                 !violatesUniqueConstraints(item, constraintName),
-                "The " ~ constraintName ~ " constraint for class " ~ T.stringof ~
+                "The " ~ constraintName ~ " constraint for class " ~
+                T.stringof ~
                 "  was violated by item " ~ item.toString ~ ".");
         }
         if (_enforceConstraints & Enforce.foreignKey)
@@ -307,7 +311,8 @@ that the length of $(D this) has changed by emitting "remove".
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~
+                      key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using remove.");
     }
@@ -321,13 +326,16 @@ Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
 Notifies that the length of $(D this) has changed.
 
 $(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
-enforceConstraints include $(SRCTAG Enforce.unique) or $(SRCTAG Enforce.clusteredUnique).)
+enforceConstraints include $(SRCTAG Enforce.unique) or
+$(SRCTAG Enforce.clusteredUnique).)
 
 $(THROWS CheckConstraintException, if the item is violating any of its
-defined check constraints and enforceConstraints include $(SRCTAG Enforce.check).)
+defined check constraints and enforceConstraints include
+$(SRCTAG Enforce.check).)
 
 $(THROWS ForeignKeyException, if the item is violating any of its
-foreign key constraints and enforceConstraints include $(SRCTAG Enforce.foreignKey).)
+foreign key constraints and enforceConstraints include
+$(SRCTAG Enforce.foreignKey).)
 
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
 
@@ -380,16 +388,20 @@ This just calls $(SRCTAG KeyedCollection.add).
     }
 
 /**
-Initializes $(D this). Adds $(D item) to $(D this) and connects to the signals emitted by $(D item).
+Initializes $(D this). Adds $(D item) to $(D this) and connects to the signals
+emitted by $(D item).
 
 $(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
-enforceConstraints include $(SRCTAG Enforce.unique) or $(SRCTAG Enforce.clusteredUnique).)
+enforceConstraints include $(SRCTAG Enforce.unique) or
+$(SRCTAG Enforce.clusteredUnique).)
 
 $(THROWS CheckConstraintException, if the item is violating any of its
-defined check constraints and enforceConstraints include $(SRCTAG Enforce.check).)
+defined check constraints and enforceConstraints include
+$(SRCTAG Enforce.check).)
 
 $(THROWS ForeignKeyException, if the item is violating any of its
-foreign key constraints and enforceConstraints include $(SRCTAG Enforce.foreignKey).)
+foreign key constraints and enforceConstraints include
+$(SRCTAG Enforce.foreignKey).)
 
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
@@ -422,7 +434,8 @@ back or parameters that can make the key for the item you want back.
 Returns:
     The item in the collection that matches $(D item).
 
-$(THROWS KeyedException, if $(D this) does not contain a matching clustered index.)
+$(THROWS KeyedException, if $(D this) does not contain a matching
+clustered index.)
 
 $(B Precondition:) $(D_CODE assert(item !is null);)
  */
@@ -458,7 +471,8 @@ $(B Precondition:) $(D_CODE assert(item !is null);)
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~
+                      key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using the index.");
     }
@@ -533,7 +547,8 @@ Returns:
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~
+                      key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using contains.");
     }
@@ -560,7 +575,8 @@ to the value if the key is in the associative array, or null if not.
     in
     {
         static assert(A.length == key_type.tupleof.length, T.stringof ~
-                      " has a clustered index with " ~ key_type.tupleof.length.to!string ~
+                      " has a clustered index with " ~
+                      key_type.tupleof.length.to!string ~
                       " member(s). You included " ~ A.length.to!string ~
                       " members when using 'in'.");
     }
@@ -677,7 +693,8 @@ unittest
     // takes care of everything I want to do for this example in one line.
     alias Candies = BaseKeyedCollection!(Candy);
 
-    // source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
+    // source:
+    // http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
     // should be Milky not Milkey, this is wrong on purpose
     auto milkyWay = new Candy("Milkey Way", 18);
     auto snickers = new Candy("Snickers", 4);
@@ -716,7 +733,8 @@ unittest
     assert(!mars.contains("Milkey Way"));
     assert(mars.contains("Milky Way"));
 
-    // looping over mars we make sure the key can be used to get the correct value.
+    // looping over mars we make sure the key can be used to get
+    // the correct value.
     foreach(name_pk, candy; mars)
     {
         assert(mars[name_pk] == candy);
@@ -735,7 +753,8 @@ unittest
     // trying to set this to null will result in a CheckConstraintException.
     assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
-    // violatesUniqueConstraints will tell you which unique constraint is violated if any
+    // violatesUniqueConstraints will tell you which unique constraint
+    // is violated if any
     string violatedConstraint;
     assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
     assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");

@@ -22,8 +22,8 @@ module db_constraints.constraints;
 import std.functional : unaryFun;
 
 /**
-KeyedItem will create a struct with $(I name) defined in the compile-time argument.
-For example a property marked with @UniqueColumn!("uc_Person") will
+KeyedItem will create a struct with $(I name) defined in the compile-time
+argument. For example a property marked with @UniqueColumn!("uc_Person") will
 be part of the struct uc_Person.
 Params:
     name_ = The name of the constraint which is the structs name
@@ -41,8 +41,8 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 
 
 /**
-$(WIKI keyeditem, checkConstraints) will check all of the members marked
-with this attribute and use the check given.
+$(WIKI keyeditem, KeyedItem.checkConstraints) will check all of the members
+marked with this attribute and use the check given.
 Params:
     check_ = The function that returns a boolean
     name_ = Name used in the error message if the function returns false
@@ -82,14 +82,14 @@ Rules for foreign keys when updating or deleting.
 enum Rule
 {
 /**
-When a parent key is modified or deleted from the collection, no special action is taken.
-If you are using MySQL or MSSQL use $(SRCTAG Rule.restrict) instead for the desired
-effect.
+When a parent key is modified or deleted from the collection, no special
+action is taken. If you are using MySQL or MSSQL use
+$(SRCTAG Rule.restrict) instead for the desired effect.
  */
     noAction,
 /**
 The item is prohibited from deleting or modifying a parent key when there exists
-one or more child keys mapped to it.
+one or more child keys mapped to it. This is the default.
 
 $(THROWS ForeignKeyException, when a member changes.)
  */
@@ -102,7 +102,8 @@ $(THROWS ForeignKeyException, when the type cannot be set to null.)
     setNull,
 /**
 Sets the member to the Default value when deleting or modifying a parent key.
-If there is no defined Default then the member is set to its types initial value.
+If there is no defined Default then the member is set to its types initial
+value.
  */
     setDefault,
 /**
@@ -119,8 +120,8 @@ Params:
     columnNames_ = The members in the child class that are used in the foreign key
     referencedTableName_ = The referenced table's name (collection class)
     referencedColumnNames_ = The members in the parent class that are references in the foreign key
-    updateRule_ = What should happen when a foreign key is updated that is being referenced
-    deleteRule_ = What should happen when a foreign key is deleted that is being referenced
+    updateRule_ = Rule when a foreign key is updated that is being referenced
+    deleteRule_ = Rule when a foreign key is deleted that is being referenced
  */
 struct ForeignKey(string name_,
                   string[] columnNames_,
@@ -140,35 +141,49 @@ struct ForeignKey(string name_,
 /**
 The foreign key user-defined attribute.
  */
-template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
-                              string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
+template ForeignKeyConstraint(string name_, string[] columnNames_,
+                              string referencedTableName_,
+                              string[] referencedColumnNames_,
+                              Rule updateRule_, Rule deleteRule_)
 {
-    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
-                                             referencedColumnNames_, updateRule_, deleteRule_);
+    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_,
+                                             referencedTableName_,
+                                             referencedColumnNames_,
+                                             updateRule_, deleteRule_);
 }
 
 /// ditto
-template ForeignKeyConstraint(string name_, string[] columnNames_, string referencedTableName_,
+template ForeignKeyConstraint(string name_, string[] columnNames_,
+                              string referencedTableName_,
                               string[] referencedColumnNames_)
 {
-    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_, referencedTableName_,
-                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
+    alias ForeignKeyConstraint = ForeignKey!(name_, columnNames_,
+                                             referencedTableName_,
+                                             referencedColumnNames_,
+                                             Rule.restrict, Rule.restrict);
 }
 
 /// ditto
-template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
-                              string[] referencedColumnNames_, Rule updateRule_, Rule deleteRule_)
+template ForeignKeyConstraint(string[] columnNames_,
+                              string referencedTableName_,
+                              string[] referencedColumnNames_,
+                              Rule updateRule_, Rule deleteRule_)
 {
-    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
-                                             referencedColumnNames_, updateRule_, deleteRule_);
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_,
+                                             referencedTableName_,
+                                             referencedColumnNames_,
+                                             updateRule_, deleteRule_);
 }
 
 /// ditto
-template ForeignKeyConstraint(string[] columnNames_, string referencedTableName_,
+template ForeignKeyConstraint(string[] columnNames_,
+                              string referencedTableName_,
                               string[] referencedColumnNames_)
 {
-    alias ForeignKeyConstraint = ForeignKey!("", columnNames_, referencedTableName_,
-                                             referencedColumnNames_, Rule.noAction, Rule.noAction);
+    alias ForeignKeyConstraint = ForeignKey!("", columnNames_,
+                                             referencedTableName_,
+                                             referencedColumnNames_,
+                                             Rule.restrict, Rule.restrict);
 }
 
 /**

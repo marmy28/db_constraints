@@ -1,6 +1,6 @@
 /**
-Keyed item is used in combination with KeyedCollection to mimic databases in your classes.
-This module contains:
+Keyed item is used in combination with KeyedCollection to mimic databases
+in your classes. This module contains:
   $(TOC KeyedItem)
 
 License: $(GPL2)
@@ -20,7 +20,8 @@ import db_constraints.utils.meta : hasMembersWithUDA;
 
 /**
 Use this in the singular class which would describe a row in your
-database. ClusteredIndexAttribute is the unique constraint associated with the clustered index.
+database. ClusteredIndexAttribute is the unique constraint associated
+with the clustered index.
  */
 mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     if (isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
@@ -46,8 +47,9 @@ mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
                   ClusteredIndexAttribute.name ~ "\" to use this mixin.");
 
 /**
-The setter should be in your setter member. This checks your check constraint and notifies the
-item if it is different and does not violate the check constraint.
+The setter should be in your setter member. This checks your check
+constraint and notifies the item if it is different and does not
+violate the check constraint.
 
 $(THROWS CheckConstraintException, if your value makes checkConstraints fail.)
  */
@@ -71,7 +73,8 @@ $(THROWS CheckConstraintException, if your value makes checkConstraints fail.)
         }
     }
 /**
-Initializes the keyed item by running $(SRCTAG setClusteredIndex) and $(SRCTAG checkConstraints).
+Initializes the keyed item by running $(SRCTAG setClusteredIndex) and
+$(SRCTAG checkConstraints).
 This should be in your constructor.
 
 $(THROWS CheckConstraintException, if a member violates their constraint.)
@@ -138,7 +141,8 @@ Params:
         }
     }
 /**
-Checks if any of the members of $(D T) have values that violate their check constraint.
+Checks if any of the members of $(D T) have values that violate their
+check constraint.
 
 $(THROWS CheckConstraintException, if the constraint is violated.)
  */
@@ -156,12 +160,14 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                         {
                             static if (attr.name == "NotNull")
                             {
-                                enum msg = T.stringof ~ "." ~ member ~ " NotNull violation.";
+                                enum msg = T.stringof ~ "." ~ member ~
+                                    " NotNull violation.";
 
                             }
                             else static if (attr.name == "")
                             {
-                                enum msg = "chk_" ~ T.stringof ~ "_" ~ member ~ " violation.";
+                                enum msg = "chk_" ~ T.stringof ~ "_" ~ member ~
+                                    " violation.";
                             }
                             else
                             {
@@ -278,9 +284,10 @@ unittest
     }
 
     // below is what is created when you include the mixin KeyedItem
-    // ClusteredIndex is alias'd as PrimaryKey since we said the primary key is our clustered index above.
-    // this also creates a uc_Candy_ranking struct and key since we labeled ranking with
-    // @UniqueConstraintColumn!("uc_Candy_ranking")
+    // ClusteredIndex is alias'd as PrimaryKey since we said the
+    // primary key is our clustered index above.
+    // this also creates a uc_Candy_ranking struct and key since
+    // we labeled ranking with @UniqueConstraintColumn!("uc_Candy_ranking")
     enum candyStructs =
 `public:
     final alias PrimaryKey = ClusteredIndex;
@@ -315,11 +322,13 @@ unittest
     assert(i.key == pk);
     // PrimaryKey_key is an alias for key
     assert(i.key == i.PrimaryKey_key);
-    // the primary key struct has member name since that was marked with @PrimaryKeyColumn
+    // the primary key struct has member name since that was marked
+    // with @PrimaryKeyColumn
     assert(i.key.name == pk.name);
 
     auto j = new Candy("Opal Fruit", 16);
-    // since name is the primary key i and j are equal because the names are equal
+    // since name is the primary key i and j are equal because
+    // the names are equal
     // even though the ranking is different
     assert(i.key == j.key);
 

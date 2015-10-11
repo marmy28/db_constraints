@@ -1,8 +1,9 @@
 {
 	"name": "db_constraints",
-	"description": "User defined attributes and mixin templates to build a class database.",
-	"copyright": "Copyright © 2015, matthew",
-	"homepage": "https://github.com/marmy28/db_constraints",
+	"description": "SQL db constraints for your classes.",
+	"copyright": "Copyright © 2015, Matthew",
+	"license": "GPL-2.0 and BSL-1.0",
+	"homepage": "https://github.com/marmy28/db_constraints/wiki",
 	"authors": ["Matthew Armbruster"],
 	"version": "0.0.4",
 	"mainSourceFile": "source/app.d",

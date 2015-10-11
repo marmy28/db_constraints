@@ -35,8 +35,8 @@ Tells the keyed collection which constraints to check.
 none
 ```
 
-Set [KeyedCollection.enforceConstraints](#KeyedCollection.enforceConstraints) equal to this if you do not want
-any constraints to be enforced.
+Set [KeyedCollection.enforceConstraints](#KeyedCollection.enforceConstraints) equal to this if you do
+not want any constraints to be enforced.
 
 
 ***
@@ -93,8 +93,8 @@ enum usableForKeyedCollection(alias T);
 
 ```
 
-Makes sure the class is usable for keyed collection. This really just makes sure it
-has the necessary members that come with keyeditem.
+Makes sure the class is usable for keyed collection. This really just
+makes sure it has the necessary members that come with keyeditem.
 
 **Returns:**
 true if class can be used for keyed collection
@@ -201,7 +201,8 @@ public:
 // takes care of everything I want to do for this example in one line.
 alias Candies = BaseKeyedCollection!(Candy);
 
-// source: http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
+// source:
+// http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/
 // should be Milky not Milkey, this is wrong on purpose
 auto milkyWay = new Candy("Milkey Way", 18);
 auto snickers = new Candy("Snickers", 4);
@@ -240,7 +241,8 @@ assert(mars.containsChanges);
 assert(!mars.contains("Milkey Way"));
 assert(mars.contains("Milky Way"));
 
-// looping over mars we make sure the key can be used to get the correct value.
+// looping over mars we make sure the key can be used to get
+// the correct value.
 foreach(name_pk, candy; mars)
 {
     assert(mars[name_pk] == candy);
@@ -259,7 +261,8 @@ assertThrown!(CheckConstraintException)(mars["Milky Way"].ranking = -1);
 // trying to set this to null will result in a CheckConstraintException.
 assertThrown!(CheckConstraintException)(mars["Milky Way"].name = null);
 
-// violatesUniqueConstraints will tell you which unique constraint is violated if any
+// violatesUniqueConstraints will tell you which unique constraint
+// is violated if any
 string violatedConstraint;
 assert(mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
 assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
@@ -376,17 +379,20 @@ Notifies that the length of `this` has changed.
 
 :exclamation: **Throws:**
 [UniqueConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#UniqueConstraintException) if `this` already contains `item` and
-enforceConstraints include [Enforce.unique](#Enforce.unique) or [Enforce.clusteredUnique](#Enforce.clusteredUnique).
+enforceConstraints include [Enforce.unique](#Enforce.unique) or
+[Enforce.clusteredUnique](#Enforce.clusteredUnique).
 
 
 :exclamation: **Throws:**
 [CheckConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#CheckConstraintException) if the item is violating any of its
-defined check constraints and enforceConstraints include [Enforce.check](#Enforce.check).
+defined check constraints and enforceConstraints include
+[Enforce.check](#Enforce.check).
 
 
 :exclamation: **Throws:**
 [ForeignKeyException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#ForeignKeyException) if the item is violating any of its
-foreign key constraints and enforceConstraints include [Enforce.foreignKey](#Enforce.foreignKey).
+foreign key constraints and enforceConstraints include
+[Enforce.foreignKey](#Enforce.foreignKey).
 
 
 **Precondition:** 
@@ -423,22 +429,26 @@ final this(I)(I items) if (isIterable!I);
 
 ```
 
-Initializes `this`. Adds `item` to `this` and connects to the signals emitted by `item`.
+Initializes `this`. Adds `item` to `this` and connects to the signals
+emitted by `item`.
 
 
 :exclamation: **Throws:**
 [UniqueConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#UniqueConstraintException) if `this` already contains `item` and
-enforceConstraints include [Enforce.unique](#Enforce.unique) or [Enforce.clusteredUnique](#Enforce.clusteredUnique).
+enforceConstraints include [Enforce.unique](#Enforce.unique) or
+[Enforce.clusteredUnique](#Enforce.clusteredUnique).
 
 
 :exclamation: **Throws:**
 [CheckConstraintException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#CheckConstraintException) if the item is violating any of its
-defined check constraints and enforceConstraints include [Enforce.check](#Enforce.check).
+defined check constraints and enforceConstraints include
+[Enforce.check](#Enforce.check).
 
 
 :exclamation: **Throws:**
 [ForeignKeyException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#ForeignKeyException) if the item is violating any of its
-foreign key constraints and enforceConstraints include [Enforce.foreignKey](#Enforce.foreignKey).
+foreign key constraints and enforceConstraints include
+[Enforce.foreignKey](#Enforce.foreignKey).
 
 
 **Precondition:** 
@@ -467,7 +477,8 @@ The item in the collection that matches `item`.
 
 
 :exclamation: **Throws:**
-[KeyedException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#KeyedException) if `this` does not contain a matching clustered index.
+[KeyedException](https://github.com/marmy28/db_constraints/wiki/db_exceptions#KeyedException) if `this` does not contain a matching
+clustered index.
 
 
 **Precondition:** 
@@ -583,5 +594,5 @@ else
 
 
 
-Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sat Oct 10 21:45:26 2015
+Copyright :copyright: 2015 | Page generated by [Ddoc](http://dlang.org/ddoc.html) on Sun Oct 11 15:29:49 2015
 

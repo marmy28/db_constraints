@@ -158,10 +158,10 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                     {
                         static if (isInstanceOf!(CheckConstraint, attr))
                         {
-                            static if (attr.name == "NotNull")
+                            static if (attr.name == "NotNull" || attr.name == "SET")
                             {
                                 enum msg = T.stringof ~ "." ~ member ~
-                                    " NotNull violation.";
+                                    " " ~ attr.name ~ " violation.";
 
                             }
                             else static if (attr.name == "")
@@ -174,7 +174,7 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                                 enum msg = attr.name ~ " violation.";
                             }
                             enforceEx!(CheckConstraintException)(
-                                    attr.check(mixin("this." ~ member)), msg);
+                                    attr.check(mixin("this._" ~ member)), msg);
                         }
                     }
                 }

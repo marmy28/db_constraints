@@ -38,7 +38,6 @@ Contributions are welcome. Feel free to fork and pull request!
 - [ ] Unittests for meta.d
 - [ ] Write tutorial
   * [ ] Nested classes
-  * [ ] Finish examples with foreign keys
   * [ ] Advanced tutorial
 
 

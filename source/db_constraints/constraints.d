@@ -5,6 +5,7 @@ The constraints module contains:
   $(TOC PrimaryKeyColumn)
   $(TOC CheckConstraint)
   $(TOC NotNull)
+  $(TOC SetConstraint)
   $(TOC Rule)
   $(TOC ForeignKey)
   $(TOC ForeignKeyConstraint)
@@ -75,6 +76,45 @@ alias NotNull = CheckConstraint!(
             return true;
         }
     }, "NotNull");
+
+import std.traits : isExpressions;
+/**
+Alias for check constraint that makes sure the property that
+has this attribute only contains members in the set. This should
+act like the SET constraint in MySQL. It will sort and remove the
+duplicates of the SET. This does modify the value coming in. This
+is only for strings.
+ */
+template SetConstraint(values...)
+    if (isExpressions!values)
+{
+    alias SetConstraint = CheckConstraint!(
+        function bool(ref auto a)
+        {
+            static assert(is(typeof(a) == string));
+
+            if (a !is null)
+            {
+                import std.array : split;
+                import std.algorithm : among, sort, uniq;
+                auto options = sort(a.split(",")).uniq;
+                a = "";
+                foreach(string option; options)
+                {
+                    if (!option.among!(values))
+                    {
+                        return false;
+                    }
+                    if (a != "")
+                    {
+                        a ~= ",";
+                    }
+                    a ~= option;
+                }
+            }
+            return true;
+        }, "SET");
+}
 
 /**
 Rules for foreign keys when updating or deleting.

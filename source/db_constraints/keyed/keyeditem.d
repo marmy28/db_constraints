@@ -325,12 +325,14 @@ unittest
     // the primary key struct has member name since that was marked
     // with @PrimaryKeyColumn
     assert(i.key.name == pk.name);
+    assert(i.name == pk.name);
 
     auto j = new Candy("Opal Fruit", 16);
     // since name is the primary key i and j are equal because
     // the names are equal
     // even though the ranking is different
     assert(i.key == j.key);
+    assert(i.ranking != j.ranking);
 
     // in 1967 Opal Fruits came to America and changed its name
     i.name = "Starburst";

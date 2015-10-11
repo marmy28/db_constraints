@@ -19,7 +19,7 @@ If you want the coverage analysis too use:
 
     dub test -b unittest-cov
 
-## Documentation
+## Documentation/Tutorials
 
 Please, refer to [the wiki](https://github.com/marmy28/db_constraints/wiki) for code documentation and tutorial on how to use this package.
 
@@ -33,9 +33,7 @@ Contributions are welcome. Feel free to fork and pull request!
  + You may only foreign key to the referenced class' clustered index. If you foreign key to id's and mark all your id's as primary keys then you do not need to worry about this.
 
 ## To do
-- [ ] Add in description for repo.
 - [ ] Release package on dub
-- [ ] Unittests for meta.d
 - [ ] Write tutorial
   * [ ] Nested classes
   * [ ] Advanced tutorial

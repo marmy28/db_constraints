@@ -24,18 +24,10 @@ unittest
         {
             return _id;
         }
-        @property void id(Nullable!(int) value)
-        {
-            setter(_id, value);
-        }
         @UniqueConstraintColumn!("uc_Person")
         @property string firstName() const nothrow pure @safe @nogc
         {
             return _firstName;
-        }
-        @property void firstName(string value)
-        {
-            setter(_firstName, value);
         }
         @UniqueConstraintColumn!("uc_PersonEmail")
         @property string email() const nothrow pure @safe @nogc
@@ -51,10 +43,7 @@ unittest
         {
             return _lastName;
         }
-        @property void lastName(string value)
-        {
-            setter(_lastName, value);
-        }
+
         this(string firstName_, string lastName_, string email_)
         {
             static int i = 1;
@@ -68,11 +57,6 @@ unittest
         Person dup()
         {
             return new Person(this._firstName, this._lastName, this._email);
-        }
-        override string toString()
-        {
-            auto result = this._firstName ~ " " ~ this._lastName ~ " email: " ~ (this._email is null ? "null" : this._email);
-            return result;
         }
         mixin KeyedItem!(UniqueConstraintColumn!("uc_PersonEmail"));
     }

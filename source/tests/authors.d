@@ -27,10 +27,6 @@ public:
     {
         return _Name;
     }
-    @property void Name(string value)
-    {
-        setter(_Name, value);
-    }
     this(int AuthorId_, string Name_)
     {
         this._AuthorId = AuthorId_;
@@ -42,10 +38,6 @@ public:
         return new Author(this._AuthorId, this._Name);
     }
 
-    override string toString()
-    {
-        return "AuthorId: " ~ this._AuthorId.to!string() ~ " Name: " ~ this._Name;
-    }
     override bool opEquals(Object o) const pure nothrow @nogc
     {
         auto rhs = cast(immutable Author)o;
@@ -61,10 +53,6 @@ public:
     this(Author[] items)
     {
         super(items);
-    }
-    this(Author item)
-    {
-        super(item);
     }
     static Authors GetFromDB()
     {

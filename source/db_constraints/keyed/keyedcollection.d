@@ -249,7 +249,7 @@ Returns:
         return _containsChanges;
     }
 /**
-Property to enforce the constraints. By default
+Write-only property to enforce the constraints. By default
 this is  $(D (Enforce.check | Enforce.unique | Enforce.foreignKey))
 but you may set it to 0 if you have a lot of
 initial data and already trust that it does not violate any constraints.
@@ -257,11 +257,6 @@ initial data and already trust that it does not violate any constraints.
 Setting this to false means that there are no checks and if there
 is a duplicate clustered index, it will be overwritten.
 */
-    final @property ubyte enforceConstraints() const nothrow pure @safe @nogc
-    {
-        return _enforceConstraints;
-    }
-    /// ditto
     final @property void enforceConstraints(ubyte value) nothrow pure @safe @nogc
     {
         _enforceConstraints = value;
@@ -711,6 +706,7 @@ unittest
     assert(mars[milkyWay] is milkyWay);
     // use the primary key as an index
     auto pk = Candy.PrimaryKey("Milkey Way");
+    assert(pk.name == milkyWay.name);
     assert(mars[pk] is milkyWay);
     // use the contents of the primary key as an index
     assert(mars["Milkey Way"] is milkyWay);
@@ -743,6 +739,8 @@ unittest
     // trying to add another candy with the same name will
     // result in a unique constraint violation even if the ranking is different
     auto milkyWay2 = new Candy("Milky Way", 16);
+    assert(milkyWay.name == milkyWay2.name);
+    assert(milkyWay.ranking != milkyWay2.ranking);
     import std.exception : assertThrown;
     assertThrown!(UniqueConstraintException)(mars ~= milkyWay2);
 
@@ -760,7 +758,7 @@ unittest
     assert(violatedConstraint !is null && violatedConstraint == "PrimaryKey");
 
     // removing milky way from mars
-    mars.remove("Milky Way");
+    mars.remove(milkyWay);
     // this means milkyWay2 is no longer a duplicate
     assert(!mars.violatesUniqueConstraints(milkyWay2, violatedConstraint));
     assert(violatedConstraint is null);

@@ -236,7 +236,13 @@ unittest
     assert(i.length == 1);
     tom2.cName = "James";
     assertThrown!UniqueConstraintException(i.add(tom2));
-    i.enforceConstraints = Enforce.none;
+    i.enforceConstraints = Enforce.clusteredUnique;
     assertNotThrown!UniqueConstraintException(i.add(tom2));
     assert(i.length == 2);
+    foreach(item; i)
+    {
+        assert(i[item.key] == item);
+    }
+    auto tom3 = new Student("Tom", 2);
+    assertThrown!UniqueConstraintException(i.add(tom3));
 }

@@ -178,7 +178,6 @@ Returns:
     AliasSeq with distinct properties that have @attribute assigned to it.
  */
 template GetMembersWithUDA(ClassName, attribute)
-    if (hasMembersWithUDA!(ClassName, attribute))
 {
     template Impl(T...)
     {

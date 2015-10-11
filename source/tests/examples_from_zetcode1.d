@@ -109,12 +109,6 @@ unittest
             initializeKeyedItem();
         }
 
-        Person dup()
-        {
-            return new Person(this._Id, this._LastName,
-                              this._FirstName, this._City);
-        }
-
         // the keyed item mixin will create all the necessary
         // checks for you
         mixin KeyedItem!();

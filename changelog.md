@@ -1,6 +1,6 @@
 # Change log
 
-## 0.0.4 (release date: 2015-10-??)
+## 0.0.4 (release date: 2015-10-12)
 
 ### Name changes
 

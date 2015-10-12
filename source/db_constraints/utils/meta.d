@@ -294,7 +294,7 @@ template createConstraintStructs(ClassName, string ClusteredIndexAttributeName)
                 result ~= "    {\n";
                 foreach(columnName; GetMembersWithUDA!(ClassName, UniqueConstraintColumn!name))
                 {
-                    result ~= "        typeof(" ~ ClassName.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+                    result ~= "        typeof(" ~ ClassName.stringof ~ "._" ~ columnName ~ ") " ~ columnName ~ ";\n";
                 }
                 result ~= "        mixin opAAKey!(" ~ name ~ ");\n";
                 result ~= "    }\n";

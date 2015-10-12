@@ -14,10 +14,6 @@ private:
     string _Name;
 public:
     @PrimaryKeyColumn @NotNull
-    @property int AuthorId()
-    {
-        return _AuthorId;
-    }
     @property void AuthorId(int value)
     {
         setter(_AuthorId, value);

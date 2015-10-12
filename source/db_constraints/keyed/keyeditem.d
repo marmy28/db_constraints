@@ -196,7 +196,7 @@ attribute selected as the Clustered Index.
                   string result = "";
                   foreach(columnName; GetMembersWithUDA!(T, ClusteredIndexAttribute))
                   {
-                      result ~= "typeof(" ~ T.stringof ~ "." ~ columnName ~ ") " ~ columnName ~ ";\n";
+                      result ~= "typeof(" ~ T.stringof ~ "._" ~ columnName ~ ") " ~ columnName ~ ";\n";
                   }
                   return result;
               }());
@@ -294,7 +294,7 @@ unittest
     final alias PrimaryKey_key = key;
     final struct uc_Candy_ranking
     {
-        typeof(Candy.ranking) ranking;
+        typeof(Candy._ranking) ranking;
         mixin opAAKey!(uc_Candy_ranking);
     }
     final @property uc_Candy_ranking uc_Candy_ranking_key() const nothrow pure @safe @nogc

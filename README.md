@@ -1,5 +1,7 @@
 # db_constraints
 
+[![Dub](https://img.shields.io/badge/dub-code.dlang.org-FF4081.svg)](http://code.dlang.org/packages/db_constraints)
+
 [![Build Status](https://travis-ci.org/marmy28/db_constraints.svg)](https://travis-ci.org/marmy28/db_constraints)
 
 [![Coverage Status](https://coveralls.io/repos/marmy28/db_constraints/badge.svg?branch=master&service=github)](https://coveralls.io/github/marmy28/db_constraints?branch=master)

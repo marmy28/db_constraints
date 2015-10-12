@@ -5,7 +5,6 @@
 	"license": "GPL-2.0 and BSL-1.0",
 	"homepage": "https://github.com/marmy28/db_constraints/wiki",
 	"authors": ["Matthew Armbruster"],
-	"version": "0.0.4",
 	"mainSourceFile": "source/app.d",
 	"configurations": [
 		{

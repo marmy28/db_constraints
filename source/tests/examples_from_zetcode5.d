@@ -86,6 +86,10 @@ unittest
             this._Name = Name_;
             initializeKeyedItem();
         }
+
+        // we must define dup() since we are going
+        // to change AuthorId which is our implied
+        // clustered index
         Author dup()
         {
             return new Author(this._AuthorId, this._Name);
@@ -158,10 +162,6 @@ unittest
             this._AuthorId = AuthorId_;
             initializeKeyedItem();
         }
-        Book dup()
-        {
-            return new Book(this._BookId, this._Title, this._AuthorId);
-        }
 
         mixin KeyedItem!();
     }
@@ -194,7 +194,7 @@ unittest
         // when we associate authors to books
         // there should be no exceptions since
         // we are starting with correct data
-        import std.exception : assertNotThrown;
+        import std.exception : assertNotThrown, assertThrown;
         assertNotThrown!ForeignKeyException(books.authors = authors);
         // books.authors is a write-only property made by
         // mixin KeyedCollection!(Book);
@@ -222,6 +222,12 @@ unittest
         // should have AuthorId 5
         assert(books[1].Title == "Emma");
         assert(books[1].AuthorId == 5);
+
+        // We were able to change Jane Austen's AuthorId since we
+        // defined dup in Author. We did not define dup in Books
+        // which means if we change BookId we should expect a
+        // KeyedException
+        assertThrown!KeyedException(books[1].BookId = 7);
 
         // it is good but not necessary to set books.authors to null when you
         // leave scope just to disconnect signals and associations

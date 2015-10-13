@@ -74,11 +74,6 @@ unittest
             initializeKeyedItem();
         }
 
-        Order dup()
-        {
-            return new Order(this._Id, this._OrderPrice, this._Customer);
-        }
-
         mixin KeyedItem!();
     }
 

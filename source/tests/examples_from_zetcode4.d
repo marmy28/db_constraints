@@ -89,11 +89,6 @@ unittest
             initializeKeyedItem();
         }
 
-        Hotel dup()
-        {
-            return new Hotel(this._Id, this._Name, this._City);
-        }
-
         mixin KeyedItem!();
     }
 

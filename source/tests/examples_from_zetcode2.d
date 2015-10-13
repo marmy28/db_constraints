@@ -68,11 +68,6 @@ unittest
             initializeKeyedItem();
         }
 
-        Brand dup()
-        {
-            return new Brand(this._Id, this._BrandName);
-        }
-
         // do not forget to add in the keyed item!
         mixin KeyedItem!();
     }

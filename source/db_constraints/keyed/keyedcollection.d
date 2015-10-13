@@ -71,9 +71,8 @@ template usableForKeyedCollection(alias T)
 {
     enum usableForKeyedCollection = ( is(T == class) &&
         __traits(compiles,
-                 (T t)
+                 (T t, T i)
                  {
-                     T i = t.dup();
                      if (i.key == t.key) { }
                      class Example
                      {
@@ -94,8 +93,10 @@ template usableForKeyedCollection(alias T)
 /**
 Turns the inheriting class into a base keyed collection.
 The key is based on the singular class' clustered index.
-The requirements (except for dup) are taken care of when
+The requirements are taken care of when
 you include the keyeditem in the $(I T) class.
+If you plan on changing the singular class' clustered index,
+you must define $(D dup()) that returns a new instance of your class.
 
 If $(D T) has foreign keys you must use $(SRCTAG KeyedCollection) instead
 since the functions that come with foreign keys need to have the
@@ -208,16 +209,32 @@ the item's check constraints, unique constraints, and foreign key constraints.
 /**
 $(D itemChanged) is connected to the signal emitted by the item. This checks
 constraints and makes sure the changes are acceptable.
+
+$(THROWS KeyedException, if $(D dup()) is not defined and you change the
+clustered index.)
  */
     final private void itemChanged(string propertyName, key_type item_key)
     {
         key_type emit_key = item_key;
         if (propertyName == "key")
         {
-            T item = this._items[item_key].dup();
-            this.remove(item_key, No.notifyChange);
-            this.add(item, No.notifyChange);
-            emit_key = item.key;
+            static if ( __traits(compiles,
+                                 (T t)
+                                 {
+                                     T i = t.dup();
+                                 }))
+            {
+                T item = this._items[item_key].dup();
+                this.remove(item_key, No.notifyChange);
+                this.add(item, No.notifyChange);
+                emit_key = item.key;
+            }
+            else
+            {
+                enum msg = T.stringof ~ " is trying to change its clustered " ~
+                    "index without defining a dup() function.";
+                throw new KeyedException(msg);
+            }
         }
         else if (propertyName.endsWith("_key"))
         {

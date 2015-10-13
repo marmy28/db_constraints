@@ -1,5 +1,11 @@
 # Change log
 
+## 0.0.5 (release date: 2015-??-??)
+
+### Misc.
+
+ * No longer required to define dup() unless you change the clustered index
+
 ## 0.0.4 (release date: 2015-10-12)
 
 ### Name changes

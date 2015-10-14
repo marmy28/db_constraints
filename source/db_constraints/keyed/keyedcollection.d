@@ -437,6 +437,10 @@ $(B Precondition:) $(D_CODE assert(item(s) !is null);)
     {
         this.add(items, No.notifyChange);
     }
+    /// ditto
+    final this()
+    {
+    }
 
 
 /**

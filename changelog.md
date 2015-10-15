@@ -1,10 +1,11 @@
 # Change log
 
-## 0.0.5 (release date: 2015-??-??)
+## 0.0.5 (release date: 2015-10-15)
 
 ### Misc.
 
  * No longer required to define dup() unless you change the clustered index
+ * Removed source/app.d since this would cause name conflicts (sorry about this)
 
 ## 0.0.4 (release date: 2015-10-12)
 

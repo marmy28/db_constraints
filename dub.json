@@ -5,24 +5,17 @@
 	"license": "GPL-2.0 and BSL-1.0",
 	"homepage": "https://github.com/marmy28/db_constraints/wiki",
 	"authors": ["Matthew Armbruster"],
-	"mainSourceFile": "source/app.d",
 	"configurations": [
 		{
 			"targetType": "library",
-			"name": "library",
-			"excludedSourceFiles": [
-				"source/app.d"
-			]
+			"name": "library"
 		},
 		{
 			"targetType": "executable",
 			"dflags": [
 				"-main"
 			],
-			"name": "unittest",
-			"excludedSourceFiles": [
-				"source/app.d"
-			]
+			"name": "unittest"
 		}
 	],
 	"buildTypes": {

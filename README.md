@@ -46,10 +46,7 @@ Contributions are welcome. Feel free to fork and pull request!
  + Cannot use structs until std.signals can work with structs.
  
 ## Todo
- 
- + [X] Finish moving example names.
- + [ ] Write enum example.
- + [ ] Fix wiki Limitations.
- + [ ] Fix wiki examples_at_zetcode.md.
- + [ ] Put out next tag.
- + [ ] Add versioning comments to code.
+
+ + Write enum example.
+ + Put out next tag.
+ + Add versioning comments to code.

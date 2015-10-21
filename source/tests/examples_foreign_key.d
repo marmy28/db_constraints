@@ -4,7 +4,7 @@ $(LINK http://zetcode.com/db/sqlite/constraints/).
 Even though it is a SQLite tutorial the point is to show how to use this package
 which does not have to be just SQLite.
  */
-module test.examples_from_zetcode5;
+module test.examples_foreign_key;
 
 version(D_Ddoc)
 {

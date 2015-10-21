@@ -2,7 +2,7 @@
 The following examples come from
 $(LINK http://zetcode.com/databases/mysqltutorial/constraints/).
  */
-module test.examples_from_zetcode6;
+module test.examples_set_constraint;
 
 version(D_Ddoc)
 {

@@ -6,6 +6,7 @@ The constraints module contains:
   $(TOC CheckConstraint)
   $(TOC NotNull)
   $(TOC SetConstraint)
+  $(TOC EnumConstraint)
   $(TOC Rule)
   $(TOC ForeignKey)
   $(TOC ForeignKeyConstraint)
@@ -84,8 +85,18 @@ has this attribute only contains members in the set. This should
 act like the SET constraint in MySQL. It will sort and remove the
 duplicates of the SET. This does modify the value coming in. This
 is only for strings.
+
+If $(D isStrict) is true, SetConstraint will return false if
+you include a value not in the set. If $(D isStrict) is
+false, the value will be set to an empty string.
  */
 template SetConstraint(values...)
+    if (isExpressions!values)
+{
+    alias SetConstraint = SetConstraint!(true, values);
+}
+/// ditto
+template SetConstraint(bool isStrict, values...)
     if (isExpressions!values)
 {
     alias SetConstraint = CheckConstraint!(
@@ -96,14 +107,21 @@ template SetConstraint(values...)
             if (a !is null)
             {
                 import std.array : split;
-                import std.algorithm : among, sort, uniq;
-                auto options = sort(a.split(",")).uniq;
+                import std.algorithm : among, aSort = sort, uniq;
+                auto options = a.split(",").aSort.uniq;
                 a = "";
                 foreach(string option; options)
                 {
                     if (!option.among!(values))
                     {
-                        return false;
+                        static if (isStrict)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
                     if (a != "")
                     {
@@ -113,7 +131,50 @@ template SetConstraint(values...)
                 }
             }
             return true;
-        }, "SET");
+        }, "Set");
+}
+
+/**
+Alias for check constraint that makes sure the property that
+has this attribute only contains a member that is part of the
+enumeration. This should act like the ENUM constraint in MySQL.
+This does modify the value coming in. This is only for strings.
+
+If $(D isStrict) is true, EnumConstraint will return false if
+you include a value not in the enumeration. If $(D isStrict) is
+false, the value will be set to an empty string.
+ */
+template EnumConstraint(values...)
+    if (isExpressions!values)
+{
+    alias EnumConstraint = EnumConstraint!(true, values);
+}
+/// ditto
+template EnumConstraint(bool isStrict, values...)
+    if (isExpressions!values)
+{
+    alias EnumConstraint = CheckConstraint!(
+        function bool(ref auto a)
+        {
+            import std.algorithm : among;
+            static assert(is(typeof(a) == string));
+
+            if (a !is null)
+            {
+                static if (isStrict)
+                {
+                    return a.among!(values);
+                }
+                else
+                {
+                    if (!a.among!(values))
+                    {
+                        a = "";
+                    }
+                }
+            }
+            return true;
+        }, "Enum");
 }
 
 /**

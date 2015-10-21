@@ -43,22 +43,22 @@ Not using this means an item will not be checked when it is added
 to the collection. If you set up the singular class like the examples
 though the setter method will still check constraints.
  */
-    check = 1,
+    check = 1 << 0,
 /**
 Enforce the collection does not already contain
 the item you are trying to add. Makes sure there would not
 be conflicting clustered indicies.
  */
-    clusteredUnique = 2,
+    clusteredUnique = 1 << 1,
 /**
 Enforce all unique constraints are not being violated. If
 you have this then you do not need to have clusteredUnique.
  */
-    unique = 4,
+    unique = 1 << 2,
 /**
 Enforce the foreign key constraints if there are any.
  */
-    foreignKey = 8
+    foreignKey = 1 << 3
 }
 
 /**

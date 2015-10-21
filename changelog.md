@@ -1,5 +1,15 @@
 # Change log
 
+## 0.0.6 (release date: 2015-??-??)
+
+### New additions
+
+ * EnumConstraint
+
+### Misc.
+
+ * SetConstraint can be either strict or not. The default is strict.
+
 ## 0.0.5 (release date: 2015-10-15)
 
 ### Misc.

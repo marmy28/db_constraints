@@ -26,7 +26,7 @@ with the clustered index.
 mixin template KeyedItem(ClusteredIndexAttribute = PrimaryKeyColumn)
     if (isInstanceOf!(UniqueConstraintColumn, ClusteredIndexAttribute))
 {
-    import std.algorithm : canFind;
+    import std.algorithm : among, canFind;
     import std.conv : to;
     import std.exception : collectException, enforceEx;
     import std.functional : unaryFun;
@@ -158,7 +158,7 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                     {
                         static if (isInstanceOf!(CheckConstraint, attr))
                         {
-                            static if (attr.name == "NotNull" || attr.name == "SET")
+                            static if (attr.name.among!("NotNull", "Set", "Enum"))
                             {
                                 enum msg = T.stringof ~ "." ~ member ~
                                     " " ~ attr.name ~ " violation.";

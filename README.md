@@ -6,6 +6,16 @@
 
 [![Coverage Status](https://coveralls.io/repos/marmy28/db_constraints/badge.svg?branch=master&service=github)](https://coveralls.io/github/marmy28/db_constraints?branch=master)
 
+## Includes
+
+ + [UniqueConstraintColumn](https://github.com/marmy28/db_constraints/wiki/constraints#UniqueConstraintColumn)
+ + [PrimaryKeyColumn](https://github.com/marmy28/db_constraints/wiki/constraints#PrimaryKeyColumn)
+ + [CheckConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#CheckConstraint)
+ + [NotNull](https://github.com/marmy28/db_constraints/wiki/constraints#NotNull)
+ + [SetConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#SetConstraint)
+ + [EnumConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#EnumConstraint)
+ + [ForeignKeyConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#ForeignKeyConstraint)
+ + [Github markdown ddoc!](https://github.com/marmy28/db_constraints/blob/master/github.ddoc)
 
 ## Generating documentation
 

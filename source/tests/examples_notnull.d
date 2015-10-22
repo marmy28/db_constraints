@@ -13,7 +13,7 @@ version(D_Ddoc)
 }
 
 /**
-The first example is for the NOT NULL constraint. The table
+This example is for the NOT NULL constraint. The table
 in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE People

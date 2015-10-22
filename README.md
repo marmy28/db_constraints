@@ -47,5 +47,5 @@ Contributions are welcome. Feel free to fork and pull request!
  
 ## Todo
 
- + Write enum example.
+ + Tips and tricks sample.
  + Put out next tag.

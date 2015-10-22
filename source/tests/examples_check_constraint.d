@@ -13,7 +13,7 @@ version(D_Ddoc)
 }
 
 /**
-The third example is for the CHECK constraint. The table
+This example is for the CHECK constraint. The table
 in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE Orders

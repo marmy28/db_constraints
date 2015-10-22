@@ -14,7 +14,7 @@ version(D_Ddoc)
 
 
 /**
-The fifth example is for the FOREIGN KEY constraints. The tables
+This example is for the FOREIGN KEY constraints. The tables
 in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE Authors

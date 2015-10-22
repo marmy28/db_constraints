@@ -14,7 +14,7 @@ version(D_Ddoc)
 
 
 /**
-The fourth example is for the DEFAULT constraint. The table
+This example is for the DEFAULT constraint. The table
 in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE Hotels

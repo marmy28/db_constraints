@@ -45,6 +45,10 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 /**
 $(WIKI keyeditem, KeyedItem.checkConstraints) will check all of the members
 marked with this attribute and use the check given.
+
+Version:
+>= 0.0.6 allows you to mark your class as well.
+
 Params:
     check_ = The function that returns a boolean
     name_ = Name used in the error message if the function returns false

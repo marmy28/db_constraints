@@ -14,7 +14,7 @@ version(D_Ddoc)
 
 
 /**
-The second example is for the UNIQUE constraint and the PRIMARY KEY constraint.
+This example is for the UNIQUE constraint and the PRIMARY KEY constraint.
 The table in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE Brands

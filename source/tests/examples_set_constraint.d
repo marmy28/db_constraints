@@ -12,7 +12,7 @@ version(D_Ddoc)
 
 
 /**
-The sixth example is for the SET constraints. The table
+This example is for the SET constraints. The table
 in SQL can be created by
 $(D $(D $(D sql
 CREATE TABLE Students

@@ -46,8 +46,7 @@ alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 $(WIKI keyeditem, KeyedItem.checkConstraints) will check all of the members
 marked with this attribute and use the check given.
 
-Version:
->= 0.0.6 allows you to mark your class as well.
+Version: \>= 0.0.6 allows you to mark your class as well.
 
 Params:
     check_ = The function that returns a boolean
@@ -94,8 +93,8 @@ If $(D isStrict) is true, SetConstraint will return false if
 you include a value not in the set. If $(D isStrict) is
 false, the value will be set to an empty string.
 
-Version: >= 0.0.6 for $(D isStrict) option.
->= 0.0.4 is always strict.
+Version: \>= 0.0.6 for $(D isStrict) option.
+\>= 0.0.4 is always strict.
  */
 template SetConstraint(values...)
     if (isExpressions!values)
@@ -151,7 +150,7 @@ If $(D isStrict) is true, EnumConstraint will return false if
 you include a value not in the enumeration. If $(D isStrict) is
 false, the value will be set to an empty string.
 
-Version: >= 0.0.6
+Version: \>= 0.0.6
  */
 template EnumConstraint(values...)
     if (isExpressions!values)

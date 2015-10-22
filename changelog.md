@@ -10,6 +10,7 @@
 
  * SetConstraint can be either strict or not. The default is strict.
  * Changed all examples_from_zetcode* to something more explicit.
+ * Can attach CheckConstraint to class to compare different members.
 
 ## 0.0.5 (release date: 2015-10-15)
 

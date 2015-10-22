@@ -180,6 +180,28 @@ $(THROWS CheckConstraintException, if the constraint is violated.)
                 }
             }
         }
+        foreach(attr; __traits(getAttributes, T))
+        {
+            static if (isInstanceOf!(CheckConstraint, attr))
+            {
+                static if (attr.name.among!("NotNull", "Set", "Enum"))
+                {
+                    enum msg = T.stringof ~ " " ~ attr.name ~ " violation.";
+
+                }
+                else static if (attr.name == "")
+                {
+                    enum msg = "chk_" ~ T.stringof ~
+                        " violation.";
+                }
+                else
+                {
+                    enum msg = attr.name ~ " violation.";
+                }
+                enforceEx!(CheckConstraintException)(
+                        attr.check(this), msg);
+            }
+        }
     }
 
 /**

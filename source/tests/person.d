@@ -11,6 +11,7 @@ This is just an example of stuff
 unittest
 {
     import db_constraints;
+    @CheckConstraint!(a => a.firstName != a.lastName, "chk_First_Last")
     class Person
     {
     private:
@@ -28,6 +29,10 @@ unittest
         @property string firstName() const nothrow pure @safe @nogc
         {
             return _firstName;
+        }
+        @property void firstName(string value)
+        {
+            setter(_firstName, value);
         }
         @UniqueConstraintColumn!("uc_PersonEmail")
         @property string email() const nothrow pure @safe @nogc
@@ -74,5 +79,9 @@ unittest
         auto i = Person.uc_PersonEmail();
         i.email = null;
         assert(people.contains(i));
+    }
+    {
+        import std.exception : assertThrown;
+        assertThrown!CheckConstraintException(new Person("Name", "Name", "Name@org"));
     }
 }

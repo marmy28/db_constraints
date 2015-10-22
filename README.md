@@ -49,4 +49,3 @@ Contributions are welcome. Feel free to fork and pull request!
 
  + Write enum example.
  + Put out next tag.
- + Add versioning comments to code.

@@ -133,10 +133,16 @@ mixin template KeyedCollection(T)
 
 
 /**
-The $(D key_type) is alias'd at the type since it looked better than having
+The $(D key_type) is alias'd as the type since it looked better than having
 $(D typeof(T.key)) everywhere.
  */
     final alias key_type = typeof(T.key);
+/**
+Alias letting you know what this is a collection of.
+
+Version: \>= 0.0.6
+ */
+    final alias collectionof = T;
 
     private bool _containsChanges;
     private ubyte _enforceConstraints = (Enforce.check |
@@ -708,6 +714,9 @@ unittest
     // I am using an alias since BaseKeyedCollection
     // takes care of everything I want to do for this example in one line.
     alias Candies = BaseKeyedCollection!(Candy);
+
+    // Candies is a collection of Candy
+    static assert(is(Candies.collectionof == Candy));
 
     // source:
     // http://www.bloomberg.com/ss/09/10/1021_americas_25_top_selling_candies/

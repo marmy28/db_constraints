@@ -5,6 +5,7 @@
 ### New additions
 
  * EnumConstraint
+ * KeyedCollection.collectionof
 
 ### Misc.
 

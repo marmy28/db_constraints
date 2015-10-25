@@ -48,4 +48,3 @@ Contributions are welcome. Feel free to fork and pull request!
 ## Todo
 
  + Tips and tricks sample.
- + Put out next tag.

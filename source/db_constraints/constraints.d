@@ -21,7 +21,7 @@ Copyright: 2015
  */
 module db_constraints.constraints;
 
-import std.functional : unaryFun;
+import std.functional : binaryFun, unaryFun;
 
 /**
 KeyedItem will create a struct with $(I name) defined in the compile-time
@@ -41,6 +41,18 @@ must also have the NotNull attribute.
  */
 alias PrimaryKeyColumn = UniqueConstraintColumn!("PrimaryKey");
 
+/**
+Mimics Postgresql's Exclude Constraint. This will exclude any
+items that return true to the $(D exclusion_).
+
+Version: \>= 0.0.7
+ */
+struct ExclusionConstraint(alias exclusion_, string name_ = "")
+    if (is(typeof(binaryFun!exclusion_)))
+{
+    alias exclusion = binaryFun!exclusion_;
+    enum name = name_;
+}
 
 /**
 $(WIKI keyeditem, KeyedItem.checkConstraints) will check all of the members
@@ -106,7 +118,7 @@ template SetConstraint(bool isStrict, values...)
     if (isExpressions!values)
 {
     alias SetConstraint = CheckConstraint!(
-        function bool(ref auto a)
+        function bool(auto ref a)
         {
             static assert(is(typeof(a) == string));
 
@@ -162,7 +174,7 @@ template EnumConstraint(bool isStrict, values...)
     if (isExpressions!values)
 {
     alias EnumConstraint = CheckConstraint!(
-        function bool(ref auto a)
+        function bool(auto ref a)
         {
             import std.algorithm : among;
             static assert(is(typeof(a) == string));
@@ -304,3 +316,5 @@ struct Default(alias value_)
 {
     enum value = value_;
 }
+
+

@@ -58,7 +58,13 @@ you have this then you do not need to have clusteredUnique.
 /**
 Enforce the foreign key constraints if there are any.
  */
-    foreignKey = 1 << 3
+    foreignKey = 1 << 3,
+/**
+Enforce the exclusion constraints if there are any.
+
+Version: \>= 0.0.7
+ */
+    exclusion = 1 << 4
 }
 
 /**
@@ -147,7 +153,8 @@ Version: \>= 0.0.6
     private bool _containsChanges;
     private ubyte _enforceConstraints = (Enforce.check |
                                          Enforce.unique |
-                                         Enforce.foreignKey);
+                                         Enforce.foreignKey |
+                                         Enforce.exclusion);
 
     static if (hasForeignKeys!(T))
     {
@@ -197,7 +204,7 @@ the item's check constraints, unique constraints, and foreign key constraints.
                 !violatesUniqueConstraints(item, constraintName),
                 "The " ~ constraintName ~ " constraint for class " ~
                 T.stringof ~
-                "  was violated by item " ~ item.toString ~ ".");
+                " was violated by item " ~ item.toString ~ ".");
         }
         if (_enforceConstraints & Enforce.foreignKey)
         {
@@ -205,6 +212,15 @@ the item's check constraints, unique constraints, and foreign key constraints.
             {
                 checkForeignKeys(item);
             }
+        }
+        if (_enforceConstraints & Enforce.exclusion)
+        {
+            auto constraintName = "";
+            enforceEx!ExclusionConstraintException(
+                !violatesExclusionConstraints(item, constraintName),
+                "The " ~ constraintName ~ " constraint for class " ~
+                T.stringof ~
+                " was violated by item " ~ item.toString ~ ".");
         }
     }
     /// ditto
@@ -355,6 +371,10 @@ $(THROWS ForeignKeyException, if the item is violating any of its
 foreign key constraints and enforceConstraints include
 $(SRCTAG Enforce.foreignKey).)
 
+$(THROWS ExclusionConstraintException, if $(D item) conflicts with any item
+in $(D this) via the ExclusionConstraint and enforceConstraint includes
+$(SRCTAG Enforce.exclusion).)
+
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
 
 Params:
@@ -409,17 +429,7 @@ This just calls $(SRCTAG KeyedCollection.add).
 Initializes $(D this). Adds $(D item) to $(D this) and connects to the signals
 emitted by $(D item).
 
-$(THROWS UniqueConstraintException, if $(D this) already contains $(D item) and
-enforceConstraints include $(SRCTAG Enforce.unique) or
-$(SRCTAG Enforce.clusteredUnique).)
-
-$(THROWS CheckConstraintException, if the item is violating any of its
-defined check constraints and enforceConstraints include
-$(SRCTAG Enforce.check).)
-
-$(THROWS ForeignKeyException, if the item is violating any of its
-foreign key constraints and enforceConstraints include
-$(SRCTAG Enforce.foreignKey).)
+This just calls $(SRCTAG KeyedCollection.add).
 
 $(B Precondition:) $(D_CODE assert(item(s) !is null);)
  */
@@ -660,6 +670,62 @@ else
     {
         string constraintName;
         return this.violatesUniqueConstraints(item, constraintName);
+    }
+
+/**
+Checks if the item has any conflicting exclusion constraints.
+
+$(B Precondition:) $(D_CODE assert(items !is null);)
+
+$(B Postcondition:)
+$(D_CODE
+if (result)
+    assert(constraintName !is null && constraintName != "");
+else
+    assert(constraintName is null);
+)
+ */
+    final bool violatesExclusionConstraints(in T item, out string constraintName) const nothrow pure
+    in
+    {
+        assert(item !is null, "Cannot check if a null item is duplicated.");
+    }
+    out (result)
+    {
+        if (result)
+            assert(constraintName !is null && constraintName != "");
+        else
+            assert(constraintName is null);
+    }
+    body
+    {
+        bool result = false;
+        static if (hasExclusionConstraints!T)
+        {
+            foreach(exc; GetExclusionConstraints!T)
+            {
+                if (this._items.byValue.canFind!(exc.exclusion)(item))
+                {
+                    result = true;
+                    if (constraintName is null)
+                    {
+                        constraintName = exc.name;
+                    }
+                    else
+                    {
+                        constraintName ~= ", " ~ exc.name;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+    /// ditto
+    final bool violatesExclusionConstraints(in T item) const nothrow pure
+    {
+        string constraintName;
+        return this.violatesExclusionConstraints(item, constraintName);
     }
 }
 

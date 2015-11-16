@@ -14,6 +14,8 @@ The meta module contains:
   $(TOC createForeignKeyProperties)
   $(TOC createForeignKeyCheckExceptions)
   $(TOC createForeignKeyChanged)
+  $(TOC hasExclusionConstraints)
+  $(TOC GetExclusionConstraints)
 
 License: $(GPL2)
 
@@ -826,4 +828,62 @@ template createForeignKeyChanged(ClassName)
         }
         return result;
     }
+}
+
+/**
+Confirms ClassName has exclusion constraints.
+Returns:
+    true if ClassName has an instance of @ExclusionConstraint
+ */
+template hasExclusionConstraints(ClassName)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            enum Impl = false;
+        }
+        else static if (isInstanceOf!(ExclusionConstraint, T[0]))
+        {
+            enum Impl = true;
+        }
+        else
+        {
+            alias Impl = Impl!(T[1 .. $]);
+        }
+    }
+    enum hasExclusionConstraints = Impl!(__traits(getAttributes, ClassName));
+}
+
+/**
+Gets all of the $(WIKI constraints, ExclusionConstraint) that ClassName is attributed with. If
+the exclusion constraint name is left blank then the default name is $(D "exc_" ~ ClassName).
+ */
+template GetExclusionConstraints(ClassName)
+{
+    template Impl(T...)
+    {
+        static if (T.length == 0)
+        {
+            alias Impl = AliasSeq!();
+        }
+        else static if (isInstanceOf!(ExclusionConstraint, T[0]))
+        {
+            static if (T[0].name == "")
+            {
+                enum name = "exc_" ~ ClassName.stringof;
+                alias R = ExclusionConstraint!(T[0].exclusion, name);
+                alias Impl = AliasSeq!(R, Impl!(T[1 .. $]));
+            }
+            else
+            {
+                alias Impl = AliasSeq!(T[0], Impl!(T[1 .. $]));
+            }
+        }
+        else
+        {
+            alias Impl = Impl!(T[1 .. $]);
+        }
+    }
+    alias GetExclusionConstraints = Impl!(__traits(getAttributes, ClassName));
 }

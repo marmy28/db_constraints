@@ -1,5 +1,15 @@
 # Change log
 
+## 0.0.7 (release date: 2015-11-1?)
+
+### New additions
+
+ * ExclusionConstraint
+
+### Misc.
+
+ * Fixed @NotNull to use auto ref and not just auto.
+
 ## 0.0.6 (release date: 2015-10-25)
 
 ### New additions

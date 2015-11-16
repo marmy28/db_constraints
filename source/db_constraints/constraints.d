@@ -65,7 +65,7 @@ This is checked the same time as all the other check constraints. The name of
 the constraint is NotNull in the error messages if this is ever violated.
  */
 alias NotNull = CheckConstraint!(
-    function bool(auto a)
+    function bool(auto ref a)
     {
         static if (__traits(hasMember, typeof(a), "isNull"))
         {

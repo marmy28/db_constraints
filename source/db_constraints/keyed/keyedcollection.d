@@ -685,7 +685,7 @@ else
     assert(constraintName is null);
 )
  */
-    final bool violatesExclusionConstraints(in T item, out string constraintName) const nothrow pure
+    final bool violatesExclusionConstraints(in T item, out string constraintName)
     in
     {
         assert(item !is null, "Cannot check if a null item is duplicated.");
@@ -704,16 +704,20 @@ else
         {
             foreach(exc; GetExclusionConstraints!T)
             {
-                if (this._items.byValue.canFind!(exc.exclusion)(item))
+                foreach(i; this._items.byValue)
                 {
-                    result = true;
-                    if (constraintName is null)
+                    if (exc.exclusion(i, item))
                     {
-                        constraintName = exc.name;
-                    }
-                    else
-                    {
-                        constraintName ~= ", " ~ exc.name;
+                        result = true;
+                        if (constraintName is null)
+                        {
+                            constraintName = exc.name;
+                        }
+                        else
+                        {
+                            constraintName ~= ", " ~ exc.name;
+                        }
+                        break;
                     }
                 }
             }
@@ -722,7 +726,7 @@ else
         return result;
     }
     /// ditto
-    final bool violatesExclusionConstraints(in T item) const nothrow pure
+    final bool violatesExclusionConstraints(in T item)
     {
         string constraintName;
         return this.violatesExclusionConstraints(item, constraintName);

@@ -3,6 +3,7 @@ User-defined attributes that can be used with the KeyedItem mixin.
 The constraints module contains:
   $(TOC UniqueConstraintColumn)
   $(TOC PrimaryKeyColumn)
+  $(TOC ExclusionConstraint)
   $(TOC CheckConstraint)
   $(TOC NotNull)
   $(TOC SetConstraint)

@@ -10,6 +10,7 @@
 
  + [UniqueConstraintColumn](https://github.com/marmy28/db_constraints/wiki/constraints#UniqueConstraintColumn)
  + [PrimaryKeyColumn](https://github.com/marmy28/db_constraints/wiki/constraints#PrimaryKeyColumn)
+ + [ExclusionConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#ExclusionConstraint)
  + [CheckConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#CheckConstraint)
  + [NotNull](https://github.com/marmy28/db_constraints/wiki/constraints#NotNull)
  + [SetConstraint](https://github.com/marmy28/db_constraints/wiki/constraints#SetConstraint)

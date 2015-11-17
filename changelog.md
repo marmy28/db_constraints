@@ -1,6 +1,6 @@
 # Change log
 
-## 0.0.7 (release date: 2015-11-1?)
+## 0.0.7 (release date: 2015-11-16)
 
 ### New additions
 

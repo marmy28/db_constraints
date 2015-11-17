@@ -42,7 +42,7 @@ unittest
 
         bool overlapsWith(in Period i)
         {
-            return false;
+            return (this.startDate <= i.endDate && i.startDate <= this.endDate);
         }
     }
 
@@ -62,7 +62,7 @@ unittest
         }
 
         private Period _p;
-        @property inout(Period) p() inout // pure nothrow @nogc @safe
+        @property inout(Period) p() inout
         {
             return _p;
         }
@@ -84,8 +84,16 @@ unittest
     }
 
     alias Bs = BaseKeyedCollection!(B);
-// INSERT INTO b VALUES('[2009-01-05, 2009-01-10)');
-// INSERT INTO b VALUES('[2009-01-07, 2009-01-12)');
+    
     import std.exception : assertNotThrown, assertThrown;
 
-}
+    auto bs = new Bs();
+
+    auto first = Period(Date(2009, 01, 05), Date(2009, 01, 10));
+    assertNotThrown!ExclusionConstraintException(bs.add(new B(1, first))); 
+    auto second = Period(Date(2009, 01, 07), Date(2009, 01, 12));
+    assert(first.overlapsWith(second));
+    assertThrown!ExclusionConstraintException(bs.add(new B(2, second)));
+    auto third = Period(Date(2009, 01, 17), Date(2009, 01, 22));
+    assert(!first.overlapsWith(third));
+    assertNotThrown!ExclusionConstraintException(bs.add(new B(2, third)));}

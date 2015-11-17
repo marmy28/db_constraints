@@ -289,7 +289,7 @@ Returns:
     }
 /**
 Write-only property to enforce the constraints. By default
-this is  $(D (Enforce.check | Enforce.unique | Enforce.foreignKey))
+this is  $(D (Enforce.check | Enforce.unique | Enforce.foreignKey | Enforce.exclusion))
 but you may set it to 0 if you have a lot of
 initial data and already trust that it does not violate any constraints.
 

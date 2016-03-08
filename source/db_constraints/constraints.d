@@ -18,7 +18,7 @@ License: $(GPL2)
 Authors: Matthew Armbruster
 
 $(B Source:) $(SRC $(SRCFILENAME))
-Copyright: 2015
+Copyright: 2016
  */
 module db_constraints.constraints;
 

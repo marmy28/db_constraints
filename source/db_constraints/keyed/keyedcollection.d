@@ -11,7 +11,7 @@ Authors: Matthew Armbruster
 
 $(B Source:) $(SRC $(SRCFILENAME))
 
-Copyright: 2015
+Copyright: 2016
  */
 module db_constraints.keyed.keyedcollection;
 
